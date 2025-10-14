@@ -131,7 +131,12 @@ class BayesianCausalInference:
 Inferencia Bayesiana con actualización dinámica
 
 Returns:
-(posterior_mean, credible_interval_95)
+    (adjusted_posterior, credible_interval_95)
+
+    adjusted_posterior: float
+        Posterior mean adjusted by uncertainty factor (not the raw posterior mean).
+    credible_interval_95: Tuple[float, float]
+        95% credible interval (lower, upper) for the posterior.
         """
         alpha_post = self.prior_alpha + evidence_strength * observations * domain_weight
         beta_post = self.prior_beta + (1 - evidence_strength) * observations * domain_weight
