@@ -242,10 +242,15 @@ class CanonicalID:
 @dataclass
 class EvidenceEntry:
     """
-    Standard evidence entry with canonical notation
+    Standard evidence entry with canonical notation and full traceability
     
     All evidence entries must follow this canonical structure for consistency
     and traceability across the evaluation system.
+    
+    Enhanced with:
+    - PDF source traceability (page, bbox coordinates)
+    - Module extraction tracking
+    - Chain of custody for audit trail
     """
     evidence_id: str
     question_unique_id: str
@@ -253,6 +258,14 @@ class EvidenceEntry:
     confidence: float
     stage: str
     metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
+    
+    # Enhanced traceability fields
+    texto: Optional[str] = None  # Exact text extract from source
+    fuente: Optional[str] = None  # Source type: "pdf", "tabla", "grafo_causal"
+    pagina: Optional[int] = None  # PDF page number (1-indexed)
+    bbox: Optional[tuple] = None  # Bounding box (x0, y0, x1, y1) in PDF coordinates
+    modulo_extractor: Optional[str] = None  # Module that extracted this evidence
+    chain_of_custody: Optional[str] = None  # Audit trail (e.g., "Stage 4 → AGUJA I → P1-D6-Q26")
 
     def __post_init__(self):
         """Validate evidence entry"""
@@ -299,8 +312,8 @@ class EvidenceEntry:
             raise ValueError(f"Score must be between 0 and 1, got {self.content['score']}")
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary"""
-        return {
+        """Convert to dictionary with full traceability information"""
+        result = {
             "evidence_id": self.evidence_id,
             "question_unique_id": self.question_unique_id,
             "content": self.content,
@@ -308,6 +321,22 @@ class EvidenceEntry:
             "stage": self.stage,
             "metadata": self.metadata
         }
+        
+        # Add enhanced traceability fields if present
+        if self.texto is not None:
+            result["texto"] = self.texto
+        if self.fuente is not None:
+            result["fuente"] = self.fuente
+        if self.pagina is not None:
+            result["pagina"] = self.pagina
+        if self.bbox is not None:
+            result["bbox"] = self.bbox
+        if self.modulo_extractor is not None:
+            result["modulo_extractor"] = self.modulo_extractor
+        if self.chain_of_custody is not None:
+            result["chain_of_custody"] = self.chain_of_custody
+            
+        return result
 
     def to_json(self, indent: int = 2) -> str:
         """Convert to JSON string"""
@@ -323,10 +352,16 @@ class EvidenceEntry:
         confidence: float,
         stage: str,
         evidence_id_prefix: str = "",
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        # Enhanced traceability parameters
+        texto: Optional[str] = None,
+        fuente: Optional[str] = None,
+        pagina: Optional[int] = None,
+        bbox: Optional[tuple] = None,
+        modulo_extractor: Optional[str] = None
     ) -> 'EvidenceEntry':
         """
-        Create evidence entry with canonical notation
+        Create evidence entry with canonical notation and full traceability
         
         Args:
             policy: Policy ID (P1-P10)
@@ -337,9 +372,14 @@ class EvidenceEntry:
             stage: Processing stage identifier
             evidence_id_prefix: Optional prefix for evidence_id (e.g., "toc_")
             metadata: Optional metadata dictionary
+            texto: Exact text extract from source document
+            fuente: Source type ("pdf", "tabla", "grafo_causal")
+            pagina: PDF page number (1-indexed)
+            bbox: Bounding box coordinates (x0, y0, x1, y1)
+            modulo_extractor: Module that extracted this evidence
             
         Returns:
-            EvidenceEntry instance
+            EvidenceEntry instance with full traceability
         """
         canonical_id = CanonicalID(policy=policy, dimension=dimension, question=question)
         question_unique_id = str(canonical_id)
@@ -355,13 +395,22 @@ class EvidenceEntry:
             "rubric_key": rubric_key
         }
         
+        # Generate chain of custody
+        chain_of_custody = f"{stage} → {modulo_extractor or 'UNKNOWN'} → {question_unique_id}"
+        
         return cls(
             evidence_id=evidence_id,
             question_unique_id=question_unique_id,
             content=content,
             confidence=confidence,
             stage=stage,
-            metadata=metadata or {}
+            metadata=metadata or {},
+            texto=texto,
+            fuente=fuente,
+            pagina=pagina,
+            bbox=bbox,
+            modulo_extractor=modulo_extractor,
+            chain_of_custody=chain_of_custody
         )
 
 

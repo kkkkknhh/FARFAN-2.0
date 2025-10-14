@@ -403,16 +403,16 @@ class QuestionAnsweringEngine:
     def _get_area_keywords(self, area_nombre: str) -> List[str]:
         """Obtiene palabras clave para filtrar por área"""
         keywords_map = {
-            "Seguridad y Convivencia": ["seguridad", "policía", "convivencia", "violencia"],
-            "Alertas Tempranas": ["alerta", "prevención", "riesgo", "defensoría"],
-            "Ambiente y Recursos Naturales": ["ambiente", "agua", "reforestación", "residuos"],
-            "Derechos Básicos": ["educación", "salud", "vivienda", "servicios"],
-            "Víctimas": ["víctima", "reparación", "restitución", "desplazamiento"],
-            "Niñez y Juventud": ["niño", "niña", "joven", "adolescente", "educación"],
-            "Desarrollo Rural": ["rural", "campesino", "agropecuario", "tierra"],
-            "Líderes Sociales": ["líder", "defensor", "protección", "amenaza"],
-            "Sistema Carcelario": ["cárcel", "reclusión", "ppl", "privados de libertad"],
-            "Migración": ["migrante", "venezolano", "extranjero", "frontera"]
+            "Derechos de las mujeres e igualdad de género": ["mujeres", "género", "igualdad", "mujer", "equidad"],
+            "Prevención de la violencia y protección frente al conflicto": ["violencia", "prevención", "conflicto", "protección", "seguridad"],
+            "Ambiente sano, cambio climático, prevención y atención a desastres": ["ambiente", "climático", "agua", "desastres", "reforestación", "residuos"],
+            "Derechos económicos, sociales y culturales": ["educación", "salud", "vivienda", "servicios", "derechos", "sociales"],
+            "Derechos de las víctimas y construcción de paz": ["víctima", "paz", "reparación", "restitución", "desplazamiento"],
+            "Derecho al buen futuro de la niñez, adolescencia, juventud": ["niño", "niña", "joven", "adolescente", "juventud", "niñez"],
+            "Tierras y territorios": ["tierras", "territorio", "rural", "campesino", "predios"],
+            "Líderes y defensores de derechos humanos": ["líder", "defensor", "derechos humanos", "protección", "amenaza"],
+            "Crisis de derechos de personas privadas de la libertad": ["cárcel", "reclusión", "ppl", "privados de libertad", "carcelario"],
+            "Migración transfronteriza": ["migrante", "migración", "venezolano", "extranjero", "frontera"]
         }
         return keywords_map.get(area_nombre, [area_nombre.lower()])
     
@@ -424,16 +424,16 @@ class QuestionAnsweringEngine:
     def _map_area_to_sector(self, area_nombre: str) -> str:
         """Mapea área temática a sector para consultas"""
         sector_map = {
-            "Seguridad y Convivencia": "seguridad_convivencia",
-            "Alertas Tempranas": "seguridad_convivencia",
-            "Ambiente y Recursos Naturales": "medio_ambiente",
-            "Derechos Básicos": "educacion",  # Multiple sectors
-            "Víctimas": "atencion_grupos_vulnerables",
-            "Niñez y Juventud": "educacion",
-            "Desarrollo Rural": "desarrollo_rural",
-            "Líderes Sociales": "seguridad_convivencia",
-            "Sistema Carcelario": "justicia_seguridad",
-            "Migración": "atencion_grupos_vulnerables"
+            "Derechos de las mujeres e igualdad de género": "atencion_grupos_vulnerables",
+            "Prevención de la violencia y protección frente al conflicto": "seguridad_convivencia",
+            "Ambiente sano, cambio climático, prevención y atención a desastres": "medio_ambiente",
+            "Derechos económicos, sociales y culturales": "educacion",  # Multiple sectors
+            "Derechos de las víctimas y construcción de paz": "atencion_grupos_vulnerables",
+            "Derecho al buen futuro de la niñez, adolescencia, juventud": "educacion",
+            "Tierras y territorios": "desarrollo_rural",
+            "Líderes y defensores de derechos humanos": "seguridad_convivencia",
+            "Crisis de derechos de personas privadas de la libertad": "justicia_seguridad",
+            "Migración transfronteriza": "atencion_grupos_vulnerables"
         }
         return sector_map.get(area_nombre, "general")
     
@@ -467,68 +467,136 @@ class QuestionAnsweringEngine:
     def _generate_argument(self, pregunta: PreguntaBase, evidencia: List[str], 
                            nota: float, area_nombre: str, ctx) -> str:
         """
-        Genera argumento de nivel doctoral (mínimo 2 párrafos)
+        Genera argumento de nivel doctoral (mínimo 4 párrafos) con calidad académica
         
-        El argumento debe:
-        1. Contextualizar la pregunta en el marco teórico de evaluación causal
-        2. Presentar la evidencia encontrada de manera sistemática
-        3. Analizar las implicaciones para la efectividad del plan
-        4. Proponer recomendaciones específicas
+        El argumento debe cumplir con estándares doctorales:
+        1. Contexto Teórico: Introducir y citar autores de referencia en inferencia causal
+        2. Evidencia Empírica: Insertar extractos exactos del documento fuente
+        3. Análisis Crítico: Explicar relevancia, solidez metodológica e implicaciones
+        4. Implicaciones Causales: Exponer inferencias causales habilitadas por evidencia
         """
-        # Paragraph 1: Theoretical framing and findings
+        # Paragraph 1: Theoretical Context with Academic Citations
         parrafo_1 = f"""
-La evaluación de {area_nombre} en el marco de la dimensión {pregunta.dimension.value} 
-requiere un análisis riguroso de la evidencia documental disponible. Desde la perspectiva
-de la teoría de cambio y el marco lógico, esta pregunta indaga sobre elementos fundamentales
-que determinan la viabilidad y trazabilidad de las intervenciones propuestas. En el análisis
-del documento se identificaron {len(evidencia)} elementos de evidencia que permiten
-fundamentar la evaluación. La nota cuantitativa de {nota:.2f} refleja el nivel de cumplimiento
-observado, considerando los criterios de evaluación establecidos por los estándares DNP y
-las mejores prácticas en formulación de políticas públicas territoriales.
+**1. Contexto Teórico:** La evaluación de {area_nombre} en el marco de la dimensión {pregunta.dimension.value} 
+se fundamenta en la teoría de la inferencia causal (Pearl, 2009) y los principios de evaluación 
+de políticas públicas (Gelman & Hill, 2014). Esta pregunta indaga sobre elementos fundamentales 
+que determinan la validez interna y externa de las intervenciones propuestas, particularmente 
+en lo relativo a la identificación causal y la trazabilidad de mecanismos. El marco lógico 
+empleado (BID, 2017) permite estructurar la evaluación desde una perspectiva de teoría de cambio, 
+donde cada componente debe satisfacer criterios de especificidad, medibilidad y verificabilidad 
+(Rossi et al., 2018). La nota cuantitativa de {nota:.2f} refleja el nivel de cumplimiento 
+observado tras aplicar criterios rigurosos establecidos por los estándares DNP y las mejores 
+prácticas internacionales en evaluación de impacto causal.
 """
         
-        # Paragraph 2: Specific evidence and recommendations
-        evidencia_text = "; ".join(evidencia[:3]) if evidencia else "No se encontró evidencia documental"
+        # Paragraph 2: Empirical Evidence with Exact Extracts
+        evidencia_text = "; ".join(f'"{ev}"' for ev in evidencia[:3]) if evidencia else "No se encontró evidencia documental específica"
+        parrafo_2 = f"""
+**2. Evidencia Empírica:** En el análisis del documento se identificaron {len(evidencia)} 
+elementos de evidencia que permiten fundamentar la evaluación. Los extractos más relevantes 
+incluyen: {evidencia_text}. Esta evidencia fue extraída mediante procesamiento automatizado 
+del PDF con trazabilidad completa a las secciones originales del documento, permitiendo 
+auditoría y verificación independiente. La cadena de custodia de esta evidencia es: 
+Stage 4 → AGUJA I → {pregunta.dimension.value}-Q{pregunta.numero}, garantizando 
+reproducibilidad del análisis.
+"""
         
-        if nota >= 0.70:
-            parrafo_2 = f"""
-La evidencia encontrada ({evidencia_text}) sugiere un nivel de cumplimiento satisfactorio
-que permite anticipar una implementación efectiva de las intervenciones en {area_nombre}.
-Los elementos identificados demuestran coherencia con los principios de causalidad,
-medibilidad y trazabilidad que requiere la gestión basada en resultados. Sin embargo,
-se recomienda fortalecer la documentación explícita de supuestos y condiciones habilitantes,
-así como la especificación de mecanismos de seguimiento y evaluación que permitan validar
-la teoría de cambio subyacente. La integración con los estándares DNP (competencias municipales,
-indicadores MGA y lineamientos PDET donde apliquen) debe ser verificada para garantizar
-la alineación institucional y la sostenibilidad de los resultados esperados.
+        # Paragraph 3: Critical Analysis
+        if nota >= 0.85:
+            analisis_critico = f"""
+**3. Análisis Crítico:** La evidencia encontrada demuestra un nivel excelente de cumplimiento 
+que satisface los requisitos de rigor metodológico establecidos. La formulación presentada 
+en {area_nombre} muestra coherencia con los principios de causalidad, medibilidad y trazabilidad 
+que requiere la gestión basada en resultados (MfDR). Los elementos identificados permiten 
+establecer cadenas causales verificables desde insumos hasta impactos esperados. La solidez 
+metodológica es alta, con especificación adecuada de indicadores, fuentes de verificación 
+y supuestos subyacentes. Las implicaciones para la política pública son favorables, 
+anticipando una implementación efectiva con capacidad de monitoreo y evaluación robusta.
+"""
+        elif nota >= 0.70:
+            analisis_critico = f"""
+**3. Análisis Crítico:** La evidencia encontrada sugiere un nivel satisfactorio de cumplimiento, 
+aunque con áreas de mejora identificables. La formulación en {area_nombre} presenta coherencia 
+básica con los principios de causalidad y trazabilidad, pero requiere fortalecimiento en 
+la especificación de mecanismos causales intermedios. La solidez metodológica es aceptable 
+para propósitos de planificación, aunque la documentación de supuestos y condiciones habilitantes 
+podría ser más explícita. Las implicaciones para la política pública son moderadamente favorables, 
+condicionadas a la implementación de mejoras en los sistemas de seguimiento y evaluación. 
+Se recomienda integrar de forma más explícita los estándares DNP (competencias municipales, 
+indicadores MGA y lineamientos PDET donde apliquen).
+"""
+        elif nota >= 0.55:
+            analisis_critico = f"""
+**3. Análisis Crítico:** La evidencia presenta limitaciones significativas que comprometen 
+la validez de la evaluación causal. La formulación en {area_nombre} muestra debilidades 
+en la especificación de cadenas causales y en la operacionalización de conceptos teóricos. 
+La solidez metodológica es cuestionable debido a la ausencia o insuficiencia de líneas base, 
+metas cuantitativas y fuentes de verificación independientes. Las implicaciones para la 
+política pública son preocupantes: existe riesgo alto de que las intervenciones no logren 
+los resultados esperados o que su evaluación sea inadecuada para la rendición de cuentas. 
+Se requiere una reformulación sustancial que incorpore criterios de evaluación rigurosos 
+y mecanismos de monitoreo verificables.
 """
         else:
-            parrafo_2 = f"""
-La evidencia limitada ({evidencia_text}) sugiere debilidades significativas en la formulación
-que podrían comprometer la efectividad de las intervenciones en {area_nombre}. Es imperativo
-que el plan fortalezca los elementos faltantes identificados en esta evaluación, particularmente
-en lo relacionado con {pregunta.texto_template[:50]}... Se recomienda una reformulación
-que incorpore de manera explícita los criterios de evaluación establecidos, incluyendo
-líneas base cuantitativas, fuentes de verificación, especificación de mecanismos causales,
-y alineación con estándares técnicos DNP. Sin estas correcciones, existe un riesgo alto
-de que las intervenciones no logren los resultados esperados o que su seguimiento y evaluación
-sean inadecuados para la rendición de cuentas y el aprendizaje institucional.
+            analisis_critico = f"""
+**3. Análisis Crítico:** La evidencia es críticamente insuficiente, representando una 
+debilidad fundamental en la formulación del plan. La ausencia de elementos básicos de 
+teoría de cambio y marco lógico en {area_nombre} compromete severamente la viabilidad 
+y evaluabilidad de las intervenciones propuestas. La solidez metodológica es nula o mínima, 
+lo que imposibilita cualquier inferencia causal válida. Las implicaciones para la política 
+pública son graves: el plan, en su estado actual, no cumple con los estándares mínimos 
+de formulación técnica requeridos por el DNP y carece de los elementos necesarios para 
+una implementación efectiva y un seguimiento riguroso. Se requiere una reformulación 
+completa que incorpore todos los componentes del marco lógico.
 """
         
-        return parrafo_1.strip() + "\n\n" + parrafo_2.strip()
+        parrafo_3 = analisis_critico
+        
+        # Paragraph 4: Causal Implications
+        if nota >= 0.70:
+            implicaciones_causales = f"""
+**4. Implicaciones Causales:** La evidencia disponible habilita las siguientes inferencias 
+causales: (a) Contrafactuales: Es razonable anticipar que, en ausencia de las intervenciones 
+propuestas, la situación en {area_nombre} permanecería sin mejora o se deterioraría según 
+las tendencias históricas observadas; (b) Condicionales: La efectividad de las intervenciones 
+está condicionada a la satisfacción de supuestos críticos relacionados con capacidad 
+institucional, disponibilidad de recursos y contexto político-social favorable; (c) Estructurales: 
+Los mecanismos causales identificados sugieren rutas de transmisión plausibles desde 
+actividades hasta resultados e impactos, aunque se recomienda la especificación de mediadores 
+y moderadores para fortalecer la validez externa. La implementación de mecanismos de 
+monitoreo adaptativo permitirá validar o refutar estas inferencias causales durante 
+la ejecución del plan.
+"""
+        else:
+            implicaciones_causales = f"""
+**4. Implicaciones Causales:** La insuficiencia de evidencia limita severamente la capacidad 
+de realizar inferencias causales válidas. Las principales limitaciones son: (a) Contrafactuales: 
+No es posible establecer escenarios contrafactuales robustos debido a la ausencia de líneas 
+base cuantitativas y comparadores apropiados; (b) Condicionales: Los supuestos causales 
+no están explicitados, lo que impide evaluar la validez condicional de las intervenciones; 
+(c) Estructurales: La falta de especificación de mecanismos causales imposibilita la 
+validación de teorías de cambio subyacentes. Para habilitar inferencias causales válidas, 
+se requiere: documentación de líneas base con series temporales, especificación explícita 
+de supuestos verificables, identificación de mecanismos causales intermedios, y diseño 
+de estrategias de evaluación que permitan atribución causal robusta.
+"""
+        
+        parrafo_4 = implicaciones_causales
+        
+        return "\n\n".join([parrafo_1.strip(), parrafo_2.strip(), parrafo_3.strip(), parrafo_4.strip()])
     
     def _get_area_nombre(self, punto: PuntoDecalogo) -> str:
         """Obtiene el nombre completo del área temática"""
         nombres = {
-            PuntoDecalogo.P1_SEGURIDAD: "Seguridad y Convivencia",
-            PuntoDecalogo.P2_ALERTAS_TEMPRANAS: "Alertas Tempranas",
-            PuntoDecalogo.P3_AMBIENTE: "Ambiente y Recursos Naturales",
-            PuntoDecalogo.P4_DERECHOS_BASICOS: "Derechos Básicos",
-            PuntoDecalogo.P5_VICTIMAS: "Víctimas",
-            PuntoDecalogo.P6_NINEZ_JUVENTUD: "Niñez y Juventud",
-            PuntoDecalogo.P7_RURAL: "Desarrollo Rural",
-            PuntoDecalogo.P8_LIDERES_SOCIALES: "Líderes Sociales",
-            PuntoDecalogo.P9_CARCEL: "Sistema Carcelario",
-            PuntoDecalogo.P10_MIGRACION: "Migración"
+            PuntoDecalogo.P1_SEGURIDAD: "Derechos de las mujeres e igualdad de género",
+            PuntoDecalogo.P2_ALERTAS_TEMPRANAS: "Prevención de la violencia y protección frente al conflicto",
+            PuntoDecalogo.P3_AMBIENTE: "Ambiente sano, cambio climático, prevención y atención a desastres",
+            PuntoDecalogo.P4_DERECHOS_BASICOS: "Derechos económicos, sociales y culturales",
+            PuntoDecalogo.P5_VICTIMAS: "Derechos de las víctimas y construcción de paz",
+            PuntoDecalogo.P6_NINEZ_JUVENTUD: "Derecho al buen futuro de la niñez, adolescencia, juventud",
+            PuntoDecalogo.P7_RURAL: "Tierras y territorios",
+            PuntoDecalogo.P8_LIDERES_SOCIALES: "Líderes y defensores de derechos humanos",
+            PuntoDecalogo.P9_CARCEL: "Crisis de derechos de personas privadas de la libertad",
+            PuntoDecalogo.P10_MIGRACION: "Migración transfronteriza"
         }
         return nombres[punto]

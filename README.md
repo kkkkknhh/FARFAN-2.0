@@ -20,16 +20,16 @@ El orquestador implementa un sistema completo de evaluación mediante **300 preg
   - D6: Causalidad (Teoría de Cambio)
 
 - **10 Áreas de Política** (Decálogo):
-  - P1: Seguridad y Convivencia
-  - P2: Alertas Tempranas
-  - P3: Ambiente y Recursos Naturales
-  - P4: Derechos Básicos
-  - P5: Víctimas
-  - P6: Niñez y Juventud
-  - P7: Desarrollo Rural
-  - P8: Líderes Sociales
-  - P9: Sistema Carcelario
-  - P10: Migración
+  - P1: Derechos de las mujeres e igualdad de género
+  - P2: Prevención de la violencia y protección frente al conflicto
+  - P3: Ambiente sano, cambio climático, prevención y atención a desastres
+  - P4: Derechos económicos, sociales y culturales
+  - P5: Derechos de las víctimas y construcción de paz
+  - P6: Derecho al buen futuro de la niñez, adolescencia, juventud
+  - P7: Tierras y territorios
+  - P8: Líderes y defensores de derechos humanos
+  - P9: Crisis de derechos de personas privadas de la libertad
+  - P10: Migración transfronteriza
 
 **Cada respuesta incluye**:
 - Texto de respuesta directa

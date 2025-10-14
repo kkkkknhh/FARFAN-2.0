@@ -75,61 +75,61 @@
   
   "puntos_decalogo": {
     "P1": {
-      "nombre": "Seguridad y Convivencia",
+      "nombre": "Derechos de las mujeres e igualdad de género",
       "descripcion": "Estrategias para reducir violencia, fortalecer convivencia y mejorar percepción de seguridad ciudadana",
       "dimensiones_criticas": ["D1", "D2", "D4"],
       "indicadores_clave": ["tasa_homicidios", "percepcion_seguridad", "cobertura_videovigilancia"]
     },
     "P2": {
-      "nombre": "Alertas Tempranas y Prevención",
+      "nombre": "Prevención de la violencia y protección frente al conflicto",
       "descripcion": "Sistemas de alerta temprana, gestión de riesgos y prevención de conflictos",
       "dimensiones_criticas": ["D1", "D6"],
       "indicadores_clave": ["alertas_gestionadas", "poblacion_desplazada_atendida"]
     },
     "P3": {
-      "nombre": "Ambiente y Recursos Naturales",
+      "nombre": "Ambiente sano, cambio climático, prevención y atención a desastres",
       "descripcion": "Protección ambiental, gestión de recursos naturales y adaptación al cambio climático",
       "dimensiones_criticas": ["D1", "D3", "D4"],
       "indicadores_clave": ["cobertura_acueducto", "irca", "hectareas_reforestadas"]
     },
     "P4": {
-      "nombre": "Derechos Básicos",
+      "nombre": "Derechos económicos, sociales y culturales",
       "descripcion": "Acceso a educación, salud, vivienda digna y servicios públicos básicos",
       "dimensiones_criticas": ["D1", "D3", "D4"],
       "indicadores_clave": ["cobertura_educacion", "cobertura_salud", "deficit_habitacional"]
     },
     "P5": {
-      "nombre": "Víctimas del Conflicto",
+      "nombre": "Derechos de las víctimas y construcción de paz",
       "descripcion": "Reparación integral, retornos, reubicaciones y garantías de no repetición",
       "dimensiones_criticas": ["D1", "D2"],
       "indicadores_clave": ["victimas_reparacion_integral", "retornos_reubicaciones"]
     },
     "P6": {
-      "nombre": "Niñez, Adolescencia y Juventud",
+      "nombre": "Derecho al buen futuro de la niñez, adolescencia, juventud",
       "descripcion": "Protección integral, prevención de vulneraciones y promoción de desarrollo integral",
       "dimensiones_criticas": ["D1", "D4"],
       "indicadores_clave": ["desercion_escolar", "embarazo_adolescente", "cobertura_pae"]
     },
     "P7": {
-      "nombre": "Desarrollo Rural y Formalización",
+      "nombre": "Tierras y territorios",
       "descripcion": "Formalización de predios, infraestructura rural y fortalecimiento de economía campesina",
       "dimensiones_criticas": ["D1", "D3"],
       "indicadores_clave": ["predios_formalizados", "actualizacion_catastral", "vias_terciarias"]
     },
     "P8": {
-      "nombre": "Líderes Sociales y Defensores",
+      "nombre": "Líderes y defensores de derechos humanos",
       "descripcion": "Protección de líderes sociales, defensores de derechos humanos y garantías para su labor",
       "dimensiones_criticas": ["D1", "D2", "D6"],
       "indicadores_clave": ["lideres_con_proteccion", "amenazas_a_lideres"]
     },
     "P9": {
-      "nombre": "Sistema Carcelario y Resocialización",
+      "nombre": "Crisis de derechos de personas privadas de la libertad",
       "descripcion": "Condiciones dignas para privados de libertad y programas de resocialización",
       "dimensiones_criticas": ["D1", "D3", "D4"],
       "indicadores_clave": ["hacinamiento_carcelario", "atencion_salud_ppl"]
     },
     "P10": {
-      "nombre": "Migración y Atención Humanitaria",
+      "nombre": "Migración transfronteriza",
       "descripcion": "Regularización migratoria, atención humanitaria e integración social",
       "dimensiones_criticas": ["D1", "D2"],
       "indicadores_clave": ["migrantes_regularizados", "atencion_humanitaria_migrantes"]
@@ -866,29 +866,29 @@
   
   "clusters_meso": {
     "C1": {
-      "nombre": "Seguridad, Paz y Protección",
-      "descripcion": "Clúster enfocado en seguridad ciudadana, prevención de conflictos y protección de líderes sociales",
+      "nombre": "Derechos de las Mujeres, Prevención de Violencia y Protección de Líderes",
+      "descripcion": "Clúster enfocado en derechos de las mujeres, igualdad de género, prevención de violencia, protección frente al conflicto y protección de líderes y defensores de derechos humanos",
       "puntos": ["P1", "P2", "P8"],
       "dimensiones_criticas": ["D1", "D2", "D6"],
       "umbral_cluster": 0.60
     },
     "C2": {
-      "nombre": "Derechos Sociales y Poblaciones Vulnerables",
-      "descripcion": "Clúster centrado en garantía de derechos básicos y atención a poblaciones vulnerables",
+      "nombre": "Derechos Económicos, Sociales, Culturales y Poblaciones Vulnerables",
+      "descripcion": "Clúster centrado en garantía de derechos económicos, sociales y culturales, atención a víctimas del conflicto, construcción de paz y desarrollo de la niñez, adolescencia y juventud",
       "puntos": ["P4", "P5", "P6"],
       "dimensiones_criticas": ["D1", "D3", "D4"],
       "umbral_cluster": 0.60
     },
     "C3": {
-      "nombre": "Territorio, Ambiente y Desarrollo Rural",
-      "descripcion": "Clúster enfocado en desarrollo territorial sostenible y fortalecimiento rural",
+      "nombre": "Ambiente, Cambio Climático, Tierras y Territorios",
+      "descripcion": "Clúster enfocado en ambiente sano, cambio climático, prevención y atención a desastres, tierras y territorios",
       "puntos": ["P3", "P7"],
       "dimensiones_criticas": ["D1", "D3"],
       "umbral_cluster": 0.60
     },
     "C4": {
-      "nombre": "Poblaciones en Contextos Especiales",
-      "descripcion": "Clúster para atención de privados de libertad y población migrante",
+      "nombre": "Personas Privadas de Libertad y Migración",
+      "descripcion": "Clúster para atención de crisis de derechos de personas privadas de libertad y migración transfronteriza",
       "puntos": ["P9", "P10"],
       "dimensiones_criticas": ["D1", "D2"],
       "umbral_cluster": 0.55
