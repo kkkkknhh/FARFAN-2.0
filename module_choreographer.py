@@ -329,6 +329,81 @@ class ModuleChoreographer:
         
         return "\n".join(diagram)
     
+    def generate_mermaid_diagram(self) -> str:
+        """
+        Genera un diagrama Mermaid del flujo de ejecución real
+        
+        Returns:
+            String con código Mermaid para visualización
+        """
+        lines = ["```mermaid", "graph TD"]
+        
+        # Group by stage
+        stages = {}
+        for i, execution in enumerate(self.execution_history):
+            stage = execution.stage
+            if stage not in stages:
+                stages[stage] = []
+            stages[stage].append((i, execution))
+        
+        # Add nodes
+        for stage, executions in stages.items():
+            lines.append(f"    subgraph {stage}")
+            for i, execution in executions:
+                node_id = f"E{i}"
+                status = "✓" if execution.success else "✗"
+                label = f"{status} {execution.module_name}"
+                style = "fill:#90EE90" if execution.success else "fill:#FFB6C6"
+                lines.append(f'        {node_id}["{label}"]')
+                lines.append(f'        style {node_id} {style}')
+            lines.append("    end")
+        
+        # Add edges between sequential executions
+        for i in range(len(self.execution_history) - 1):
+            lines.append(f"    E{i} --> E{i+1}")
+        
+        lines.append("```")
+        return "\n".join(lines)
+    
+    def compare_execution_trace(self, other_trace: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Compara este trace de ejecución con otro para detectar divergencias
+        
+        Args:
+            other_trace: Otro trace exportado con export_execution_trace()
+        
+        Returns:
+            Dict con diferencias detectadas
+        """
+        current_trace = self.export_execution_trace()
+        
+        differences = {
+            'execution_count_diff': current_trace['total_executions'] - other_trace['total_executions'],
+            'time_diff': current_trace['total_time'] - other_trace['total_time'],
+            'new_modules': [],
+            'missing_modules': [],
+            'stage_differences': []
+        }
+        
+        # Module differences
+        current_modules = set(current_trace['module_usage'].keys())
+        other_modules = set(other_trace['module_usage'].keys())
+        
+        differences['new_modules'] = list(current_modules - other_modules)
+        differences['missing_modules'] = list(other_modules - current_modules)
+        
+        # Stage execution differences
+        current_stages = {e['stage'] for e in current_trace['executions']}
+        other_stages = {e['stage'] for e in other_trace['executions']}
+        
+        if current_stages != other_stages:
+            differences['stage_differences'] = {
+                'new_stages': list(current_stages - other_stages),
+                'missing_stages': list(other_stages - current_stages)
+            }
+        
+        return differences
+    
     def export_execution_trace(self) -> Dict[str, Any]:
         """
         Exporta la traza completa de ejecución para análisis

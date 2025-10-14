@@ -25,6 +25,11 @@ from typing import Dict, List, Any, Optional, Tuple
 from enum import Enum
 import warnings
 
+# Import new orchestration components
+from module_choreographer import ModuleChoreographer
+from module_interfaces import DependencyInjectionContainer, ModuleDependencies, CDAFAdapter
+from pipeline_dag import PipelineDAG, create_default_pipeline, PipelineExecutor
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -101,15 +106,40 @@ class FARFANOrchestrator:
     4. Se genera un reporte completo a tres niveles
     """
     
-    def __init__(self, output_dir: Path, log_level: str = "INFO"):
+    def __init__(self, output_dir: Path, log_level: str = "INFO", 
+                 use_choreographer: bool = True, use_dag: bool = False):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # Set log level
         logging.getLogger().setLevel(getattr(logging, log_level.upper()))
         
+        # Initialize Dependency Injection Container
+        self.di_container = DependencyInjectionContainer()
+        
+        # Initialize Module Choreographer
+        self.use_choreographer = use_choreographer
+        if self.use_choreographer:
+            self.choreographer = ModuleChoreographer()
+            logger.info("✓ ModuleChoreographer enabled")
+        else:
+            self.choreographer = None
+            logger.info("ModuleChoreographer disabled")
+        
+        # Initialize DAG-based pipeline (optional, experimental)
+        self.use_dag = use_dag
+        if self.use_dag:
+            self.pipeline_dag = create_default_pipeline()
+            logger.info("✓ DAG-based pipeline enabled")
+        else:
+            self.pipeline_dag = None
+        
         # Initialize all modules
         self._init_modules()
+        
+        # Register modules with choreographer
+        if self.choreographer:
+            self._register_modules_with_choreographer()
         
         logger.info("FARFANOrchestrator inicializado")
     
@@ -140,6 +170,14 @@ class FARFANOrchestrator:
                 output_dir=self.output_dir,
                 log_level="INFO"
             )
+            
+            # Register CDAF components via adapter and DI container
+            adapter = CDAFAdapter(self.cdaf)
+            self.di_container.register('pdf_processor', adapter.get_pdf_processor())
+            self.di_container.register('causal_extractor', adapter.get_causal_extractor())
+            self.di_container.register('mechanism_extractor', adapter.get_mechanism_extractor())
+            self.di_container.register('financial_auditor', adapter.get_financial_auditor())
+            
             logger.info("✓ CDAF Framework cargado")
         except Exception as e:
             logger.error(f"Error cargando CDAF Framework: {e}")
@@ -149,6 +187,7 @@ class FARFANOrchestrator:
         try:
             from dnp_integration import ValidadorDNP
             self.dnp_validator = ValidadorDNP(es_municipio_pdet=False)
+            self.di_container.register('dnp_validator', self.dnp_validator)
             logger.info("✓ Validador DNP cargado")
         except Exception as e:
             logger.error(f"Error cargando Validador DNP: {e}")
@@ -168,6 +207,7 @@ class FARFANOrchestrator:
         try:
             from competencias_municipales import CatalogoCompetenciasMunicipales
             self.competencias = CatalogoCompetenciasMunicipales()
+            self.di_container.register('competencias', self.competencias)
             logger.info("✓ Catálogo de Competencias cargado")
         except Exception as e:
             logger.error(f"Error cargando Competencias: {e}")
@@ -177,6 +217,7 @@ class FARFANOrchestrator:
         try:
             from mga_indicadores import CatalogoIndicadoresMGA
             self.mga_catalog = CatalogoIndicadoresMGA()
+            self.di_container.register('mga_catalog', self.mga_catalog)
             logger.info("✓ Catálogo MGA cargado")
         except Exception as e:
             logger.error(f"Error cargando MGA: {e}")
@@ -186,6 +227,7 @@ class FARFANOrchestrator:
         try:
             from pdet_lineamientos import LineamientosPDET
             self.pdet_lineamientos = LineamientosPDET()
+            self.di_container.register('pdet_lineamientos', self.pdet_lineamientos)
             logger.info("✓ Lineamientos PDET cargados")
         except Exception as e:
             logger.error(f"Error cargando PDET: {e}")
@@ -201,6 +243,7 @@ class FARFANOrchestrator:
                 mga_catalog=self.mga_catalog,
                 pdet_lineamientos=self.pdet_lineamientos
             )
+            self.di_container.register('qa_engine', self.qa_engine)
             logger.info("✓ Question Answering Engine cargado")
         except Exception as e:
             logger.error(f"Error cargando Question Answering Engine: {e}")
@@ -210,15 +253,74 @@ class FARFANOrchestrator:
         try:
             from report_generator import ReportGenerator
             self.report_generator = ReportGenerator(output_dir=self.output_dir)
+            self.di_container.register('report_generator', self.report_generator)
             logger.info("✓ Report Generator cargado")
         except Exception as e:
             logger.error(f"Error cargando Report Generator: {e}")
             self.report_generator = None
+        
+        # Register choreographer in DI container
+        if self.choreographer:
+            self.di_container.register('choreographer', self.choreographer)
+    
+    def _register_modules_with_choreographer(self):
+        """Register all modules with the choreographer for tracking"""
+        if not self.choreographer:
+            return
+        
+        logger.info("Registrando módulos con ModuleChoreographer...")
+        
+        if self.cdaf:
+            self.choreographer.register_module('dereck_beach', self.cdaf)
+            self.choreographer.register_module('pdf_processor', self.cdaf.pdf_processor)
+            self.choreographer.register_module('causal_extractor', self.cdaf.causal_extractor)
+            self.choreographer.register_module('mechanism_extractor', self.cdaf.mechanism_extractor)
+            self.choreographer.register_module('financial_auditor', self.cdaf.financial_auditor)
+        
+        if self.dnp_validator:
+            self.choreographer.register_module('dnp_validator', self.dnp_validator)
+        
+        if self.competencias:
+            self.choreographer.register_module('competencias', self.competencias)
+        
+        if self.mga_catalog:
+            self.choreographer.register_module('mga_catalog', self.mga_catalog)
+        
+        if self.pdet_lineamientos:
+            self.choreographer.register_module('pdet_lineamientos', self.pdet_lineamientos)
+        
+        if self.qa_engine:
+            self.choreographer.register_module('qa_engine', self.qa_engine)
+        
+        if self.report_generator:
+            self.choreographer.register_module('report_generator', self.report_generator)
+        
+        logger.info(f"✓ {len(self.choreographer.module_registry)} módulos registrados")
     
     def process_plan(self, pdf_path: Path, policy_code: str, 
                      es_municipio_pdet: bool = False) -> PipelineContext:
         """
         Procesa un Plan de Desarrollo completo siguiendo el flujo canónico
+        
+        Input Contract:
+            - pdf_path: Path to PDF file (must exist and be readable)
+            - policy_code: Policy identifier string (e.g., "PDM2024-ANT-MED")
+            - es_municipio_pdet: Boolean flag for PDET municipality status
+        
+        Output Contract:
+            - PipelineContext with all processing results
+            - question_responses: Dict with 300 question answers
+            - micro_report, meso_report, macro_report: Generated reports
+        
+        Preconditions:
+            - PDF file exists and is readable
+            - All required modules are initialized
+            - Output directory is writable
+        
+        Postconditions:
+            - All stages execute successfully (or optional stages skipped)
+            - Reports written to output directory
+            - Execution trace available via choreographer
         
         Args:
             pdf_path: Ruta al PDF del plan
@@ -241,37 +343,101 @@ class FARFANOrchestrator:
         )
         
         try:
-            # STAGE 1-2: Document Loading and Extraction
-            ctx = self._stage_extract_document(ctx)
-            
-            # STAGE 3: Semantic Analysis
-            ctx = self._stage_semantic_analysis(ctx)
-            
-            # STAGE 4: Causal Extraction
-            ctx = self._stage_causal_extraction(ctx)
-            
-            # STAGE 5: Mechanism Inference
-            ctx = self._stage_mechanism_inference(ctx)
-            
-            # STAGE 6: Financial Audit
-            ctx = self._stage_financial_audit(ctx)
-            
-            # STAGE 7: DNP Validation
-            ctx = self._stage_dnp_validation(ctx, es_municipio_pdet)
-            
-            # STAGE 8: Question Answering (300 preguntas)
-            ctx = self._stage_question_answering(ctx)
-            
-            # STAGE 9: Report Generation (Micro, Meso, Macro)
-            ctx = self._stage_report_generation(ctx)
+            # Use DAG-based execution if enabled
+            if self.use_dag and self.pipeline_dag:
+                logger.info("Usando ejecución basada en DAG")
+                executor = PipelineExecutor(
+                    self.pipeline_dag, 
+                    self.di_container,
+                    self.choreographer
+                )
+                result = executor.execute({
+                    'pdf_path': pdf_path,
+                    'policy_code': policy_code,
+                    'es_municipio_pdet': es_municipio_pdet
+                })
+                # Update context with results
+                for key, value in result.items():
+                    if hasattr(ctx, key):
+                        setattr(ctx, key, value)
+            else:
+                # Traditional stage-by-stage execution
+                # STAGE 1-2: Document Loading and Extraction
+                ctx = self._stage_extract_document(ctx)
+                
+                # STAGE 3: Semantic Analysis
+                ctx = self._stage_semantic_analysis(ctx)
+                
+                # STAGE 4: Causal Extraction
+                ctx = self._stage_causal_extraction(ctx)
+                
+                # STAGE 5: Mechanism Inference
+                ctx = self._stage_mechanism_inference(ctx)
+                
+                # STAGE 6: Financial Audit
+                ctx = self._stage_financial_audit(ctx)
+                
+                # STAGE 7: DNP Validation
+                ctx = self._stage_dnp_validation(ctx, es_municipio_pdet)
+                
+                # STAGE 8: Question Answering (300 preguntas)
+                ctx = self._stage_question_answering(ctx)
+                
+                # STAGE 9: Report Generation (Micro, Meso, Macro)
+                ctx = self._stage_report_generation(ctx)
             
             logger.info(f"✅ Procesamiento completado exitosamente para {policy_code}")
+            
+            # Generate execution artifacts if choreographer is enabled
+            if self.choreographer:
+                self._generate_execution_artifacts(policy_code)
             
         except Exception as e:
             logger.error(f"❌ Error en procesamiento: {e}", exc_info=True)
             raise
         
         return ctx
+    
+    def _generate_execution_artifacts(self, policy_code: str):
+        """
+        Generate execution trace and visualizations
+        
+        Args:
+            policy_code: Policy identifier for file naming
+        """
+        if not self.choreographer:
+            return
+        
+        logger.info("Generando artefactos de trazabilidad...")
+        
+        # Generate execution flow diagram (ASCII)
+        flow_diagram = self.choreographer.generate_flow_diagram()
+        flow_path = self.output_dir / f"execution_flow_{policy_code}.txt"
+        with open(flow_path, 'w') as f:
+            f.write(flow_diagram)
+        logger.info(f"  ✓ Diagrama de flujo: {flow_path}")
+        
+        # Generate Mermaid diagram
+        mermaid_diagram = self.choreographer.generate_mermaid_diagram()
+        mermaid_path = self.output_dir / f"execution_mermaid_{policy_code}.md"
+        with open(mermaid_path, 'w') as f:
+            f.write("# Diagrama de Ejecución Real\n\n")
+            f.write(mermaid_diagram)
+        logger.info(f"  ✓ Diagrama Mermaid: {mermaid_path}")
+        
+        # Export execution trace (JSON)
+        trace = self.choreographer.export_execution_trace()
+        trace_path = self.output_dir / f"execution_trace_{policy_code}.json"
+        with open(trace_path, 'w') as f:
+            json.dump(trace, f, indent=2)
+        logger.info(f"  ✓ Traza de ejecución: {trace_path}")
+        
+        # Module usage report
+        usage = self.choreographer.get_module_usage_report()
+        usage_path = self.output_dir / f"module_usage_{policy_code}.json"
+        with open(usage_path, 'w') as f:
+            json.dump(usage, f, indent=2)
+        logger.info(f"  ✓ Reporte de uso de módulos: {usage_path}")
     
     def _stage_extract_document(self, ctx: PipelineContext) -> PipelineContext:
         """STAGE 1-2: Extrae texto, tablas y secciones del PDF"""
@@ -308,15 +474,44 @@ class FARFANOrchestrator:
         return ctx
     
     def _stage_causal_extraction(self, ctx: PipelineContext) -> PipelineContext:
-        """STAGE 4: Extracción de jerarquía causal y grafos"""
+        """
+        STAGE 4: Extracción de jerarquía causal y grafos
+        
+        Input Contract:
+            - ctx.raw_text: Non-empty text string
+        
+        Output Contract:
+            - ctx.causal_graph: NetworkX DiGraph
+            - ctx.nodes: Dict of MetaNode objects
+            - ctx.causal_chains: List of causal links
+        
+        Preconditions:
+            - raw_text must be extracted
+            - CDAF framework must be available
+        
+        Postconditions:
+            - Graph is a valid DAG
+            - All nodes properly classified
+        """
         logger.info(f"[STAGE 4] Extracción causal")
         
         if self.cdaf is None:
             logger.warning("CDAF no disponible, saltando extracción causal")
             return ctx
         
-        # Extract causal hierarchy
-        ctx.causal_graph = self.cdaf.causal_extractor.extract_causal_hierarchy(ctx.raw_text)
+        # Execute through choreographer if available
+        if self.choreographer:
+            outputs = self.choreographer.execute_module_stage(
+                stage_name="STAGE_4",
+                module_name="causal_extractor",
+                function_name="extract_causal_hierarchy",
+                inputs={"text": ctx.raw_text}
+            )
+            ctx.causal_graph = outputs.get('result')
+        else:
+            # Direct execution
+            ctx.causal_graph = self.cdaf.causal_extractor.extract_causal_hierarchy(ctx.raw_text)
+        
         ctx.nodes = self.cdaf.causal_extractor.nodes
         ctx.causal_chains = self.cdaf.causal_extractor.causal_chains
         
