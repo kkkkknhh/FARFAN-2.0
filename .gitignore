@@ -18,3 +18,7 @@ index.html
 index.html
 *.html
 index.html
+
+# Virtual environment
+venv/
+.venv/

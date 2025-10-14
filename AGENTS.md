@@ -1,30 +1,49 @@
-# AGENTS.md - FARFAN-2.0 Development Guide
+# FARFAN 2.0 - Agent Guide
 
-## Setup
+## Commands
+
+**Setup:**  
 ```bash
-pip install pymupdf networkx pandas spacy pyyaml fuzzywuzzy python-Levenshtein pydot
+pip install pymupdf networkx pandas spacy pyyaml fuzzywuzzy python-Levenshtein pydot scipy numpy
 python -m spacy download es_core_news_lg
 ```
 
-## Commands
-- **Build**: N/A (Python project, no compilation)
-- **Lint**: N/A (no linter configured)
-- **Test**: `python test_canonical_notation.py` or `python -m unittest test_canonical_notation.py`
-- **Demo**: `python demo_orchestrator.py --simple` or `python orchestrator.py <pdf_file> --policy-code <code> --output-dir <dir>`
+**Build:** N/A (Python project)
+
+**Lint:** N/A (no linter configured)
+
+**Tests:**  
+```bash
+python -m unittest test_canonical_notation.py
+```
+
+**Dev/Run:**  
+```bash
+python orchestrator.py <pdf_file> --policy-code <code> --output-dir <dir> [--pdet]
+python demo_orchestrator.py --simple
+python dereck_beach <pdf_file> --output-dir <dir> --policy-code <code> [--pdet]
+```
 
 ## Tech Stack
-- **Language**: Python 3.11+
-- **Core**: PyMuPDF (PDF parsing), spaCy (NLP), NetworkX (causal graphs), Pandas (data)
-- **Domain**: Colombian Municipal Development Plan (PDM) evaluation framework with DNP compliance validation
+
+- **Language:** Python 3.11+
+- **Core:** PyMuPDF, spaCy (es_core_news_lg), networkx, pandas
+- **Processing:** scipy, numpy, fuzzywuzzy
+- **Visualization:** pydot
 
 ## Architecture
-- **Orchestrator**: `orchestrator.py` - main 9-stage canonical evaluation pipeline
-- **DNP Modules**: `dnp_integration.py`, `competencias_municipales.py`, `mga_indicadores.py`, `pdet_lineamientos.py`
-- **Canonical Notation**: `canonical_notation.py` - P#-D#-Q# system (10 policies × 6 dimensions × N questions = 300 questions)
-- **Reporting**: `report_generator.py` - micro (300 answers), meso (clusters), macro (global alignment)
+
+FARFAN 2.0 is a framework for auditing Colombian Municipal Development Plans (PDM) using causal analysis and DNP standards validation. Main modules:
+- `orchestrator.py`: 9-stage pipeline coordinating all modules to answer 300 evaluation questions
+- `question_answering_engine.py`, `report_generator.py`, `module_choreographer.py`: Question answering and reporting
+- `canonical_notation.py`: Canonical notation system (P#-D#-Q# format)
+- `dnp_integration.py`, `competencias_municipales.py`, `mga_indicadores.py`, `pdet_lineamientos.py`: DNP compliance validation
+- `dereck_beach`: CDAF (Causal Deconstruction and Audit Framework) standalone processor
 
 ## Code Style
-- Python 3 with type hints, dataclasses, and enums
-- Docstrings: triple-quoted with module/function purpose
-- Imports: standard lib, third-party, local (grouped and sorted)
-- Spanish for domain terms (e.g., "Teoría de Cambio"), English for code
+
+- Python 3 shebang (`#!/usr/bin/env python3`) for executables
+- Docstrings in Spanish for domain logic, English for technical infrastructure
+- Type hints and dataclasses preferred
+- Logging via `logging` module (INFO level default)
+- JSON for structured data output
