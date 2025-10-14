@@ -46,8 +46,6 @@ from transformers import pipeline, AutoTokenizer, AutoModel
 import torch
 
 # === ANÁLISIS FINANCIERO Y ECONÓMICO ===
-from forex_python.converter import CurrencyRates
-import babel.numbers as bn
 
 # === MACHINE LEARNING Y SCORING ===
 from sklearn.feature_extraction.text import TfidfVectorizer
