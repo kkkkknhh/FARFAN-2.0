@@ -1,0 +1,178 @@
+# CDAF Configuration File - Enhanced Version 2.0
+# This demonstrates the new externalized configuration capabilities
+
+# ============================================================================
+# Document Processing Patterns
+# ============================================================================
+patterns:
+  section_titles: '^(?:CAPÍTULO|ARTÍCULO|PARTE)\s+[\dIVX]+'
+  goal_codes: '[MP][RIP]-\d{3}'
+  numeric_formats: '[\d,]+(?:\.\d+)?%?'
+  table_headers: '(?:PROGRAMA|META|INDICADOR|LÍNEA BASE|VALOR ESPERADO)'
+  financial_headers: '(?:PRESUPUESTO|VALOR|MONTO|INVERSIÓN)'
+
+# ============================================================================
+# Lexicons for NLP Processing
+# ============================================================================
+lexicons:
+  causal_logic:
+    - 'gracias a'
+    - 'con el fin de'
+    - 'para lograr'
+    - 'mediante'
+    - 'a través de'
+    - 'como resultado de'
+    - 'debido a'
+    - 'porque'
+    - 'por medio de'
+    - 'permitirá'
+    - 'contribuirá a'
+  
+  goal_classification:
+    tasa: 'decreciente'
+    índice: 'constante'
+    número: 'suma'
+    porcentaje: 'constante'
+    cantidad: 'suma'
+    cobertura: 'suma'
+  
+  contextual_factors:
+    - 'riesgo'
+    - 'amenaza'
+    - 'obstáculo'
+    - 'limitación'
+    - 'restricción'
+    - 'desafío'
+    - 'brecha'
+    - 'déficit'
+    - 'vulnerabilidad'
+    - 'hipótesis alternativa'
+  
+  administrative_keywords:
+    - 'gestión'
+    - 'administración'
+    - 'coordinación'
+    - 'regulación'
+    - 'normativa'
+    - 'institucional'
+    - 'gobernanza'
+    - 'reglamento'
+    - 'decreto'
+    - 'resolución'
+    - 'acuerdo'
+
+# ============================================================================
+# Entity Name Aliases
+# ============================================================================
+entity_aliases:
+  SEC GOB: 'Secretaría de Gobierno'
+  SEC PLAN: 'Secretaría de Planeación'
+  SEC HAC: 'Secretaría de Hacienda'
+  SEC SALUD: 'Secretaría de Salud'
+  SEC EDU: 'Secretaría de Educación'
+  SEC INFRA: 'Secretaría de Infraestructura'
+
+# ============================================================================
+# Verb Sequences for Temporal Coherence
+# ============================================================================
+verb_sequences:
+  diagnosticar: 1
+  identificar: 2
+  analizar: 3
+  diseñar: 4
+  planificar: 5
+  implementar: 6
+  ejecutar: 7
+  monitorear: 8
+  evaluar: 9
+
+# ============================================================================
+# Bayesian Inference Thresholds (EXTERNALIZED)
+# ============================================================================
+# These values were previously hardcoded in the source code.
+# Now they can be tuned for different document types or domains.
+bayesian_thresholds:
+  # KL divergence threshold for convergence detection
+  # Lower values = stricter convergence requirement
+  # Range: [0.0, 1.0], Default: 0.01
+  kl_divergence: 0.01
+  
+  # Minimum evidence count before checking convergence
+  # Prevents premature convergence with sparse data
+  # Range: [1, inf], Default: 2
+  convergence_min_evidence: 2
+  
+  # Beta distribution prior parameters
+  # Higher values = stronger prior belief
+  # Range: [0.1, inf], Default: 2.0
+  prior_alpha: 2.0
+  prior_beta: 2.0
+  
+  # Laplace smoothing for likelihood calculations
+  # Prevents zero probabilities with unseen data
+  # Range: [0.0, inf], Default: 1.0
+  laplace_smoothing: 1.0
+
+# ============================================================================
+# Mechanism Type Prior Probabilities (EXTERNALIZED)
+# ============================================================================
+# These priors represent domain knowledge about mechanism type frequencies
+# in Colombian territorial development plans. They can be learned from data.
+# MUST sum to 1.0
+mechanism_type_priors:
+  administrativo: 0.30  # Administrative mechanisms
+  tecnico: 0.25         # Technical mechanisms
+  financiero: 0.20      # Financial mechanisms
+  politico: 0.15        # Political mechanisms
+  mixto: 0.10           # Mixed mechanisms
+
+# ============================================================================
+# Performance and Optimization Settings
+# ============================================================================
+performance:
+  # Enable vectorized numpy operations (faster but uses more memory)
+  enable_vectorized_ops: true
+  
+  # Enable async processing for large PDFs (experimental)
+  # Requires asyncio-compatible environment
+  enable_async_processing: false
+  
+  # Maximum context length for spaCy processing
+  # Shorter = faster but less context, Range: [100, inf]
+  max_context_length: 1000
+  
+  # Cache spaCy embeddings to avoid recomputation
+  # Recommended for production, uses ~200MB memory per 1000 nodes
+  cache_embeddings: true
+
+# ============================================================================
+# Self-Reflective Learning Configuration (FRONTIER PARADIGM)
+# ============================================================================
+# This enables the system to learn from audit feedback and improve
+# its Bayesian priors over time - a self-improving AI system.
+self_reflection:
+  # Enable learning from audit results to update priors
+  enable_prior_learning: false
+  
+  # Weight for feedback in prior updates
+  # 0.0 = ignore feedback, 1.0 = fully replace priors with feedback
+  # Range: [0.0, 1.0], Recommended: 0.05-0.2 for gradual learning
+  feedback_weight: 0.1
+  
+  # Path to save/load historical priors (null = don't save)
+  # Example: './data/prior_history.json'
+  prior_history_path: null
+  
+  # Minimum documents processed before applying learned priors
+  # Prevents overfitting to small samples
+  # Range: [1, inf], Recommended: 5-10
+  min_documents_for_learning: 5
+
+# ============================================================================
+# Notes on Configuration
+# ============================================================================
+# 1. All numeric thresholds now use Pydantic validation for type safety
+# 2. Invalid configurations are caught at load time, not runtime
+# 3. Performance settings allow tuning speed vs. accuracy tradeoff
+# 4. Self-reflection enables continuous improvement from audit feedback
+# 5. This configuration is validated against CDAFConfigSchema (Pydantic)
