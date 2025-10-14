@@ -534,14 +534,34 @@ class IndustrialGradeValidator:
         """Ejecuta benchmarks de rendimiento para las operaciones críticas del motor."""
         self.logger.info("  [Capa 4] Ejecutando benchmarks de rendimiento...")
         tc = TeoriaCambio()
-        
-        start = time.time(); grafo = tc.construir_grafo_causal(); self._log_metric("Construcción de Grafo", time.time() - start, "s", self.performance_benchmarks['graph_construction'])
-        start = time.time(); _ = tc._encontrar_caminos_completos(grafo); self._log_metric("Detección de Caminos", time.time() - start, "s", self.performance_benchmarks['path_detection'])
-        start = time.time(); _ = tc.validacion_completa(grafo); self._log_metric("Validación Completa", time.time() - start, "s", self.performance_benchmarks['full_validation'])
-        
+
+        grafo = self._benchmark_operation(
+            "Construcción de Grafo",
+            tc.construir_grafo_causal,
+            self.performance_benchmarks['graph_construction']
+        )
+        _ = self._benchmark_operation(
+            "Detección de Caminos",
+            tc._encontrar_caminos_completos,
+            self.performance_benchmarks['path_detection'],
+            grafo
+        )
+        _ = self._benchmark_operation(
+            "Validación Completa",
+            tc.validacion_completa,
+            self.performance_benchmarks['full_validation'],
+            grafo
+        )
+
         return all(m.status == "✅ PASÓ" for m in self.metrics if m.name in self.performance_benchmarks)
 
-    def _log_metric(self, name: str, value: float, unit: str, threshold: float) -> ValidationMetric:
+    def _benchmark_operation(self, operation_name: str, callable_obj, threshold: float, *args, **kwargs):
+        """Mide el tiempo de ejecución de una operación y registra la métrica."""
+        start_time = time.time()
+        result = callable_obj(*args, **kwargs)
+        elapsed = time.time() - start_time
+        self._log_metric(operation_name, elapsed, "s", threshold)
+        return result
         """Registra y reporta una métrica de validación."""
         status = "✅ PASÓ" if value <= threshold else "❌ FALLÓ"
         metric = ValidationMetric(name, value, unit, threshold, status)
