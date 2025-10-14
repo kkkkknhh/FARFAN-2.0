@@ -42,6 +42,7 @@ FARFAN 2.0 is a framework for auditing Colombian Municipal Development Plans (PD
 - `dnp_integration.py`, `competencias_municipales.py`, `mga_indicadores.py`, `pdet_lineamientos.py`: DNP compliance validation
 - `circuit_breaker.py`: Circuit breaker pattern for distributed pipeline resilience
 - `risk_mitigation_layer.py`: Pre-execution risk assessment with severity-based escalation and comprehensive logging
+- `resilience_config.py`: Pydantic-based resilience configuration for stage criticality, environment settings, and pipeline validation
 - `dereck_beach`: CDAF (Causal Deconstruction and Audit Framework) standalone processor
 
 ## Code Style
