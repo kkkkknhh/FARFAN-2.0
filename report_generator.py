@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Report Generator for FARFAN 2.0
 Generación de reportes a tres niveles: Micro, Meso y Macro

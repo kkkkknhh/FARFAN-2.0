@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Competencias Municipales - Colombian Municipal Competencies Framework
 Comprehensive catalog of own and concurrent competencies for Colombian municipalities
