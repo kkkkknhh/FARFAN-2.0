@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Unit tests for DAG-based Pipeline Configuration
 Tests pipeline stages, DAG validation, and execution order

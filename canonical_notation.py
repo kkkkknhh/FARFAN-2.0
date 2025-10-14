@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Canonical Notation System for PDM Evaluation
 ==============================================
@@ -29,9 +30,9 @@ Version: 2.0.0
 """
 
 import re
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any, Tuple, Union
+from typing import Dict, List, Optional, Any, Tuple
 import json
 
 
@@ -263,7 +264,7 @@ class EvidenceEntry:
     texto: Optional[str] = None  # Exact text extract from source
     fuente: Optional[str] = None  # Source type: "pdf", "tabla", "grafo_causal"
     pagina: Optional[int] = None  # PDF page number (1-indexed)
-    bbox: Optional[tuple] = None  # Bounding box (x0, y0, x1, y1) in PDF coordinates
+    bbox: Optional[Tuple[float, float, float, float]] = None  # Bounding box (x0, y0, x1, y1) in PDF coordinates
     modulo_extractor: Optional[str] = None  # Module that extracted this evidence
     chain_of_custody: Optional[str] = None  # Audit trail (e.g., "Stage 4 → AGUJA I → P1-D6-Q26")
 

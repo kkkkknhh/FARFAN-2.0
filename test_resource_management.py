@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Tests for Resource Management Module
 Validates memory monitoring and context managers
 """
 
 import pytest
-import time
 import gc
-from pathlib import Path
 from resource_management import (
     get_memory_usage_mb,
     memory_profiling_decorator,

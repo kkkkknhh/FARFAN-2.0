@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Ejemplo completo de validación DNP
 Demuestra el uso de todos los módulos de estándares DNP
