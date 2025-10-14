@@ -36,6 +36,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("policy_framework")
 
 # ========================
+# CONSTANTS
+# ========================
+
+# Maximum number of key excerpts to extract per causal dimension
+MAX_KEY_EXCERPTS: int = 3
+
+# ========================
 # DOMAIN ONTOLOGY
 # ========================
 
@@ -553,8 +560,8 @@ class PolicyDocumentAnalyzer:
             ]
             sims.sort(key=lambda x: x[1], reverse=True)
             
-            # Top 3 excerpts
-            top_chunks = [chunks[i] for i, _ in sims[:3]]
+            # Top excerpts (configurable via MAX_KEY_EXCERPTS)
+            top_chunks = [chunks[i] for i, _ in sims[:MAX_KEY_EXCERPTS]]
             excerpts[dim.value] = [
                 c["text"][:300] + ("..." if len(c["text"]) > 300 else "")
                 for c in top_chunks
