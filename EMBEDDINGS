@@ -1158,14 +1158,18 @@ class PolicyAnalysisEmbedder:
                 for match in matches:
                     try:
                         # Extract and clean numerical string
-                        num_str = match.group(1).replace(",", "").replace(".", "")
+                        raw_num = match.group(1)
 
-                        # Handle decimal separator (Colombian uses comma)
-                        if "," in match.group(1):
-                            parts = match.group(1).split(",")
-                            if len(parts) == 2 and len(parts[1]) <= 2:
-                                # Decimal separator
-                                num_str = parts[0].replace(".", "") + "." + parts[1]
+                        # Handle Colombian and international decimal formats
+                        if "." in raw_num and "," in raw_num:
+                            # Colombian format: dot as thousands, comma as decimal
+                            num_str = raw_num.replace(".", "").replace(",", ".")
+                        elif "," in raw_num:
+                            # Comma as decimal separator
+                            num_str = raw_num.replace(",", ".")
+                        else:
+                            # Only dot or plain number
+                            num_str = raw_num
 
                         value = float(num_str)
 
