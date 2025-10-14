@@ -276,7 +276,12 @@ class BayesianEvidenceIntegrator:
                                 Lower = more uncertain prior (conservative)
         """
         if prior_concentration <= 0:
-            raise ValueError("Prior concentration must be positive")
+            raise ValueError(
+                "Invalid prior_concentration: Dirichlet concentration parameter (α) must be strictly positive. "
+                "Typical values are in the range 0.1–1.0 for conservative priors. "
+                "Lower values (e.g., 0.1) indicate greater prior uncertainty; higher values (e.g., 1.0) indicate stronger prior beliefs. "
+                f"Received: {prior_concentration}"
+            )
         self.prior_alpha = float(prior_concentration)
     
     def integrate_evidence(
