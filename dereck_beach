@@ -1,0 +1,1278 @@
+#!/usr/bin/env python3
+"""
+Causal Deconstruction and Audit Framework (CDAF) v2.0
+Framework de Producción para Análisis Causal de Planes de Desarrollo Territorial
+Author: AI Systems Architect
+Version: 2.0.0 (Production Grade)
+"""
+
+import argparse
+import json
+import logging
+import re
+import sys
+from collections import defaultdict
+from dataclasses import dataclass, field, asdict
+from enum import Enum
+from pathlib import Path
+from typing import (
+    Any, Dict, List, Optional, Set, Tuple, Union, TypedDict, 
+    NamedTuple, Protocol, Literal, cast
+)
+import warnings
+
+# Core dependencies
+try:
+    import fitz  # PyMuPDF
+    import networkx as nx
+    import pandas as pd
+    import spacy
+    import yaml
+    from fuzzywuzzy import fuzz, process
+    from pydot import Dot, Edge, Node
+except ImportError as e:
+    print(f"ERROR: Dependencia faltante. Ejecute: pip install {e.name}")
+    sys.exit(1)
+
+# Configure logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Type definitions
+NodeType = Literal["programa", "producto", "resultado", "impacto"]
+RigorStatus = Literal["fuerte", "débil", "sin_evaluar"]
+TestType = Literal["hoop_test", "smoking_gun", "doubly_decisive", "straw_in_wind"]
+DynamicsType = Literal["suma", "decreciente", "constante", "indefinido"]
+
+
+class GoalClassification(NamedTuple):
+    """Classification structure for goals"""
+    type: NodeType
+    dynamics: DynamicsType
+    test_type: TestType
+    confidence: float
+
+
+class EntityActivity(NamedTuple):
+    """Entity-Activity tuple for mechanism parts"""
+    entity: str
+    activity: str
+    verb_lemma: str
+    confidence: float
+
+
+class CausalLink(TypedDict):
+    """Structure for causal links in the graph"""
+    source: str
+    target: str
+    logic: str
+    strength: float
+    evidence: List[str]
+
+
+class AuditResult(TypedDict):
+    """Audit result structure"""
+    passed: bool
+    warnings: List[str]
+    errors: List[str]
+    recommendations: List[str]
+
+
+@dataclass
+class MetaNode:
+    """Comprehensive node structure for goals/metas"""
+    id: str
+    text: str
+    type: NodeType
+    baseline: Optional[Union[float, str]] = None
+    target: Optional[Union[float, str]] = None
+    unit: Optional[str] = None
+    responsible_entity: Optional[str] = None
+    entity_activity: Optional[EntityActivity] = None
+    financial_allocation: Optional[float] = None
+    unit_cost: Optional[float] = None
+    rigor_status: RigorStatus = "sin_evaluar"
+    dynamics: DynamicsType = "indefinido"
+    test_type: TestType = "straw_in_wind"
+    contextual_risks: List[str] = field(default_factory=list)
+    causal_justification: List[str] = field(default_factory=list)
+    audit_flags: List[str] = field(default_factory=list)
+    confidence_score: float = 0.0
+
+
+class ConfigLoader:
+    """External configuration management"""
+    
+    def __init__(self, config_path: Path) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.config_path = config_path
+        self.config: Dict[str, Any] = {}
+        self._load_config()
+        self._validate_config()
+    
+    def _load_config(self) -> None:
+        """Load YAML configuration file"""
+        try:
+            with open(self.config_path, 'r', encoding='utf-8') as f:
+                self.config = yaml.safe_load(f)
+            self.logger.info(f"Configuración cargada desde {self.config_path}")
+        except Exception as e:
+            self.logger.error(f"Error cargando configuración: {e}")
+            self._load_default_config()
+    
+    def _load_default_config(self) -> None:
+        """Load default configuration if custom fails"""
+        self.config = {
+            'patterns': {
+                'section_titles': r'^(?:CAPÍTULO|ARTÍCULO|PARTE)\s+[\dIVX]+',
+                'goal_codes': r'[MP][RIP]-\d{3}',
+                'numeric_formats': r'[\d,]+(?:\.\d+)?%?',
+                'table_headers': r'(?:PROGRAMA|META|INDICADOR|LÍNEA BASE|VALOR ESPERADO)',
+                'financial_headers': r'(?:PRESUPUESTO|VALOR|MONTO|INVERSIÓN)'
+            },
+            'lexicons': {
+                'causal_logic': [
+                    'gracias a', 'con el fin de', 'para lograr', 'mediante',
+                    'a través de', 'como resultado de', 'debido a', 'porque',
+                    'por medio de', 'permitirá', 'contribuirá a'
+                ],
+                'goal_classification': {
+                    'tasa': 'decreciente',
+                    'índice': 'constante',
+                    'número': 'suma',
+                    'porcentaje': 'constante',
+                    'cantidad': 'suma',
+                    'cobertura': 'suma'
+                },
+                'contextual_factors': [
+                    'riesgo', 'amenaza', 'obstáculo', 'limitación',
+                    'restricción', 'desafío', 'brecha', 'déficit',
+                    'vulnerabilidad', 'hipótesis alternativa'
+                ],
+                'administrative_keywords': [
+                    'gestión', 'administración', 'coordinación', 'regulación',
+                    'normativa', 'institucional', 'gobernanza', 'reglamento',
+                    'decreto', 'resolución', 'acuerdo'
+                ]
+            },
+            'entity_aliases': {
+                'SEC GOB': 'Secretaría de Gobierno',
+                'SEC PLAN': 'Secretaría de Planeación',
+                'SEC HAC': 'Secretaría de Hacienda',
+                'SEC SALUD': 'Secretaría de Salud',
+                'SEC EDU': 'Secretaría de Educación',
+                'SEC INFRA': 'Secretaría de Infraestructura'
+            },
+            'verb_sequences': {
+                'diagnosticar': 1,
+                'identificar': 2,
+                'analizar': 3,
+                'diseñar': 4,
+                'planificar': 5,
+                'implementar': 6,
+                'ejecutar': 7,
+                'monitorear': 8,
+                'evaluar': 9
+            }
+        }
+        self.logger.warning("Usando configuración por defecto")
+    
+    def _validate_config(self) -> None:
+        """Validate configuration structure"""
+        required_sections = ['patterns', 'lexicons', 'entity_aliases', 'verb_sequences']
+        for section in required_sections:
+            if section not in self.config:
+                self.logger.warning(f"Sección faltante en configuración: {section}")
+                self.config[section] = {}
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get configuration value with dot notation support"""
+        keys = key.split('.')
+        value = self.config
+        for k in keys:
+            if isinstance(value, dict):
+                value = value.get(k, default)
+            else:
+                return default
+        return value
+
+
+class PDFProcessor:
+    """Advanced PDF processing and extraction"""
+    
+    def __init__(self, config: ConfigLoader) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = config
+        self.document: Optional[fitz.Document] = None
+        self.text_content: str = ""
+        self.tables: List[pd.DataFrame] = []
+        self.metadata: Dict[str, Any] = {}
+    
+    def load_document(self, pdf_path: Path) -> bool:
+        """Load PDF document"""
+        try:
+            self.document = fitz.open(str(pdf_path))
+            self.metadata = self.document.metadata
+            self.logger.info(f"PDF cargado: {pdf_path.name} ({len(self.document)} páginas)")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error cargando PDF: {e}")
+            return False
+    
+    def extract_text(self) -> str:
+        """Extract all text from PDF"""
+        if not self.document:
+            return ""
+        
+        text_parts = []
+        for page_num, page in enumerate(self.document, 1):
+            try:
+                text = page.get_text()
+                text_parts.append(text)
+                self.logger.debug(f"Texto extraído de página {page_num}")
+            except Exception as e:
+                self.logger.warning(f"Error extrayendo texto de página {page_num}: {e}")
+        
+        self.text_content = "\n".join(text_parts)
+        self.logger.info(f"Texto total extraído: {len(self.text_content)} caracteres")
+        return self.text_content
+    
+    def extract_tables(self) -> List[pd.DataFrame]:
+        """Extract tables from PDF"""
+        if not self.document:
+            return []
+        
+        table_pattern = re.compile(
+            self.config.get('patterns.table_headers', r'PROGRAMA|META|INDICADOR'),
+            re.IGNORECASE
+        )
+        
+        for page_num, page in enumerate(self.document, 1):
+            try:
+                tabs = page.find_tables()
+                if tabs:
+                    for tab in tabs:
+                        try:
+                            df = pd.DataFrame(tab.extract())
+                            if not df.empty and len(df.columns) > 1:
+                                # Check if this is a relevant table
+                                header_text = ' '.join(str(cell) for cell in df.iloc[0] if cell)
+                                if table_pattern.search(header_text):
+                                    self.tables.append(df)
+                                    self.logger.info(f"Tabla extraída de página {page_num}: {df.shape}")
+                        except Exception as e:
+                            self.logger.warning(f"Error procesando tabla en página {page_num}: {e}")
+            except Exception as e:
+                self.logger.debug(f"Error extrayendo tablas de página {page_num}: {e}")
+        
+        self.logger.info(f"Total de tablas extraídas: {len(self.tables)}")
+        return self.tables
+    
+    def extract_sections(self) -> Dict[str, str]:
+        """Extract document sections based on patterns"""
+        sections = {}
+        section_pattern = re.compile(
+            self.config.get('patterns.section_titles', r'^(?:CAPÍTULO|ARTÍCULO)\s+[\dIVX]+'),
+            re.MULTILINE | re.IGNORECASE
+        )
+        
+        matches = list(section_pattern.finditer(self.text_content))
+        
+        for i, match in enumerate(matches):
+            section_title = match.group().strip()
+            start_pos = match.end()
+            end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(self.text_content)
+            sections[section_title] = self.text_content[start_pos:end_pos].strip()
+            
+        self.logger.info(f"Secciones identificadas: {len(sections)}")
+        return sections
+
+
+class CausalExtractor:
+    """Extract and structure causal chains from text"""
+    
+    def __init__(self, config: ConfigLoader, nlp_model: spacy.Language) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = config
+        self.nlp = nlp_model
+        self.graph = nx.DiGraph()
+        self.nodes: Dict[str, MetaNode] = {}
+        self.causal_chains: List[CausalLink] = []
+    
+    def extract_causal_hierarchy(self, text: str) -> nx.DiGraph:
+        """Extract complete causal hierarchy from text"""
+        # Extract goals/metas
+        goals = self._extract_goals(text)
+        
+        # Build hierarchy
+        for goal in goals:
+            self._add_node_to_graph(goal)
+        
+        # Extract causal connections
+        self._extract_causal_links(text)
+        
+        # Build hierarchy based on goal types
+        self._build_type_hierarchy()
+        
+        self.logger.info(f"Grafo causal construido: {self.graph.number_of_nodes()} nodos, "
+                        f"{self.graph.number_of_edges()} aristas")
+        return self.graph
+    
+    def _extract_goals(self, text: str) -> List[MetaNode]:
+        """Extract all goals from text"""
+        goals = []
+        goal_pattern = re.compile(
+            self.config.get('patterns.goal_codes', r'[MP][RIP]-\d{3}'),
+            re.IGNORECASE
+        )
+        
+        for match in goal_pattern.finditer(text):
+            goal_id = match.group().upper()
+            context_start = max(0, match.start() - 500)
+            context_end = min(len(text), match.end() + 500)
+            context = text[context_start:context_end]
+            
+            goal = self._parse_goal_context(goal_id, context)
+            if goal:
+                goals.append(goal)
+                self.nodes[goal.id] = goal
+        
+        self.logger.info(f"Metas extraídas: {len(goals)}")
+        return goals
+    
+    def _parse_goal_context(self, goal_id: str, context: str) -> Optional[MetaNode]:
+        """Parse goal context to extract structured information"""
+        # Determine goal type
+        if goal_id.startswith('MP'):
+            node_type = 'producto'
+        elif goal_id.startswith('MR'):
+            node_type = 'resultado'
+        elif goal_id.startswith('MI'):
+            node_type = 'impacto'
+        else:
+            node_type = 'programa'
+        
+        # Extract numerical values
+        numeric_pattern = re.compile(
+            self.config.get('patterns.numeric_formats', r'[\d,]+(?:\.\d+)?%?')
+        )
+        numbers = numeric_pattern.findall(context)
+        
+        # Process with spaCy
+        doc = self.nlp(context[:1000])
+        
+        # Extract entities
+        entities = [ent.text for ent in doc.ents if ent.label_ in ['ORG', 'PER', 'LOC']]
+        
+        # Create goal node
+        goal = MetaNode(
+            id=goal_id,
+            text=context[:200].strip(),
+            type=cast(NodeType, node_type),
+            baseline=numbers[0] if len(numbers) > 0 else None,
+            target=numbers[1] if len(numbers) > 1 else None,
+            responsible_entity=entities[0] if entities else None
+        )
+        
+        return goal
+    
+    def _add_node_to_graph(self, node: MetaNode) -> None:
+        """Add node to causal graph"""
+        node_dict = asdict(node)
+        # Convert NamedTuple to dict for JSON serialization
+        if node.entity_activity:
+            node_dict['entity_activity'] = node.entity_activity._asdict()
+        self.graph.add_node(node.id, **node_dict)
+    
+    def _extract_causal_links(self, text: str) -> None:
+        """Extract causal links between nodes"""
+        causal_keywords = self.config.get('lexicons.causal_logic', [])
+        
+        for keyword in causal_keywords:
+            pattern = re.compile(
+                rf'({"|".join(re.escape(nid) for nid in self.nodes.keys())})'
+                rf'\s+{re.escape(keyword)}\s+'
+                rf'({"|".join(re.escape(nid) for nid in self.nodes.keys())})',
+                re.IGNORECASE
+            )
+            
+            for match in pattern.finditer(text):
+                source = match.group(1).upper()
+                target = match.group(2).upper()
+                logic = match.group(0)
+                
+                if source in self.nodes and target in self.nodes:
+                    self.graph.add_edge(
+                        source, target,
+                        logic=logic,
+                        keyword=keyword,
+                        strength=0.8
+                    )
+                    
+                    self.causal_chains.append({
+                        'source': source,
+                        'target': target,
+                        'logic': logic,
+                        'strength': 0.8,
+                        'evidence': [keyword]
+                    })
+        
+        self.logger.info(f"Enlaces causales extraídos: {len(self.causal_chains)}")
+    
+    def _build_type_hierarchy(self) -> None:
+        """Build hierarchy based on goal types"""
+        type_order = {'programa': 0, 'producto': 1, 'resultado': 2, 'impacto': 3}
+        
+        nodes_by_type: Dict[str, List[str]] = defaultdict(list)
+        for node_id in self.graph.nodes():
+            node_type = self.graph.nodes[node_id].get('type', 'programa')
+            nodes_by_type[node_type].append(node_id)
+        
+        # Connect productos to programas
+        for prod in nodes_by_type.get('producto', []):
+            for prog in nodes_by_type.get('programa', []):
+                if not self.graph.has_edge(prog, prod):
+                    self.graph.add_edge(prog, prod, logic='inferido', strength=0.5)
+        
+        # Connect resultados to productos
+        for res in nodes_by_type.get('resultado', []):
+            for prod in nodes_by_type.get('producto', []):
+                if not self.graph.has_edge(prod, res):
+                    self.graph.add_edge(prod, res, logic='inferido', strength=0.5)
+
+
+class MechanismPartExtractor:
+    """Extract Entity-Activity pairs for mechanism parts"""
+    
+    def __init__(self, config: ConfigLoader, nlp_model: spacy.Language) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = config
+        self.nlp = nlp_model
+        self.entity_aliases = config.get('entity_aliases', {})
+    
+    def extract_entity_activity(self, text: str) -> Optional[EntityActivity]:
+        """Extract Entity-Activity tuple from text"""
+        doc = self.nlp(text)
+        
+        # Find main verb (activity)
+        main_verb = None
+        for token in doc:
+            if token.pos_ == 'VERB' and token.dep_ in ['ROOT', 'ccomp']:
+                main_verb = token
+                break
+        
+        if not main_verb:
+            return None
+        
+        # Find subject entity
+        entity = None
+        for child in main_verb.children:
+            if child.dep_ in ['nsubj', 'nsubjpass']:
+                entity = self._normalize_entity(child.text)
+                break
+        
+        if not entity:
+            # Try to find entity from NER
+            for ent in doc.ents:
+                if ent.label_ in ['ORG', 'PER']:
+                    entity = self._normalize_entity(ent.text)
+                    break
+        
+        if entity and main_verb:
+            return EntityActivity(
+                entity=entity,
+                activity=main_verb.text,
+                verb_lemma=main_verb.lemma_,
+                confidence=0.85
+            )
+        
+        return None
+    
+    def _normalize_entity(self, entity: str) -> str:
+        """Normalize entity name using aliases"""
+        entity_upper = entity.upper().strip()
+        return self.entity_aliases.get(entity_upper, entity)
+
+
+class FinancialAuditor:
+    """Financial traceability and auditing"""
+    
+    def __init__(self, config: ConfigLoader) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = config
+        self.financial_data: Dict[str, Dict[str, float]] = {}
+        self.unit_costs: Dict[str, float] = {}
+        self.successful_parses = 0
+        self.failed_parses = 0
+    
+    def trace_financial_allocation(self, tables: List[pd.DataFrame], 
+                                  nodes: Dict[str, MetaNode]) -> Dict[str, float]:
+        """Trace financial allocations to programs/goals"""
+        for i, table in enumerate(tables):
+            try:
+                self.logger.info(f"Procesando tabla financiera {i+1}/{len(tables)}")
+                self._process_financial_table(table, nodes)
+                self.successful_parses += 1
+            except Exception as e:
+                self.logger.error(f"Error procesando tabla financiera {i+1}: {e}")
+                self.failed_parses += 1
+                continue
+        
+        self.logger.info(f"Asignaciones financieras trazadas: {len(self.financial_data)}")
+        self.logger.info(f"Tablas parseadas exitosamente: {self.successful_parses}, "
+                        f"Fallidas: {self.failed_parses}")
+        return self.unit_costs
+    
+    def _process_financial_table(self, table: pd.DataFrame, 
+                                nodes: Dict[str, MetaNode]) -> None:
+        """Process a single financial table"""
+        # Try to identify relevant columns
+        amount_pattern = re.compile(
+            self.config.get('patterns.financial_headers', r'PRESUPUESTO|VALOR|MONTO'),
+            re.IGNORECASE
+        )
+        program_pattern = re.compile(r'PROGRAMA|META|CÓDIGO', re.IGNORECASE)
+        
+        amount_col = None
+        program_col = None
+        
+        # Search in column names
+        for col in table.columns:
+            col_str = str(col)
+            if amount_pattern.search(col_str) and not amount_col:
+                amount_col = col
+            if program_pattern.search(col_str) and not program_col:
+                program_col = col
+        
+        # If not found in column names, search in first row
+        if not amount_col or not program_col:
+            first_row = table.iloc[0]
+            for i, val in enumerate(first_row):
+                val_str = str(val)
+                if amount_pattern.search(val_str) and not amount_col:
+                    amount_col = i
+                    table.columns = table.iloc[0]
+                    table = table[1:]
+                if program_pattern.search(val_str) and not program_col:
+                    program_col = i
+                    table.columns = table.iloc[0]
+                    table = table[1:]
+        
+        if amount_col is None or program_col is None:
+            self.logger.warning("No se encontraron columnas financieras relevantes")
+            return
+        
+        for _, row in table.iterrows():
+            try:
+                program_id = str(row[program_col]).strip().upper()
+                amount = self._parse_amount(row[amount_col])
+                
+                if amount and program_id:
+                    matched_node = self._match_program_to_node(program_id, nodes)
+                    if matched_node:
+                        self.financial_data[matched_node] = {
+                            'allocation': amount,
+                            'source': 'budget_table'
+                        }
+                        
+                        # Update node
+                        nodes[matched_node].financial_allocation = amount
+                        
+                        # Calculate unit cost if possible
+                        node = nodes.get(matched_node)
+                        if node and node.target:
+                            try:
+                                target_val = float(str(node.target).replace(',', '').replace('%', ''))
+                                if target_val > 0:
+                                    unit_cost = amount / target_val
+                                    self.unit_costs[matched_node] = unit_cost
+                                    nodes[matched_node].unit_cost = unit_cost
+                            except (ValueError, TypeError):
+                                pass
+                                
+            except Exception as e:
+                self.logger.debug(f"Error procesando fila financiera: {e}")
+                continue
+    
+    def _parse_amount(self, value: Any) -> Optional[float]:
+        """Parse monetary amount from various formats"""
+        if pd.isna(value):
+            return None
+        
+        try:
+            clean_value = str(value).replace('$', '').replace(',', '').replace(' ', '').replace('.', '')
+            # Handle millions/thousands notation
+            if 'M' in clean_value.upper() or 'MILLONES' in clean_value.upper():
+                clean_value = clean_value.upper().replace('M', '').replace('ILLONES', '')
+                return float(clean_value) * 1_000_000
+            return float(clean_value)
+        except (ValueError, TypeError):
+            return None
+    
+    def _match_program_to_node(self, program_id: str, 
+                               nodes: Dict[str, MetaNode]) -> Optional[str]:
+        """Match program ID to existing node using fuzzy matching"""
+        if program_id in nodes:
+            return program_id
+        
+        # Try fuzzy matching
+        best_match = process.extractOne(
+            program_id,
+            nodes.keys(),
+            scorer=fuzz.ratio,
+            score_cutoff=80
+        )
+        
+        if best_match:
+            return best_match[0]
+        
+        return None
+
+
+class OperationalizationAuditor:
+    """Audit operationalization quality"""
+    
+    def __init__(self, config: ConfigLoader) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = config
+        self.verb_sequences = config.get('verb_sequences', {})
+        self.audit_results: Dict[str, AuditResult] = {}
+        self.sequence_warnings: List[str] = []
+    
+    def audit_evidence_traceability(self, nodes: Dict[str, MetaNode]) -> Dict[str, AuditResult]:
+        """Audit evidence traceability for all nodes"""
+        for node_id, node in nodes.items():
+            result: AuditResult = {
+                'passed': True,
+                'warnings': [],
+                'errors': [],
+                'recommendations': []
+            }
+            
+            # Check baseline
+            if not node.baseline or str(node.baseline).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
+                result['errors'].append(f"Línea base no definida para {node_id}")
+                result['passed'] = False
+                node.rigor_status = 'débil'
+                node.audit_flags.append('sin_linea_base')
+            
+            # Check target
+            if not node.target or str(node.target).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
+                result['errors'].append(f"Meta no definida para {node_id}")
+                result['passed'] = False
+                node.rigor_status = 'débil'
+                node.audit_flags.append('sin_meta')
+            
+            # Check responsible entity
+            if not node.responsible_entity:
+                result['warnings'].append(f"Entidad responsable no identificada para {node_id}")
+                node.audit_flags.append('sin_responsable')
+            
+            # Check financial traceability
+            if not node.financial_allocation:
+                result['warnings'].append(f"Sin trazabilidad financiera para {node_id}")
+                node.audit_flags.append('sin_presupuesto')
+            
+            # Set rigor status if passed all checks
+            if result['passed'] and len(result['warnings']) == 0:
+                node.rigor_status = 'fuerte'
+            
+            self.audit_results[node_id] = result
+        
+        passed_count = sum(1 for r in self.audit_results.values() if r['passed'])
+        self.logger.info(f"Auditoría de trazabilidad: {passed_count}/{len(nodes)} nodos aprobados")
+        
+        return self.audit_results
+    
+    def audit_sequence_logic(self, graph: nx.DiGraph) -> List[str]:
+        """Audit logical sequence of activities"""
+        warnings = []
+        
+        # Group nodes by program
+        programs: Dict[str, List[str]] = defaultdict(list)
+        for node_id in graph.nodes():
+            node_data = graph.nodes[node_id]
+            if node_data.get('type') == 'programa':
+                for successor in graph.successors(node_id):
+                    if graph.nodes[successor].get('type') == 'producto':
+                        programs[node_id].append(successor)
+        
+        # Check sequence within each program
+        for program_id, product_goals in programs.items():
+            if len(product_goals) < 2:
+                continue
+            
+            activities = []
+            for goal_id in product_goals:
+                node = graph.nodes[goal_id]
+                ea = node.get('entity_activity')
+                if ea and isinstance(ea, dict):
+                    verb = ea.get('verb_lemma', '')
+                    sequence_num = self.verb_sequences.get(verb, 999)
+                    activities.append((goal_id, verb, sequence_num))
+            
+            # Check for sequence violations
+            activities.sort(key=lambda x: x[2])
+            for i in range(len(activities) - 1):
+                if activities[i][2] > activities[i + 1][2]:
+                    warning = (f"Violación de secuencia en {program_id}: "
+                             f"{activities[i][1]} ({activities[i][0]}) "
+                             f"antes de {activities[i + 1][1]} ({activities[i + 1][0]})")
+                    warnings.append(warning)
+                    self.logger.warning(warning)
+        
+        self.sequence_warnings = warnings
+        return warnings
+
+
+class CausalInferenceSetup:
+    """Prepare model for causal inference"""
+    
+    def __init__(self, config: ConfigLoader) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = config
+        self.goal_classification = config.get('lexicons.goal_classification', {})
+        self.admin_keywords = config.get('lexicons.administrative_keywords', [])
+        self.contextual_factors = config.get('lexicons.contextual_factors', [])
+    
+    def classify_goal_dynamics(self, nodes: Dict[str, MetaNode]) -> None:
+        """Classify dynamics for each goal"""
+        for node in nodes.values():
+            text_lower = node.text.lower()
+            
+            for keyword, dynamics in self.goal_classification.items():
+                if keyword in text_lower:
+                    node.dynamics = cast(DynamicsType, dynamics)
+                    self.logger.debug(f"Meta {node.id} clasificada como {node.dynamics}")
+                    break
+    
+    def assign_probative_value(self, nodes: Dict[str, MetaNode]) -> None:
+        """Assign probative test types to nodes"""
+        for node in nodes.values():
+            text_lower = node.text.lower()
+            
+            # Check for administrative/regulatory nature (Hoop Test)
+            if any(keyword in text_lower for keyword in self.admin_keywords):
+                node.test_type = 'hoop_test'
+            # Check for highly specific outcomes (Smoking Gun)
+            elif node.type == 'resultado' and node.target and node.baseline:
+                try:
+                    float(str(node.target).replace(',', '').replace('%', ''))
+                    node.test_type = 'smoking_gun'
+                except (ValueError, TypeError):
+                    node.test_type = 'straw_in_wind'
+            # Double decisive for critical impact goals
+            elif node.type == 'impacto' and node.rigor_status == 'fuerte':
+                node.test_type = 'doubly_decisive'
+            else:
+                node.test_type = 'straw_in_wind'
+            
+            self.logger.debug(f"Meta {node.id} asignada test type: {node.test_type}")
+    
+    def identify_failure_points(self, graph: nx.DiGraph, text: str) -> Set[str]:
+        """Identify single points of failure in causal chain"""
+        failure_points = set()
+        
+        # Find nodes with high out-degree (many dependencies)
+        for node_id in graph.nodes():
+            out_degree = graph.out_degree(node_id)
+            node_type = graph.nodes[node_id].get('type')
+            
+            if node_type == 'producto' and out_degree >= 3:
+                failure_points.add(node_id)
+                self.logger.warning(f"Punto único de falla identificado: {node_id} "
+                                  f"(grado de salida: {out_degree})")
+        
+        # Extract contextual risks from text
+        risk_pattern = '|'.join(re.escape(factor) for factor in self.contextual_factors)
+        risk_regex = re.compile(rf'\b({risk_pattern})\b', re.IGNORECASE)
+        
+        # Find risk mentions and associate with nodes
+        for match in risk_regex.finditer(text):
+            risk_text = match.group()
+            context_start = max(0, match.start() - 200)
+            context_end = min(len(text), match.end() + 200)
+            context = text[context_start:context_end]
+            
+            # Try to find node mentions in risk context
+            for node_id in graph.nodes():
+                if node_id in context:
+                    failure_points.add(node_id)
+                    if 'contextual_risks' not in graph.nodes[node_id]:
+                        graph.nodes[node_id]['contextual_risks'] = []
+                    graph.nodes[node_id]['contextual_risks'].append(risk_text)
+        
+        self.logger.info(f"Puntos de falla identificados: {len(failure_points)}")
+        return failure_points
+
+
+class ReportingEngine:
+    """Generate visualizations and reports"""
+    
+    def __init__(self, config: ConfigLoader, output_dir: Path) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = config
+        self.output_dir = output_dir
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+    
+    def generate_causal_diagram(self, graph: nx.DiGraph, policy_code: str) -> Path:
+        """Generate causal diagram visualization"""
+        dot = Dot(graph_type='digraph', rankdir='TB')
+        dot.set_name(f'{policy_code}_causal_model')
+        dot.set_node_defaults(
+            shape='box',
+            style='rounded,filled',
+            fontname='Arial',
+            fontsize='10'
+        )
+        dot.set_edge_defaults(
+            fontsize='8',
+            fontname='Arial'
+        )
+        
+        # Add nodes with rigor coloring
+        for node_id in graph.nodes():
+            node_data = graph.nodes[node_id]
+            
+            # Determine color based on rigor status and audit flags
+            rigor = node_data.get('rigor_status', 'sin_evaluar')
+            audit_flags = node_data.get('audit_flags', [])
+            financial = node_data.get('financial_allocation')
+            
+            if rigor == 'débil' or not financial:
+                color = 'lightcoral'  # Red
+            elif audit_flags:
+                color = 'lightyellow'  # Yellow
+            else:
+                color = 'lightgreen'  # Green
+            
+            # Create label
+            node_type = node_data.get('type', 'programa')
+            text = node_data.get('text', '')[:80]
+            label = f"{node_id}\\n[{node_type.upper()}]\\n{text}..."
+            
+            entity = node_data.get('responsible_entity')
+            if entity:
+                label += f"\\n👤 {entity[:30]}"
+            
+            if financial:
+                label += f"\\n💰 ${financial:,.0f}"
+            
+            dot_node = Node(
+                node_id,
+                label=label,
+                fillcolor=color
+            )
+            dot.add_node(dot_node)
+        
+        # Add edges with causal logic
+        for source, target in graph.edges():
+            edge_data = graph.edges[source, target]
+            keyword = edge_data.get('keyword', '')
+            strength = edge_data.get('strength', 0.5)
+            
+            # Determine edge style based on strength
+            style = 'solid' if strength > 0.7 else 'dashed'
+            
+            dot_edge = Edge(
+                source,
+                target,
+                label=keyword[:20],
+                style=style
+            )
+            dot.add_edge(dot_edge)
+        
+        # Save files
+        dot_path = self.output_dir / f"{policy_code}_causal_diagram.dot"
+        png_path = self.output_dir / f"{policy_code}_causal_diagram.png"
+        
+        try:
+            with open(dot_path, 'w', encoding='utf-8') as f:
+                f.write(dot.to_string())
+            self.logger.info(f"Diagrama DOT guardado en: {dot_path}")
+            
+            # Try to render PNG
+            try:
+                dot.write_png(str(png_path))
+                self.logger.info(f"Diagrama PNG renderizado en: {png_path}")
+            except Exception as e:
+                self.logger.warning(f"No se pudo renderizar PNG (¿Graphviz instalado?): {e}")
+        except Exception as e:
+            self.logger.error(f"Error guardando diagrama: {e}")
+        
+        return png_path
+    
+    def generate_accountability_matrix(self, graph: nx.DiGraph, 
+                                      policy_code: str) -> Path:
+        """Generate accountability matrix in Markdown"""
+        md_path = self.output_dir / f"{policy_code}_accountability_matrix.md"
+        
+        # Group by impact goals
+        impact_goals = [n for n in graph.nodes() 
+                       if graph.nodes[n].get('type') == 'impacto']
+        
+        content = [f"# Matriz de Responsabilidades - {policy_code}\n"]
+        content.append(f"*Generado automáticamente por CDAF v2.0*\n")
+        content.append("---\n\n")
+        
+        for impact in impact_goals:
+            impact_data = graph.nodes[impact]
+            content.append(f"## Meta de Impacto: {impact}\n")
+            content.append(f"**Descripción:** {impact_data.get('text', 'N/A')}\n\n")
+            
+            # Find all predecessor chains
+            predecessors = list(nx.ancestors(graph, impact))
+            
+            if predecessors:
+                content.append("| Meta | Tipo | Entidad Responsable | Actividad Clave | Presupuesto |\n")
+                content.append("|------|------|---------------------|-----------------|-------------|\n")
+                
+                for pred in predecessors:
+                    pred_data = graph.nodes[pred]
+                    meta_type = pred_data.get('type', 'N/A')
+                    entity = pred_data.get('responsible_entity', 'No asignado')
+                    
+                    ea = pred_data.get('entity_activity')
+                    activity = 'N/A'
+                    if ea and isinstance(ea, dict):
+                        activity = ea.get('activity', 'N/A')
+                    
+                    budget = pred_data.get('financial_allocation')
+                    budget_str = f"${budget:,.0f}" if budget else "Sin presupuesto"
+                    
+                    content.append(f"| {pred} | {meta_type} | {entity} | {activity} | {budget_str} |\n")
+                
+                content.append("\n")
+            else:
+                content.append("*No se encontraron metas intermedias.*\n\n")
+        
+        content.append("\n---\n")
+        content.append("### Leyenda\n")
+        content.append("- **Meta de Impacto:** Resultado final esperado\n")
+        content.append("- **Meta de Resultado:** Cambio intermedio observable\n")
+        content.append("- **Meta de Producto:** Entrega tangible del programa\n")
+        
+        try:
+            with open(md_path, 'w', encoding='utf-8') as f:
+                f.write(''.join(content))
+            self.logger.info(f"Matriz de responsabilidades guardada en: {md_path}")
+        except Exception as e:
+            self.logger.error(f"Error guardando matriz de responsabilidades: {e}")
+        
+        return md_path
+    
+    def generate_confidence_report(self, 
+                                   nodes: Dict[str, MetaNode],
+                                   graph: nx.DiGraph,
+                                   causal_chains: List[CausalLink],
+                                   audit_results: Dict[str, AuditResult],
+                                   financial_auditor: FinancialAuditor,
+                                   sequence_warnings: List[str],
+                                   policy_code: str) -> Path:
+        """Generate extraction confidence report"""
+        json_path = self.output_dir / f"{policy_code}_extraction_confidence_report.json"
+        
+        # Calculate metrics
+        total_metas = len(nodes)
+        
+        metas_with_ea = sum(1 for n in nodes.values() if n.entity_activity)
+        metas_with_ea_pct = (metas_with_ea / total_metas * 100) if total_metas > 0 else 0
+        
+        enlaces_with_logic = sum(1 for link in causal_chains if link.get('logic'))
+        total_edges = graph.number_of_edges()
+        enlaces_with_logic_pct = (enlaces_with_logic / total_edges * 100) if total_edges > 0 else 0
+        
+        metas_passed_audit = sum(1 for r in audit_results.values() if r['passed'])
+        metas_with_traceability_pct = (metas_passed_audit / total_metas * 100) if total_metas > 0 else 0
+        
+        metas_with_financial = sum(1 for n in nodes.values() if n.financial_allocation)
+        metas_with_financial_pct = (metas_with_financial / total_metas * 100) if total_metas > 0 else 0
+        
+        # Node type distribution
+        type_distribution = defaultdict(int)
+        for node in nodes.values():
+            type_distribution[node.type] += 1
+        
+        # Rigor distribution
+        rigor_distribution = defaultdict(int)
+        for node in nodes.values():
+            rigor_distribution[node.rigor_status] += 1
+        
+        report = {
+            "metadata": {
+                "policy_code": policy_code,
+                "framework_version": "2.0.0",
+                "total_nodes": total_metas,
+                "total_edges": total_edges
+            },
+            "extraction_metrics": {
+                "total_metas_identificadas": total_metas,
+                "metas_con_EA_extraido": metas_with_ea,
+                "metas_con_EA_extraido_pct": round(metas_with_ea_pct, 2),
+                "enlaces_con_logica_causal": enlaces_with_logic,
+                "enlaces_con_logica_causal_pct": round(enlaces_with_logic_pct, 2),
+                "metas_con_trazabilidad_evidencia": metas_passed_audit,
+                "metas_con_trazabilidad_evidencia_pct": round(metas_with_traceability_pct, 2),
+                "metas_con_trazabilidad_financiera": metas_with_financial,
+                "metas_con_trazabilidad_financiera_pct": round(metas_with_financial_pct, 2)
+            },
+            "financial_audit": {
+                "tablas_financieras_parseadas_exitosamente": financial_auditor.successful_parses,
+                "tablas_financieras_fallidas": financial_auditor.failed_parses,
+                "asignaciones_presupuestarias_rastreadas": len(financial_auditor.financial_data)
+            },
+            "sequence_audit": {
+                "alertas_secuencia_logica": len(sequence_warnings),
+                "detalles": sequence_warnings
+            },
+            "type_distribution": dict(type_distribution),
+            "rigor_distribution": dict(rigor_distribution),
+            "audit_summary": {
+                "total_audited": len(audit_results),
+                "passed": sum(1 for r in audit_results.values() if r['passed']),
+                "failed": sum(1 for r in audit_results.values() if not r['passed']),
+                "total_warnings": sum(len(r['warnings']) for r in audit_results.values()),
+                "total_errors": sum(len(r['errors']) for r in audit_results.values())
+            },
+            "quality_score": self._calculate_quality_score(
+                metas_with_traceability_pct,
+                metas_with_financial_pct,
+                enlaces_with_logic_pct,
+                metas_with_ea_pct
+            )
+        }
+        
+        try:
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            self.logger.info(f"Reporte de confianza guardado en: {json_path}")
+        except Exception as e:
+            self.logger.error(f"Error guardando reporte de confianza: {e}")
+        
+        return json_path
+    
+    def _calculate_quality_score(self, traceability: float, financial: float, 
+                                 logic: float, ea: float) -> float:
+        """Calculate overall quality score (0-100)"""
+        weights = {'traceability': 0.35, 'financial': 0.25, 'logic': 0.25, 'ea': 0.15}
+        score = (traceability * weights['traceability'] +
+                financial * weights['financial'] +
+                logic * weights['logic'] +
+                ea * weights['ea'])
+        return round(score, 2)
+    
+    def generate_causal_model_json(self, graph: nx.DiGraph, nodes: Dict[str, MetaNode],
+                                  policy_code: str) -> Path:
+        """Generate structured JSON export of causal model"""
+        json_path = self.output_dir / f"{policy_code}_causal_model.json"
+        
+        # Prepare node data
+        nodes_data = {}
+        for node_id, node in nodes.items():
+            node_dict = asdict(node)
+            # Convert NamedTuple to dict
+            if node.entity_activity:
+                node_dict['entity_activity'] = node.entity_activity._asdict()
+            nodes_data[node_id] = node_dict
+        
+        # Prepare edge data
+        edges_data = []
+        for source, target in graph.edges():
+            edge_dict = {
+                'source': source,
+                'target': target,
+                **graph.edges[source, target]
+            }
+            edges_data.append(edge_dict)
+        
+        model_data = {
+            "policy_code": policy_code,
+            "framework_version": "2.0.0",
+            "nodes": nodes_data,
+            "edges": edges_data,
+            "statistics": {
+                "total_nodes": len(nodes_data),
+                "total_edges": len(edges_data),
+                "node_types": {
+                    node_type: sum(1 for n in nodes.values() if n.type == node_type)
+                    for node_type in ['programa', 'producto', 'resultado', 'impacto']
+                }
+            }
+        }
+        
+        try:
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(model_data, f, indent=2, ensure_ascii=False)
+            self.logger.info(f"Modelo causal JSON guardado en: {json_path}")
+        except Exception as e:
+            self.logger.error(f"Error guardando modelo causal: {e}")
+        
+        return json_path
+
+
+class CDAFFramework:
+    """Main orchestrator for the CDAF pipeline"""
+    
+    def __init__(self, config_path: Path, output_dir: Path, log_level: str = "INFO") -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.setLevel(getattr(logging, log_level.upper()))
+        
+        # Initialize components
+        self.config = ConfigLoader(config_path)
+        self.output_dir = output_dir
+        
+        # Load spaCy model
+        try:
+            self.nlp = spacy.load("es_core_news_lg")
+            self.logger.info("Modelo spaCy cargado: es_core_news_lg")
+        except OSError:
+            self.logger.warning("Modelo es_core_news_lg no encontrado. Intentando es_core_news_sm...")
+            try:
+                self.nlp = spacy.load("es_core_news_sm")
+            except OSError:
+                self.logger.error("No se encontró ningún modelo de spaCy en español. "
+                                "Ejecute: python -m spacy download es_core_news_lg")
+                sys.exit(1)
+        
+        # Initialize modules
+        self.pdf_processor = PDFProcessor(self.config)
+        self.causal_extractor = CausalExtractor(self.config, self.nlp)
+        self.mechanism_extractor = MechanismPartExtractor(self.config, self.nlp)
+        self.financial_auditor = FinancialAuditor(self.config)
+        self.op_auditor = OperationalizationAuditor(self.config)
+        self.inference_setup = CausalInferenceSetup(self.config)
+        self.reporting_engine = ReportingEngine(self.config, output_dir)
+    
+    def process_document(self, pdf_path: Path, policy_code: str) -> bool:
+        """Main processing pipeline"""
+        self.logger.info(f"Iniciando procesamiento de documento: {pdf_path}")
+        
+        try:
+            # Step 1: Load and extract PDF
+            if not self.pdf_processor.load_document(pdf_path):
+                return False
+            
+            text = self.pdf_processor.extract_text()
+            tables = self.pdf_processor.extract_tables()
+            sections = self.pdf_processor.extract_sections()
+            
+            # Step 2: Extract causal hierarchy
+            self.logger.info("Extrayendo jerarquía causal...")
+            graph = self.causal_extractor.extract_causal_hierarchy(text)
+            nodes = self.causal_extractor.nodes
+            
+            # Step 3: Extract Entity-Activity pairs
+            self.logger.info("Extrayendo tuplas Entidad-Actividad...")
+            for node in nodes.values():
+                if node.type == 'producto':
+                    ea = self.mechanism_extractor.extract_entity_activity(node.text)
+                    if ea:
+                        node.entity_activity = ea
+                        graph.nodes[node.id]['entity_activity'] = ea._asdict()
+            
+            # Step 4: Financial traceability
+            self.logger.info("Auditando trazabilidad financiera...")
+            self.financial_auditor.trace_financial_allocation(tables, nodes)
+            
+            # Step 5: Operationalization audit
+            self.logger.info("Auditando operacionalización...")
+            audit_results = self.op_auditor.audit_evidence_traceability(nodes)
+            sequence_warnings = self.op_auditor.audit_sequence_logic(graph)
+            
+            # Step 6: Causal inference setup
+            self.logger.info("Preparando para inferencia causal...")
+            self.inference_setup.classify_goal_dynamics(nodes)
+            self.inference_setup.assign_probative_value(nodes)
+            failure_points = self.inference_setup.identify_failure_points(graph, text)
+            
+            # Step 7: Generate reports
+            self.logger.info("Generando reportes y visualizaciones...")
+            self.reporting_engine.generate_causal_diagram(graph, policy_code)
+            self.reporting_engine.generate_accountability_matrix(graph, policy_code)
+            self.reporting_engine.generate_confidence_report(
+                nodes, graph, self.causal_extractor.causal_chains,
+                audit_results, self.financial_auditor, sequence_warnings, policy_code
+            )
+            self.reporting_engine.generate_causal_model_json(graph, nodes, policy_code)
+            
+            self.logger.info(f"✅ Procesamiento completado exitosamente para {policy_code}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error crítico en el procesamiento: {e}", exc_info=True)
+            return False
+
+
+def main() -> int:
+    """CLI entry point"""
+    parser = argparse.ArgumentParser(
+        description="CDAF v2.0 - Framework de Deconstrucción y Auditoría Causal",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Ejemplo de uso:
+  python cdaf_framework.py documento.pdf --output-dir resultados/ --policy-code P1
+
+Configuración:
+  El framework busca config.yaml en el directorio actual.
+  Use --config-file para especificar una ruta alternativa.
+        """
+    )
+    
+    parser.add_argument(
+        "pdf_path",
+        type=Path,
+        help="Ruta al archivo PDF del Plan de Desarrollo Territorial"
+    )
+    
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("resultados_analisis"),
+        help="Directorio de salida para los artefactos (default: resultados_analisis/)"
+    )
+    
+    parser.add_argument(
+        "--policy-code",
+        type=str,
+        required=True,
+        help="Código de política para nombrar los artefactos (ej: P1, PDT_2024)"
+    )
+    
+    parser.add_argument(
+        "--config-file",
+        type=Path,
+        default=Path("config.yaml"),
+        help="Ruta al archivo de configuración YAML (default: config.yaml)"
+    )
+    
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default="INFO",
+        help="Nivel de logging (default: INFO)"
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate inputs
+    if not args.pdf_path.exists():
+        print(f"ERROR: Archivo PDF no encontrado: {args.pdf_path}")
+        return 1
+    
+    # Initialize framework
+    try:
+        framework = CDAFFramework(args.config_file, args.output_dir, args.log_level)
+    except Exception as e:
+        print(f"ERROR: No se pudo inicializar el framework: {e}")
+        return 1
+    
+    # Process document
+    success = framework.process_document(args.pdf_path, args.policy_code)
+    
+    return 0 if success else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
