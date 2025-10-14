@@ -466,7 +466,7 @@
                     "patterns": ["desplazamiento", "efecto colateral", "consecuencia no intencionada", "riesgo de"],
                     "minimum_required": 1
                 },
-                "cunas_implementacion": {
+                "cuellos_implementacion": {
                     "patterns": ["dificultad de implementación", "barrera", "obstáculo", "complejidad"],
                     "minimum_required": 1
                 },
