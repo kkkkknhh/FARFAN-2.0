@@ -191,21 +191,29 @@ class FARFANOrchestrator:
             logger.error(f"Error cargando PDET: {e}")
             self.pdet_lineamientos = None
         
-        # Module 7: Question Answering Engine (to be created)
-        from question_answering_engine import QuestionAnsweringEngine
-        self.qa_engine = QuestionAnsweringEngine(
-            cdaf=self.cdaf,
-            dnp_validator=self.dnp_validator,
-            competencias=self.competencias,
-            mga_catalog=self.mga_catalog,
-            pdet_lineamientos=self.pdet_lineamientos
-        )
-        logger.info("✓ Question Answering Engine cargado")
+        # Module 7: Question Answering Engine
+        try:
+            from question_answering_engine import QuestionAnsweringEngine
+            self.qa_engine = QuestionAnsweringEngine(
+                cdaf=self.cdaf,
+                dnp_validator=self.dnp_validator,
+                competencias=self.competencias,
+                mga_catalog=self.mga_catalog,
+                pdet_lineamientos=self.pdet_lineamientos
+            )
+            logger.info("✓ Question Answering Engine cargado")
+        except Exception as e:
+            logger.error(f"Error cargando Question Answering Engine: {e}")
+            self.qa_engine = None
         
-        # Module 8: Report Generator (to be created)
-        from report_generator import ReportGenerator
-        self.report_generator = ReportGenerator(output_dir=self.output_dir)
-        logger.info("✓ Report Generator cargado")
+        # Module 8: Report Generator
+        try:
+            from report_generator import ReportGenerator
+            self.report_generator = ReportGenerator(output_dir=self.output_dir)
+            logger.info("✓ Report Generator cargado")
+        except Exception as e:
+            logger.error(f"Error cargando Report Generator: {e}")
+            self.report_generator = None
     
     def process_plan(self, pdf_path: Path, policy_code: str, 
                      es_municipio_pdet: bool = False) -> PipelineContext:
@@ -410,6 +418,10 @@ class FARFANOrchestrator:
         """STAGE 8: Respuesta a las 300 preguntas"""
         logger.info(f"[STAGE 8] Respondiendo 300 preguntas")
         
+        if self.qa_engine is None:
+            logger.warning("Question Answering Engine no disponible")
+            return ctx
+        
         # Use the QuestionAnsweringEngine
         ctx.question_responses = self.qa_engine.answer_all_questions(ctx)
         
@@ -420,6 +432,10 @@ class FARFANOrchestrator:
     def _stage_report_generation(self, ctx: PipelineContext) -> PipelineContext:
         """STAGE 9: Generación de reportes (Micro, Meso, Macro)"""
         logger.info(f"[STAGE 9] Generando reportes")
+        
+        if self.report_generator is None:
+            logger.warning("Report Generator no disponible")
+            return ctx
         
         # Generate reports at all levels
         ctx.micro_report = self.report_generator.generate_micro_report(
