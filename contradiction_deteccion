@@ -588,10 +588,21 @@ class AdvancedStatisticalTesting:
             claims: List[Tuple[Dict[str, Any], Dict[str, Any]]]
     ) -> Tuple[List[float], List[float]]:
         """
-Test de divergencia numérica con corrección para comparaciones múltiples
+        Test de divergencia numérica con corrección para comparaciones múltiples.
 
-Returns:
-(divergences, adjusted_p_values)
+        Args:
+            claims: Lista de tuplas (claim_a, claim_b), donde cada claim es un dict
+                con al menos la clave 'value' (numérico). Ejemplo:
+                [
+                    ({"value": 10.0, ...}, {"value": 5.0, ...}),
+                    ...
+                ]
+
+        Returns:
+            Tuple:
+                - divergences: List[float], lista de divergencias normalizadas.
+                - adjusted_p_values: List[float], lista de p-values ajustados por FDR.
+            Si no se procesan claims válidos, ambas listas pueden estar vacías.
         """
         divergences = []
         p_values = []
