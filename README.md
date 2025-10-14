@@ -7,14 +7,50 @@ FARFAN-2.0 es un framework de grado industrial para la deconstrucción y auditor
 
 ## Características Principales
 
-### 1. Framework CDAF (Causal Deconstruction and Audit Framework)
+### 1. **NUEVO: Sistema de Evaluación de 300 Preguntas**
+
+El orquestador implementa un sistema completo de evaluación mediante **300 preguntas causales**:
+
+- **30 Preguntas Base**: Organizadas en 6 dimensiones del Marco Lógico
+  - D1: Insumos (Diagnóstico y Líneas Base)
+  - D2: Actividades (Formalizadas)
+  - D3: Productos (Verificables)
+  - D4: Resultados (Medibles)
+  - D5: Impactos (Largo Plazo)
+  - D6: Causalidad (Teoría de Cambio)
+
+- **10 Áreas de Política** (Decálogo):
+  - P1: Seguridad y Convivencia
+  - P2: Alertas Tempranas
+  - P3: Ambiente y Recursos Naturales
+  - P4: Derechos Básicos
+  - P5: Víctimas
+  - P6: Niñez y Juventud
+  - P7: Desarrollo Rural
+  - P8: Líderes Sociales
+  - P9: Sistema Carcelario
+  - P10: Migración
+
+**Cada respuesta incluye**:
+- Texto de respuesta directa
+- Argumento de nivel doctoral (2+ párrafos)
+- Nota cuantitativa (0.0-1.0)
+- Evidencia del documento
+- Módulos que contribuyeron
+
+**Reportes a 3 Niveles**:
+1. **MICRO**: 300 respuestas individuales
+2. **MESO**: 4 clústeres × 6 dimensiones
+3. **MACRO**: Alineación global + análisis retrospectivo/prospectivo
+
+### 2. Framework CDAF (Causal Deconstruction and Audit Framework)
 - Extracción automática de jerarquías causales desde PDFs
 - Análisis de mecanismos causales (Entidad-Actividad)
 - Trazabilidad financiera
 - Auditoría de operacionalización
 - Generación de diagramas causales y matrices de responsabilidad
 
-### 2. **NUEVO: Cumplimiento Integral de Estándares DNP**
+### 3. **NUEVO: Cumplimiento Integral de Estándares DNP**
 
 #### Competencias Municipales
 - **17 competencias** catalogadas según normativa colombiana
@@ -53,6 +89,28 @@ python -m spacy download es_core_news_lg
 
 ## Uso Rápido
 
+### Sistema de Orquestación Completo (NUEVO)
+
+El orquestador integra **todos los módulos** para evaluar planes mediante **300 preguntas**:
+
+```bash
+# Procesar un plan de desarrollo
+python orchestrator.py plan_desarrollo.pdf \
+    --policy-code PDM2024-ANT-MED \
+    --output-dir ./resultados \
+    --pdet
+
+# Demostración del sistema
+python demo_orchestrator.py --simple
+```
+
+**Salida generada**:
+- `micro_report_{code}.json` - 300 respuestas individuales
+- `meso_report_{code}.json` - 4 clústeres × 6 dimensiones
+- `macro_report_{code}.json/md` - Evaluación global
+
+Ver [ORCHESTRATION_README.md](ORCHESTRATION_README.md) para documentación completa.
+
 ### Validación DNP Standalone
 
 ```python
@@ -90,6 +148,12 @@ python ejemplo_dnp_completo.py
 ```
 
 ## Módulos
+
+### **NUEVO: Sistema de Orquestación Integral**
+- `orchestrator.py` - Orquestador principal con flujo canónico de 9 etapas
+- `question_answering_engine.py` - Motor de respuesta a 300 preguntas
+- `report_generator.py` - Generador de reportes micro, meso y macro
+- `module_choreographer.py` - Coreógrafo de módulos y acumulador de respuestas
 
 ### Módulos DNP (Nuevos)
 - `competencias_municipales.py` - Catálogo de competencias municipales
