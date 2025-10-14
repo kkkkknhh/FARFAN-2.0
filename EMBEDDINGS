@@ -293,16 +293,19 @@ class AdvancedSemanticChunker:
             )
         return sections
 
+    # Number of characters to consider as table extent after marker
+    TABLE_EXTENT_CHARS = 300
+
     def _extract_tables(self, text: str) -> list[dict[str, Any]]:
         """Identify table regions in document."""
         tables = []
         for match in self.TABLE_MARKERS.finditer(text):
-            # Heuristic: table extends ~300 chars after marker
+            # Heuristic: table extends ~TABLE_EXTENT_CHARS chars after marker
             tables.append(
                 {
                     "marker": match.group(0),
                     "start": match.start(),
-                    "end": min(match.end() + 300, len(text)),
+                    "end": min(match.end() + self.TABLE_EXTENT_CHARS, len(text)),
                 }
             )
         return tables
