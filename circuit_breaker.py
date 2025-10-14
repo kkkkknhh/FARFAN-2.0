@@ -247,7 +247,6 @@ class CircuitBreaker:
             if not data:
                 return False
             
-            import json
             state_data = json.loads(data)
             
             # Restaurar estado

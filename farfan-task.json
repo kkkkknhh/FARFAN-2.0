@@ -1,0 +1,26 @@
+{
+  "family": "farfan-processor",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "2048",
+  "memory": "4096",
+  "executionRoleArn": "arn:aws:iam::123856743322:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::123856743322:role/ecsTaskExecutionRole",
+  "containerDefinitions": [{
+    "name": "farfan-app",
+    "image": "123856743322.dkr.ecr.us-east-2.amazonaws.com/sin-carreta-app:latest",
+    "essential": true,
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/farfan",
+        "awslogs-region": "us-east-2",
+        "awslogs-stream-prefix": "farfan"
+      }
+    },
+    "environment": [
+      {"name": "AWS_DEFAULT_REGION", "value": "us-east-2"},
+      {"name": "S3_BUCKET", "value": "sin-carreta-plans-2025"}
+    ]
+  }]
+}
