@@ -191,8 +191,29 @@
               "unidades_medida_explicitas": "COUNT(%, casos, número, tasa)",
               "desagregaciones": "COUNT(urbano/rural, étnico, edad)"
             },
-            "formula_score": "score = (baselines_con_fuente * 0.3) + (series_temporales * 0.25) + (unidades_explicitas * 0.2) + (desagregaciones * 0.15) + (baselines_con_año * 0.1)"
-          },
+            "score_weights": {
+              "baselines_con_fuente": {
+                "weight": 0.3,
+                "rationale": "Fuente oficial es el principal indicador de calidad y confiabilidad de la línea base."
+              },
+              "series_temporales": {
+                "weight": 0.25,
+                "rationale": "Series temporales permiten evaluar tendencias y robustez de los datos."
+              },
+              "unidades_explicitas": {
+                "weight": 0.2,
+                "rationale": "Unidades de medida explícitas aseguran claridad y comparabilidad de los datos."
+              },
+              "desagregaciones": {
+                "weight": 0.15,
+                "rationale": "Desagregaciones permiten análisis diferenciado por grupos poblacionales relevantes."
+              },
+              "baselines_con_año": {
+                "weight": 0.1,
+                "rationale": "Año de referencia es importante para la vigencia y actualización de la línea base."
+              }
+            },
+            "formula_score": "score = (baselines_con_fuente * score_weights.baselines_con_fuente.weight) + (series_temporales * score_weights.series_temporales.weight) + (unidades_explicitas * score_weights.unidades_explicitas.weight) + (desagregaciones * score_weights.desagregaciones.weight) + (baselines_con_año * score_weights.baselines_con_año.weight)"
           "paso_5_mapear_escala": {
             "0_AUSENTE": "score < 0.1 O baselines_con_fuente = 0",
             "1_INSUFICIENTE": "0.1 <= score < 0.3 O solo 1-2 baselines sin fuente",
