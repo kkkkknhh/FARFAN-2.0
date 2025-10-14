@@ -373,24 +373,32 @@ class AdvancedDAGValidator:
         )
 
     def _perform_sensitivity_analysis_internal(self, plan_name: str, base_p_value: float, iterations: int) -> Dict[str, Any]:
-        """Análisis de sensibilidad interno para reducir la complejidad de la llamada principal."""
+        """Análisis de sensibilidad interno optimizado para evitar cálculos redundantes."""
         edge_sensitivity: Dict[str, float] = {}
-        for edge in {f"{dep}->{name}" for name, node in self.graph_nodes.items() for dep in node.dependencies}:
+        # 1. Genera los subgrafos una sola vez
+        subgraphs = []
+        for _ in range(iterations):
+            subgraph = self._generate_subgraph()
+            subgraphs.append(subgraph)
+        # 2. Lista de todas las aristas
+        edges = {f"{dep}->{name}" for name, node in self.graph_nodes.items() for dep in node.dependencies}
+        # 3. Para cada arista, calcula el p-value perturbado usando los mismos subgrafos
+        for edge in edges:
             from_node, to_node = edge.split("->")
-            original_deps = self.graph_nodes[to_node].dependencies
-            self.graph_nodes[to_node].dependencies = original_deps - {from_node}
-            
-            # Recalcula p-value con menos iteraciones
-            temp_validator = AdvancedDAGValidator(self.graph_type)
-            temp_validator.graph_nodes = self.graph_nodes
-            perturbed_p = temp_validator.calculate_acyclicity_pvalue(f"{plan_name}_sens_{edge}", iterations).p_value
+            acyclic_count = 0
+            for subgraph in subgraphs:
+                # Perturba el subgrafo removiendo la arista
+                if to_node in subgraph and from_node in subgraph[to_node].dependencies:
+                    subgraph_copy = {k: AdvancedGraphNode(v.name, set(v.dependencies), dict(v.metadata), v.role) for k, v in subgraph.items()}
+                    subgraph_copy[to_node].dependencies.discard(from_node)
+                else:
+                    subgraph_copy = subgraph
+                if AdvancedDAGValidator._is_acyclic(subgraph_copy):
+                    acyclic_count += 1
+            perturbed_p = acyclic_count / iterations
             edge_sensitivity[edge] = abs(base_p_value - perturbed_p)
-            
-            self.graph_nodes[to_node].dependencies = original_deps # Restore
-        
         sens_values = list(edge_sensitivity.values())
         return {'edge_sensitivity': edge_sensitivity, 'average_sensitivity': np.mean(sens_values) if sens_values else 0}
-
     @staticmethod
     def _calculate_confidence_interval(s: int, n: int, conf: float) -> Tuple[float, float]:
         """Calcula el intervalo de confianza de Wilson."""
