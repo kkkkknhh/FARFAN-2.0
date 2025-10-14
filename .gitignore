@@ -1,6 +1,9 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
+*.py[cod]
+*$py.class
 .pytest_cache/
 .mypy_cache/
 *.egg-info/
@@ -15,6 +18,32 @@ env/
 .env
 *.log
 index.html
-index.html
 *.html
-index.html
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python
+.Python
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+
+# Resilience config outputs
+resilience_dev_default.yaml
+resilience_prod_default.yaml
+resilience_*.yaml

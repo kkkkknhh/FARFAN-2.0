@@ -1,0 +1,39 @@
+# FARFAN 2.0 - Requirements
+# Colombian Territorial Development Plans Analysis Framework
+# Python 3.10+ required
+
+# Core Scientific Computing
+numpy==1.24.3
+scipy==1.11.4
+
+# Deep Learning & Transformers
+torch==2.1.2
+transformers==4.36.2
+
+# NLP - spaCy
+spacy==3.7.2
+
+# Data Processing
+pandas==2.1.4
+
+# Graph Analysis
+networkx==3.2.1
+
+# PDF Processing
+PyMuPDF==1.23.8
+
+# YAML Configuration
+PyYAML==6.0.1
+
+# Fuzzy String Matching
+fuzzywuzzy==0.18.0
+python-Levenshtein==0.25.0
+
+# Graph Visualization
+pydot==2.0.0
+
+# Data Validation
+pydantic==2.5.3
+
+# Additional Dependencies
+typing-extensions==4.9.0
