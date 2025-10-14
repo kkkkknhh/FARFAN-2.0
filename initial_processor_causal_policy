@@ -218,7 +218,7 @@ class SemanticProcessor:
         ]
         return any(re.search(p, text) for p in patterns)
     
-    def _embed_batch(self, texts: list[str]) -> list[NDArray[np.float32]]:
+    def _embed_batch(self, texts: list[str]) -> list[NDArray[np.floating[Any]]]:
         """Batch embedding with BGE-M3"""
         import torch
         
@@ -252,7 +252,7 @@ class SemanticProcessor:
         
         return embeddings
     
-    def embed_single(self, text: str) -> NDArray[np.float32]:
+    def embed_single(self, text: str) -> NDArray[np.floating[Any]]:
         """Single text embedding"""
         return self._embed_batch([text])[0]
 
@@ -404,9 +404,9 @@ class BayesianEvidenceIntegrator:
     
     def causal_strength(
         self,
-        cause_emb: NDArray[np.float32],
-        effect_emb: NDArray[np.float32],
-        context_emb: NDArray[np.float32]
+        cause_emb: NDArray[np.floating[Any]],
+        effect_emb: NDArray[np.floating[Any]],
+        context_emb: NDArray[np.floating[Any]]
     ) -> float:
         """
         Causal strength via conditional independence approximation:
@@ -449,7 +449,7 @@ class PolicyDocumentAnalyzer:
         # Initialize dimension embeddings
         self.dimension_embeddings = self._init_dimension_embeddings()
     
-    def _init_dimension_embeddings(self) -> dict[CausalDimension, NDArray[np.float32]]:
+    def _init_dimension_embeddings(self) -> dict[CausalDimension, NDArray[np.floating[Any]]]:
         """
         Canonical embeddings for Marco Lógico dimensions
         Using Colombian policy-specific terminology
