@@ -386,11 +386,11 @@ class AdvancedSemanticChunker:
         return None
 
     def _contains_table(
-        self, chunk_text: str, tables: list[dict[str, Any]]
+        self, chunk_start: int, chunk_end: int, tables: list[dict[str, Any]]
     ) -> bool:
-        """Check if chunk overlaps with table regions."""
+        """Check if chunk overlaps with table regions by position."""
         return any(
-            chunk_text in table.get("content", "")
+            chunk_start < table["end"] and chunk_end > table["start"]
             for table in tables
         )
 
