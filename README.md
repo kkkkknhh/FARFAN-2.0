@@ -85,6 +85,11 @@ pip install pymupdf networkx pandas spacy pyyaml fuzzywuzzy python-Levenshtein p
 
 # Descargar modelo spaCy español
 python -m spacy download es_core_news_lg
+
+# Validar que todo compile correctamente
+python3 pretest_compilation.py
+# O de forma rápida:
+./validate.sh
 ```
 
 ## Uso Rápido

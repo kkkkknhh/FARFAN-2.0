@@ -107,10 +107,14 @@ class ReportGenerator:
         
         # Save to file
         output_file = self.output_dir / f"micro_report_{policy_code}.json"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(micro_report, f, indent=2, ensure_ascii=False)
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(micro_report, f, indent=2, ensure_ascii=False)
+            logger.info(f"✓ Reporte MICRO guardado: {output_file}")
+        except Exception as e:
+            logger.error(f"Error guardando reporte MICRO: {e}")
+            raise
         
-        logger.info(f"✓ Reporte MICRO guardado: {output_file}")
         logger.info(f"  Promedio general: {micro_report['statistics']['promedio_general']:.3f}")
         
         return micro_report
@@ -169,8 +173,8 @@ class ReportGenerator:
                 
                 # Calculate dimension score for this cluster
                 if dim_responses:
-                    dim_notas = [r.nota_cuantitativa for r in dim_responses]
-                    dim_score = sum(dim_notas) / len(dim_notas)
+                    dim_notas = [r.nota_cuantitativa for r in dim_responses if hasattr(r, 'nota_cuantitativa')]
+                    dim_score = sum(dim_notas) / len(dim_notas) if dim_notas else 0
                     
                     cluster_data["dimensiones"][dim_id] = {
                         "dimension_nombre": self._get_dimension_name(dim_id),
@@ -205,10 +209,14 @@ class ReportGenerator:
         
         # Save to file
         output_file = self.output_dir / f"meso_report_{policy_code}.json"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(meso_report, f, indent=2, ensure_ascii=False)
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(meso_report, f, indent=2, ensure_ascii=False)
+            logger.info(f"✓ Reporte MESO guardado: {output_file}")
+        except Exception as e:
+            logger.error(f"Error guardando reporte MESO: {e}")
+            raise
         
-        logger.info(f"✓ Reporte MESO guardado: {output_file}")
         logger.info(f"  Promedio clústeres: {meso_report['statistics']['promedio_clusters']:.3f}")
         
         return meso_report
@@ -258,20 +266,119 @@ class ReportGenerator:
             "debilidades_criticas": self._identify_critical_weaknesses(question_responses)
         }
         
+<<<<<<< HEAD
+=======
+        # Generate implementation roadmap if SMART recommendations available
+        if SMART_AVAILABLE and recommendations and hasattr(recommendations[0], 'to_dict'):
+            prioritizer = RecommendationPrioritizer()
+            roadmap_md = prioritizer.generate_implementation_roadmap(recommendations)
+            
+            # Save roadmap
+            roadmap_file = self.output_dir / f"roadmap_{policy_code}.md"
+            try:
+                with open(roadmap_file, 'w', encoding='utf-8') as f:
+                    f.write(roadmap_md)
+                logger.info(f"✓ Roadmap de implementación guardado: {roadmap_file}")
+                macro_report["roadmap_file"] = str(roadmap_file)
+            except Exception as e:
+                logger.error(f"Error guardando roadmap: {e}")
+                # Continue execution - roadmap is optional
+        
+>>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         # Generate Markdown report
         self._generate_macro_markdown(macro_report, policy_code)
         
         # Save JSON version
         output_file = self.output_dir / f"macro_report_{policy_code}.json"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(macro_report, f, indent=2, ensure_ascii=False)
-        
-        logger.info(f"✓ Reporte MACRO guardado: {output_file}")
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(macro_report, f, indent=2, ensure_ascii=False)
+            logger.info(f"✓ Reporte MACRO guardado: {output_file}")
+        except Exception as e:
+            logger.error(f"Error guardando reporte MACRO JSON: {e}")
+            raise
         logger.info(f"  Nivel de alineación: {alignment_level}")
         logger.info(f"  Score global: {global_score:.3f}")
         
         return macro_report
     
+<<<<<<< HEAD
+=======
+    def _validate_narrative_coherence(self, global_score: float, 
+                                     responses: Dict) -> Dict[str, Any]:
+        """
+        Valida coherencia narrativa bidireccional entre niveles
+        
+        Returns:
+            Dict with coherence validation results
+        """
+        coherence = {
+            "is_coherent": True,
+            "warnings": [],
+            "validations": {}
+        }
+        
+        # Validation 1: Global score should be consistent with individual responses
+        notas = [r.nota_cuantitativa for r in responses.values()]
+        calculated_global = sum(notas) / len(notas) if notas else 0
+        
+        if abs(global_score - calculated_global) > 0.01:
+            coherence["warnings"].append(
+                f"Score global ({global_score:.3f}) no coincide con promedio calculado ({calculated_global:.3f})"
+            )
+            coherence["is_coherent"] = False
+        
+        coherence["validations"]["score_consistency"] = {
+            "expected": calculated_global,
+            "actual": global_score,
+            "difference": abs(global_score - calculated_global),
+            "passed": abs(global_score - calculated_global) <= 0.01
+        }
+        
+        # Validation 2: Distribution analysis
+        excellent = sum(1 for n in notas if n >= 0.85)
+        good = sum(1 for n in notas if 0.70 <= n < 0.85)
+        acceptable = sum(1 for n in notas if 0.55 <= n < 0.70)
+        poor = sum(1 for n in notas if n < 0.55)
+        
+        coherence["validations"]["distribution"] = {
+            "excelente": excellent,
+            "bueno": good,
+            "aceptable": acceptable,
+            "insuficiente": poor,
+            "total": len(notas)
+        }
+        
+        # Validation 3: Dimension consistency
+        dim_scores = {}
+        for qid, r in responses.items():
+            parts = qid.split('-')
+            if len(parts) >= 2:
+                dim = parts[1]
+                if dim not in dim_scores:
+                    dim_scores[dim] = []
+                if hasattr(r, 'nota_cuantitativa'):
+                    dim_scores[dim].append(r.nota_cuantitativa)
+        
+        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
+        dim_avg_global = sum(dim_averages.values()) / len(dim_averages) if dim_averages else 0
+        
+        coherence["validations"]["dimension_consistency"] = {
+            "dimension_averages": dim_averages,
+            "dimension_global": dim_avg_global,
+            "matches_global": abs(dim_avg_global - global_score) <= 0.02
+        }
+        
+        # Validation 4: Cross-reference availability
+        coherence["validations"]["cross_references"] = {
+            "micro_to_meso": "Implemented via question ID grouping",
+            "meso_to_macro": "Implemented via dimension aggregation",
+            "macro_to_micro": "Implemented via evidence traceability"
+        }
+        
+        return coherence
+    
+>>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
     def _get_cluster_name(self, cluster: ClusterMeso) -> str:
         """Retorna el nombre descriptivo del clúster"""
         names = {
@@ -335,7 +442,7 @@ class ReportGenerator:
         if not dimensiones:
             return "Sin información suficiente para evaluar este clúster."
         
-        avg_score = sum(d["score"] for d in dimensiones.values()) / len(dimensiones)
+        avg_score = sum(d["score"] for d in dimensiones.values()) / len(dimensiones) if dimensiones else 0
         cluster_name = self._get_cluster_name(cluster)
         
         evaluation = f"""
@@ -373,8 +480,8 @@ sostenibles en el territorio.
         best_score = 0
         
         for cluster_id, cluster_data in clusters.items():
-            if cluster_data["dimensiones"]:
-                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"])
+            if cluster_data.get("dimensiones"):
+                avg = sum(d.get("score", 0) for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
                 if avg > best_score:
                     best_score = avg
                     best_cluster = cluster_id
@@ -387,8 +494,8 @@ sostenibles en el territorio.
         weak_score = 1.0
         
         for cluster_id, cluster_data in clusters.items():
-            if cluster_data["dimensiones"]:
-                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"])
+            if cluster_data.get("dimensiones"):
+                avg = sum(d.get("score", 0) for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
                 if avg < weak_score:
                     weak_score = avg
                     weak_cluster = cluster_id
@@ -400,18 +507,38 @@ sostenibles en el territorio.
         dim_scores = {}
         
         for cluster_data in clusters.values():
+<<<<<<< HEAD
             for dim_id, dim_data in cluster_data["dimensiones"].items():
                 if dim_id not in dim_scores:
                     dim_scores[dim_id] = []
                 dim_scores[dim_id].append(dim_data["score"])
         
         dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
+=======
+            if cluster_data.get("dimensiones"):
+                for dim_id, dim_data in cluster_data["dimensiones"].items():
+                    if dim_id not in dim_scores:
+                        dim_scores[dim_id] = []
+                    score = dim_data.get("score", 0)
+                    dim_scores[dim_id].append(score)
+        return dim_scores
+    
+    def _find_best_dimension(self, clusters: Dict) -> str:
+        """Encuentra la dimensión con mejor desempeño global"""
+        dim_scores = self._extract_dimension_scores_from_clusters(clusters)
+        if not dim_scores:
+            return "N/A"
+        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
+        if not dim_averages:
+            return "N/A"
+>>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         best_dim = max(dim_averages.items(), key=lambda x: x[1])
         
         return f"{best_dim[0]} ({best_dim[1]:.2f})"
     
     def _find_weakest_dimension(self, clusters: Dict[str, Any]) -> str:
         """Encuentra la dimensión más débil globalmente"""
+<<<<<<< HEAD
         dim_scores = {}
         
         for cluster_data in clusters.values():
@@ -421,6 +548,14 @@ sostenibles en el territorio.
                 dim_scores[dim_id].append(dim_data["score"])
         
         dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
+=======
+        dim_scores = self._extract_dimension_scores_from_clusters(clusters)
+        if not dim_scores:
+            return "N/A"
+        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
+        if not dim_averages:
+            return "N/A"
+>>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         weak_dim = min(dim_averages.items(), key=lambda x: x[1])
         
         return f"{weak_dim[0]} ({weak_dim[1]:.2f})"
@@ -513,9 +648,228 @@ La implementación de estas mejoras debe priorizarse según:
 """
         return analysis.strip()
     
+<<<<<<< HEAD
     def _generate_priority_recommendations(self, responses: Dict[str, Any],
                                           compliance_score: float) -> List[str]:
         """Genera recomendaciones prioritarias"""
+=======
+    def _extract_dimension_scores_from_responses(self, responses: Dict) -> Dict[str, List[float]]:
+        """Helper: extrae scores de dimensiones desde respuestas de preguntas"""
+        dim_scores = {}
+        for qid, r in responses.items():
+            try:
+                # Extract dimension from question_id (e.g., "P1-D1-Q1" -> "D1")
+                parts = qid.split('-')
+                if len(parts) >= 2:
+                    dim = parts[1]
+                    if dim not in dim_scores:
+                        dim_scores[dim] = []
+                    # Safely get nota_cuantitativa
+                    if hasattr(r, 'nota_cuantitativa'):
+                        dim_scores[dim].append(r.nota_cuantitativa)
+            except (AttributeError, IndexError, TypeError) as e:
+                logger.warning(f"Error extracting dimension score for {qid}: {e}")
+                continue
+        return dim_scores
+    
+    def _generate_priority_recommendations(self, responses: Dict,
+                                          compliance_score: float) -> List[Any]:
+        """
+        Genera recomendaciones prioritarias con criterios SMART y priorización AHP
+        
+        Returns:
+            List of SMARTRecommendation objects (if available) or dict representations
+        """
+        recommendations = []
+        
+        if not SMART_AVAILABLE:
+            # Fallback to simple recommendations if SMART module not available
+            return self._generate_simple_recommendations(responses, compliance_score)
+        
+        # Analyze critical gaps
+        critical_questions = [
+            (qid, r) for qid, r in responses.items() 
+            if r.nota_cuantitativa < 0.40
+        ]
+        
+        # Dimension-specific analysis
+        dim_scores = {}
+        for qid, r in responses.items():
+            parts = qid.split('-')
+            if len(parts) >= 2:
+                dim = parts[1]
+                if dim not in dim_scores:
+                    dim_scores[dim] = []
+                dim_scores[dim].append(r.nota_cuantitativa)
+        
+        rec_counter = 1
+        
+        # Critical recommendation for severe gaps
+        if len(critical_questions) > 10:
+            rec_id = f"REC-{rec_counter:03d}"
+            rec_counter += 1
+            
+            rec = SMARTRecommendation(
+                id=rec_id,
+                title="Reformulación integral del plan de desarrollo",
+                smart_criteria=SMARTCriteria(
+                    specific=f"Reformular {len(critical_questions)} preguntas críticas con cumplimiento <40% "
+                             f"incorporando evidencia documental, líneas base cuantitativas y teorías de cambio explícitas",
+                    measurable=f"Incrementar score promedio de preguntas críticas de {sum(r.nota_cuantitativa for _, r in critical_questions)/len(critical_questions):.2f} "
+                               f"a mínimo 0.70 (incremento esperado de {0.70 - sum(r.nota_cuantitativa for _, r in critical_questions)/len(critical_questions):.2f} puntos)",
+                    achievable="Requiere equipo técnico especializado, acceso a fuentes de datos oficiales (DANE, DNP), "
+                              f"presupuesto estimado $200-500M COP para consultoría y fortalecimiento técnico",
+                    relevant="Alineado con requisitos DNP para planes de desarrollo territorial y cumplimiento normativo "
+                            "(Ley 152/1994, Decreto 893/2017)",
+                    time_bound="Implementación en 12 meses con revisiones trimestrales y ajustes iterativos"
+                ),
+                impact_score=9.5,
+                cost_score=4.0,  # High cost
+                urgency_score=10.0,  # Critical urgency
+                viability_score=7.0,
+                priority=Priority.CRITICAL,
+                impact_level=ImpactLevel.TRANSFORMATIONAL,
+                success_metrics=[
+                    SuccessMetric(
+                        name="Score promedio preguntas críticas",
+                        description="Promedio de notas cuantitativas en preguntas con cumplimiento inicial <40%",
+                        baseline=sum(r.nota_cuantitativa for _, r in critical_questions)/len(critical_questions),
+                        target=0.70,
+                        unit="score (0-1)",
+                        measurement_method="Evaluación FARFAN post-reformulación",
+                        verification_source="Sistema de evaluación FARFAN"
+                    ),
+                    SuccessMetric(
+                        name="Compliance Score DNP",
+                        description="Score de cumplimiento integral DNP",
+                        baseline=compliance_score,
+                        target=min(90.0, compliance_score + 25),
+                        unit="puntos (0-100)",
+                        measurement_method="Validación DNP",
+                        verification_source="ValidadorDNP"
+                    )
+                ],
+                estimated_duration_days=365,
+                responsible_entity="Oficina de Planeación Municipal + Consultor Externo",
+                budget_range=(200_000_000, 500_000_000),
+                ods_alignment=["ODS-16", "ODS-17"]
+            )
+            recommendations.append(rec)
+        
+        # DNP compliance recommendation
+        if compliance_score < 60:
+            rec_id = f"REC-{rec_counter:03d}"
+            rec_counter += 1
+            
+            rec = SMARTRecommendation(
+                id=rec_id,
+                title="Fortalecer cumplimiento de estándares DNP",
+                smart_criteria=SMARTCriteria(
+                    specific="Revisar y alinear todas las intervenciones con competencias municipales (Catálogo DNP), "
+                            "indicadores MGA oficiales y lineamientos PDET (donde aplique)",
+                    measurable=f"Incrementar Compliance Score DNP de {compliance_score:.1f}/100 a mínimo 75/100 "
+                              f"(incremento de {75-compliance_score:.1f} puntos)",
+                    achievable="Requiere capacitación equipo técnico en estándares DNP, acceso a catálogos oficiales MGA, "
+                              "coordinación con oficinas departamentales de planeación",
+                    relevant="Cumplimiento normativo obligatorio para aprobación de proyectos de inversión y acceso "
+                            "al Sistema General de Participaciones (SGP)",
+                    time_bound="Implementación en 6 meses con verificación mensual de avances"
+                ),
+                impact_score=8.0,
+                cost_score=8.0,  # Relatively low cost
+                urgency_score=9.0,
+                viability_score=9.0,
+                priority=Priority.HIGH,
+                impact_level=ImpactLevel.HIGH,
+                success_metrics=[
+                    SuccessMetric(
+                        name="DNP Compliance Score",
+                        description="Score de cumplimiento de estándares DNP",
+                        baseline=compliance_score,
+                        target=75.0,
+                        unit="puntos (0-100)",
+                        measurement_method="Validación automática ValidadorDNP",
+                        verification_source="Sistema ValidadorDNP"
+                    )
+                ],
+                estimated_duration_days=180,
+                responsible_entity="Secretaría de Planeación Municipal",
+                budget_range=(20_000_000, 50_000_000),
+                ods_alignment=["ODS-16", "ODS-17"]
+            )
+            recommendations.append(rec)
+        
+        # Dimension-specific recommendations
+        for dim, scores in dim_scores.items():
+            avg = sum(scores) / len(scores) if scores else 0
+            if avg < 0.60:
+                rec_id = f"REC-{rec_counter:03d}"
+                rec_counter += 1
+                
+                dim_name = self._get_dimension_name(dim)
+                
+                rec = SMARTRecommendation(
+                    id=rec_id,
+                    title=f"Fortalecer {dim_name}",
+                    smart_criteria=SMARTCriteria(
+                        specific=f"Mejorar todos los componentes de {dim_name} incorporando elementos faltantes "
+                                f"identificados en evaluación (score actual {avg:.2f})",
+                        measurable=f"Incrementar score promedio de {dim} de {avg:.2f} a mínimo 0.75 "
+                                  f"({0.75-avg:.2f} puntos de mejora)",
+                        achievable=f"Requiere revisión técnica especializada de dimensión {dim}, "
+                                  f"fortalecimiento de sistemas de información y capacitación específica",
+                        relevant=f"La dimensión {dim} es crítica para la coherencia del marco lógico y "
+                                f"la evaluabilidad del plan",
+                        time_bound="Implementación en 4 meses con revisiones quincenales"
+                    ),
+                    impact_score=7.0,
+                    cost_score=7.5,
+                    urgency_score=7.0,
+                    viability_score=8.0,
+                    priority=Priority.MEDIUM,
+                    impact_level=ImpactLevel.MODERATE,
+                    success_metrics=[
+                        SuccessMetric(
+                            name=f"Score {dim}",
+                            description=f"Score promedio de dimensión {dim}",
+                            baseline=avg,
+                            target=0.75,
+                            unit="score (0-1)",
+                            measurement_method="Evaluación FARFAN",
+                            verification_source="Sistema FARFAN"
+                        )
+                    ],
+                    estimated_duration_days=120,
+                    responsible_entity=f"Equipo técnico {dim_name}",
+                    budget_range=(10_000_000, 30_000_000),
+                    ods_alignment=self._get_ods_for_dimension(dim)
+                )
+                recommendations.append(rec)
+        
+        # Add dependencies
+        if len(recommendations) > 1 and any(r.priority == Priority.CRITICAL for r in recommendations):
+            # Other recommendations depend on critical ones
+            critical_ids = [r.id for r in recommendations if r.priority == Priority.CRITICAL]
+            for rec in recommendations:
+                if rec.priority != Priority.CRITICAL and rec.id not in critical_ids:
+                    rec.dependencies.append(
+                        Dependency(
+                            depends_on=critical_ids[0],
+                            dependency_type="prerequisite",
+                            description="La reformulación integral debe completarse antes de mejoras específicas"
+                        )
+                    )
+        
+        # Prioritize using AHP
+        prioritizer = RecommendationPrioritizer()
+        recommendations = prioritizer.prioritize(recommendations)
+        
+        return recommendations
+    
+    def _generate_simple_recommendations(self, responses: Dict, 
+                                        compliance_score: float) -> List[str]:
+        """Fallback method for simple text recommendations (when SMART module unavailable)"""
+>>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         recommendations = []
         
         # Identify critical gaps
@@ -548,7 +902,7 @@ La implementación de estas mejoras debe priorizarse según:
                 dim_scores[dim].append(r.nota_cuantitativa)
         
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores)
+            avg = sum(scores) / len(scores) if scores else 0
             if avg < 0.60:
                 recommendations.append(
                     f"Fortalecer Dimensión {dim} ({self._get_dimension_name(dim)}): "
@@ -587,7 +941,7 @@ La implementación de estas mejoras debe priorizarse según:
                 dim_scores[dim].append(r.nota_cuantitativa)
         
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores)
+            avg = sum(scores) / len(scores) if scores else 0
             if avg >= 0.80:
                 strengths.append(
                     f"Dimensión {dim} ({self._get_dimension_name(dim)}) "
@@ -621,7 +975,7 @@ La implementación de estas mejoras debe priorizarse según:
                 dim_scores[dim].append(r.nota_cuantitativa)
         
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores)
+            avg = sum(scores) / len(scores) if scores else 0
             if avg < 0.50:
                 weaknesses.append(
                     f"Dimensión {dim} ({self._get_dimension_name(dim)}) "
@@ -691,7 +1045,10 @@ La implementación de estas mejoras debe priorizarse según:
 """
         
         output_file = self.output_dir / f"macro_report_{policy_code}.md"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(md_content)
-        
-        logger.info(f"✓ Reporte MACRO (Markdown) guardado: {output_file}")
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(md_content)
+            logger.info(f"✓ Reporte MACRO (Markdown) guardado: {output_file}")
+        except Exception as e:
+            logger.error(f"Error guardando reporte MACRO Markdown: {e}")
+            # Continue - markdown is supplementary to JSON

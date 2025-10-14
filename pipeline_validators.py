@@ -4,11 +4,12 @@
 Pipeline Data Validation Module
 Provides Pydantic models and validators for pipeline stages
 """
-
-from typing import Dict, List, Any, Field, field_validator, model_validator, ConfigDict
+from typing import Dict, List, Any
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
+from pathlib import Path
 import logging
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 class DocumentProcessingData(BaseModel):
     """Validated data from Stage 1-2: Document processing"""
@@ -23,7 +24,6 @@ class DocumentProcessingData(BaseModel):
             logger.warning("raw_text is empty after document extraction")
         return v
 
-
 class SemanticAnalysisData(BaseModel):
     """Validated data from Stage 3: Semantic analysis"""
     semantic_chunks: List[Dict] = Field(default_factory=list, description="Semantic chunks")
@@ -36,7 +36,6 @@ class SemanticAnalysisData(BaseModel):
             if not (0.0 <= score <= 1.0):
                 logger.warning(f"Dimension score '{key}' out of range [0,1]: {score}")
         return v
-
 
 class CausalExtractionData(BaseModel):
     """Validated data from Stage 4: Causal extraction"""
@@ -53,12 +52,10 @@ class CausalExtractionData(BaseModel):
         logger.info(f"Stage 4 validation passed: {len(v)} nodes extracted")
         return v
 
-
 class MechanismInferenceData(BaseModel):
     """Validated data from Stage 5: Mechanism inference"""
     mechanism_parts: List[Dict] = Field(default_factory=list, description="Mechanism parts")
     bayesian_inferences: Dict[str, Any] = Field(default_factory=dict, description="Bayesian inferences")
-
 
 class FinancialAuditData(BaseModel):
     """Validated data from Stage 6: Financial audit"""
@@ -73,7 +70,6 @@ class FinancialAuditData(BaseModel):
                 logger.warning(f"Negative financial allocation for '{key}': {amount}")
         return v
 
-
 class DNPValidationData(BaseModel):
     """Validated data from Stage 7: DNP validation"""
     dnp_validation_results: List[Dict] = Field(default_factory=list, description="DNP validation results")
@@ -84,12 +80,10 @@ class DNPValidationData(BaseModel):
     def validate_compliance_score_range(cls, v: float) -> float:
         """INVARIANT: Post-Stage 7 compliance_score must be 0-100"""
         if not (0.0 <= v <= 100.0):
-            logger.warning(f"⚠️  WARNING: Compliance score out of range [0, 100]: {v}. Clamping to valid range.")
-            # Clamp to valid range
+            logger.warning(f"⚠️ WARNING: Compliance score out of range [0, 100]: {v}. Clamping to valid range.")
             return max(0.0, min(100.0, v))
         logger.info(f"Stage 7 validation passed: compliance_score = {v:.1f}/100")
         return v
-
 
 class QuestionAnsweringData(BaseModel):
     """Validated data from Stage 8: Question answering"""
@@ -109,13 +103,11 @@ class QuestionAnsweringData(BaseModel):
         logger.info(f"Stage 8 validation passed: {actual_count} questions answered")
         return v
 
-
 class ReportGenerationData(BaseModel):
     """Validated data from Stage 9: Report generation"""
     micro_report: Dict = Field(default_factory=dict, description="Micro-level report")
     meso_report: Dict = Field(default_factory=dict, description="Meso-level report")
     macro_report: Dict = Field(default_factory=dict, description="Macro-level report")
-
 
 class ValidatedPipelineContext(BaseModel):
     """
@@ -138,7 +130,6 @@ class ValidatedPipelineContext(BaseModel):
     stage_7: DNPValidationData = Field(default_factory=DNPValidationData)
     stage_8: QuestionAnsweringData = Field(default_factory=QuestionAnsweringData)
     stage_9: ReportGenerationData = Field(default_factory=ReportGenerationData)
-
 
 def validate_stage_transition(stage_name: str, data: BaseModel) -> None:
     """
