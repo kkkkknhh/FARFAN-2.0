@@ -2203,7 +2203,7 @@ Análisis completo con contradicciones y métricas avanzadas
         try:
             cycles = list(nx.simple_cycles(causal_net))
             num_cycles = len(cycles)
-        except:
+        except nx.NetworkXError:
             num_cycles = 0
 
         if causal_net.number_of_edges() > 0:
