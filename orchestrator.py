@@ -662,9 +662,14 @@ class FARFANOrchestrator:
         
         # Calculate compliance score
         if ctx.dnp_validation_results:
-            ctx.compliance_score = sum(
-                r['resultado'].score_total for r in ctx.dnp_validation_results
-            ) / len(ctx.dnp_validation_results)
+            try:
+                ctx.compliance_score = sum(
+                    r['resultado'].score_total for r in ctx.dnp_validation_results
+                    if r.get('resultado') and hasattr(r['resultado'], 'score_total')
+                ) / len(ctx.dnp_validation_results) if ctx.dnp_validation_results else 0
+            except (AttributeError, TypeError, KeyError) as e:
+                logger.warning(f"Error calculating compliance score: {e}")
+                ctx.compliance_score = 0.0
         
         # CRITICAL VALIDATION: Post-Stage 7 compliance_score must be 0-100
         stage_data = DNPValidationData(

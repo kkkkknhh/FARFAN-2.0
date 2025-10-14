@@ -126,10 +126,14 @@ class ReportGenerator:
         
         # Save to file
         output_file = self.output_dir / f"micro_report_{policy_code}.json"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(micro_report, f, indent=2, ensure_ascii=False)
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(micro_report, f, indent=2, ensure_ascii=False)
+            logger.info(f"✓ Reporte MICRO guardado: {output_file}")
+        except Exception as e:
+            logger.error(f"Error guardando reporte MICRO: {e}")
+            raise
         
-        logger.info(f"✓ Reporte MICRO guardado: {output_file}")
         logger.info(f"  Promedio general: {micro_report['statistics']['promedio_general']:.3f}")
         
         return micro_report
@@ -224,10 +228,14 @@ class ReportGenerator:
         
         # Save to file
         output_file = self.output_dir / f"meso_report_{policy_code}.json"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(meso_report, f, indent=2, ensure_ascii=False)
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(meso_report, f, indent=2, ensure_ascii=False)
+            logger.info(f"✓ Reporte MESO guardado: {output_file}")
+        except Exception as e:
+            logger.error(f"Error guardando reporte MESO: {e}")
+            raise
         
-        logger.info(f"✓ Reporte MESO guardado: {output_file}")
         logger.info(f"  Promedio clústeres: {meso_report['statistics']['promedio_clusters']:.3f}")
         
         return meso_report
@@ -307,21 +315,27 @@ class ReportGenerator:
             
             # Save roadmap
             roadmap_file = self.output_dir / f"roadmap_{policy_code}.md"
-            with open(roadmap_file, 'w', encoding='utf-8') as f:
-                f.write(roadmap_md)
-            
-            logger.info(f"✓ Roadmap de implementación guardado: {roadmap_file}")
-            macro_report["roadmap_file"] = str(roadmap_file)
+            try:
+                with open(roadmap_file, 'w', encoding='utf-8') as f:
+                    f.write(roadmap_md)
+                logger.info(f"✓ Roadmap de implementación guardado: {roadmap_file}")
+                macro_report["roadmap_file"] = str(roadmap_file)
+            except Exception as e:
+                logger.error(f"Error guardando roadmap: {e}")
+                # Continue execution - roadmap is optional
         
         # Generate Markdown report
         self._generate_macro_markdown(macro_report, policy_code)
         
         # Save JSON version
         output_file = self.output_dir / f"macro_report_{policy_code}.json"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(macro_report, f, indent=2, ensure_ascii=False)
-        
-        logger.info(f"✓ Reporte MACRO guardado: {output_file}")
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(macro_report, f, indent=2, ensure_ascii=False)
+            logger.info(f"✓ Reporte MACRO guardado: {output_file}")
+        except Exception as e:
+            logger.error(f"Error guardando reporte MACRO JSON: {e}")
+            raise
         logger.info(f"  Nivel de alineación: {alignment_level}")
         logger.info(f"  Score global: {global_score:.3f}")
         
@@ -463,7 +477,7 @@ class ReportGenerator:
         if not dimensiones:
             return "Sin información suficiente para evaluar este clúster."
         
-        avg_score = sum(d["score"] for d in dimensiones.values()) / len(dimensiones)
+        avg_score = sum(d["score"] for d in dimensiones.values()) / len(dimensiones) if dimensiones else 0
         cluster_name = self._get_cluster_name(cluster)
         
         evaluation = f"""
@@ -502,7 +516,7 @@ sostenibles en el territorio.
         
         for cluster_id, cluster_data in clusters.items():
             if cluster_data["dimensiones"]:
-                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"])
+                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
                 if avg > best_score:
                     best_score = avg
                     best_cluster = cluster_id
@@ -516,7 +530,7 @@ sostenibles en el territorio.
         
         for cluster_id, cluster_data in clusters.items():
             if cluster_data["dimensiones"]:
-                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"])
+                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
                 if avg < weak_score:
                     weak_score = avg
                     weak_cluster = cluster_id
@@ -639,13 +653,19 @@ La implementación de estas mejoras debe priorizarse según:
         """Helper: extrae scores de dimensiones desde respuestas de preguntas"""
         dim_scores = {}
         for qid, r in responses.items():
-            # Extract dimension from question_id (e.g., "P1-D1-Q1" -> "D1")
-            parts = qid.split('-')
-            if len(parts) >= 2:
-                dim = parts[1]
-                if dim not in dim_scores:
-                    dim_scores[dim] = []
-                dim_scores[dim].append(r.nota_cuantitativa)
+            try:
+                # Extract dimension from question_id (e.g., "P1-D1-Q1" -> "D1")
+                parts = qid.split('-')
+                if len(parts) >= 2:
+                    dim = parts[1]
+                    if dim not in dim_scores:
+                        dim_scores[dim] = []
+                    # Safely get nota_cuantitativa
+                    if hasattr(r, 'nota_cuantitativa'):
+                        dim_scores[dim].append(r.nota_cuantitativa)
+            except (AttributeError, IndexError, TypeError) as e:
+                logger.warning(f"Error extracting dimension score for {qid}: {e}")
+                continue
         return dim_scores
     
     def _generate_priority_recommendations(self, responses: Dict,
@@ -777,7 +797,7 @@ La implementación de estas mejoras debe priorizarse según:
         
         # Dimension-specific recommendations
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores)
+            avg = sum(scores) / len(scores) if scores else 0
             if avg < 0.60:
                 rec_id = f"REC-{rec_counter:03d}"
                 rec_counter += 1
@@ -868,7 +888,7 @@ La implementación de estas mejoras debe priorizarse según:
         dim_scores = self._extract_dimension_scores_from_responses(responses)
         
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores)
+            avg = sum(scores) / len(scores) if scores else 0
             if avg < 0.60:
                 recommendations.append(
                     f"Fortalecer Dimensión {dim} ({self._get_dimension_name(dim)}): "
@@ -912,7 +932,7 @@ La implementación de estas mejoras debe priorizarse según:
         dim_scores = self._extract_dimension_scores_from_responses(responses)
         
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores)
+            avg = sum(scores) / len(scores) if scores else 0
             if avg >= 0.80:
                 strengths.append(
                     f"Dimensión {dim} ({self._get_dimension_name(dim)}) "
@@ -939,7 +959,7 @@ La implementación de estas mejoras debe priorizarse según:
         dim_scores = self._extract_dimension_scores_from_responses(responses)
         
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores)
+            avg = sum(scores) / len(scores) if scores else 0
             if avg < 0.50:
                 weaknesses.append(
                     f"Dimensión {dim} ({self._get_dimension_name(dim)}) "
@@ -1112,7 +1132,10 @@ Ver archivo de roadmap detallado: `{macro_report['roadmap_file']}`
 """
         
         output_file = self.output_dir / f"macro_report_{policy_code}.md"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(md_content)
-        
-        logger.info(f"✓ Reporte MACRO (Markdown) guardado: {output_file}")
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(md_content)
+            logger.info(f"✓ Reporte MACRO (Markdown) guardado: {output_file}")
+        except Exception as e:
+            logger.error(f"Error guardando reporte MACRO Markdown: {e}")
+            # Continue - markdown is supplementary to JSON
