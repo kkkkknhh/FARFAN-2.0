@@ -1146,7 +1146,8 @@
               "eslabones_con_magnitud": "COUNT(eslabones con cuantificación)",
               "proporcionalidad_coherente": "COUNT(transiciones proporcionales)",
               "saltos_identificados": "COUNT(brechas de plausibilidad)",
-              "justificacion_saltos": "COUNT(saltos con explicación extraordinaria)"
+              "justificacion_saltos": "COUNT(saltos con explicación extraordinaria)",
+              "saltos_injustificados": "saltos_identificados - justificacion_saltos"
             },
             "formula_score": "score = (proporcionalidad / eslabones) * (1 - (saltos_injustificados * 0.2))"
           },
