@@ -192,8 +192,8 @@ class ReportGenerator:
                 
                 # Calculate dimension score for this cluster
                 if dim_responses:
-                    dim_notas = [r.nota_cuantitativa for r in dim_responses]
-                    dim_score = sum(dim_notas) / len(dim_notas)
+                    dim_notas = [r.nota_cuantitativa for r in dim_responses if hasattr(r, 'nota_cuantitativa')]
+                    dim_score = sum(dim_notas) / len(dim_notas) if dim_notas else 0
                     
                     cluster_data["dimensiones"][dim_id] = {
                         "dimension_nombre": self._get_dimension_name(dim_id),
@@ -394,9 +394,10 @@ class ReportGenerator:
                 dim = parts[1]
                 if dim not in dim_scores:
                     dim_scores[dim] = []
-                dim_scores[dim].append(r.nota_cuantitativa)
+                if hasattr(r, 'nota_cuantitativa'):
+                    dim_scores[dim].append(r.nota_cuantitativa)
         
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
+        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
         dim_avg_global = sum(dim_averages.values()) / len(dim_averages) if dim_averages else 0
         
         coherence["validations"]["dimension_consistency"] = {
@@ -515,8 +516,8 @@ sostenibles en el territorio.
         best_score = 0
         
         for cluster_id, cluster_data in clusters.items():
-            if cluster_data["dimensiones"]:
-                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
+            if cluster_data.get("dimensiones"):
+                avg = sum(d.get("score", 0) for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
                 if avg > best_score:
                     best_score = avg
                     best_cluster = cluster_id
@@ -529,8 +530,8 @@ sostenibles en el territorio.
         weak_score = 1.0
         
         for cluster_id, cluster_data in clusters.items():
-            if cluster_data["dimensiones"]:
-                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
+            if cluster_data.get("dimensiones"):
+                avg = sum(d.get("score", 0) for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
                 if avg < weak_score:
                     weak_score = avg
                     weak_cluster = cluster_id
@@ -541,23 +542,33 @@ sostenibles en el territorio.
         """Helper: extrae scores de dimensiones desde clusters"""
         dim_scores = {}
         for cluster_data in clusters.values():
-            for dim_id, dim_data in cluster_data["dimensiones"].items():
-                if dim_id not in dim_scores:
-                    dim_scores[dim_id] = []
-                dim_scores[dim_id].append(dim_data["score"])
+            if cluster_data.get("dimensiones"):
+                for dim_id, dim_data in cluster_data["dimensiones"].items():
+                    if dim_id not in dim_scores:
+                        dim_scores[dim_id] = []
+                    score = dim_data.get("score", 0)
+                    dim_scores[dim_id].append(score)
         return dim_scores
     
     def _find_best_dimension(self, clusters: Dict) -> str:
         """Encuentra la dimensión con mejor desempeño global"""
         dim_scores = self._extract_dimension_scores_from_clusters(clusters)
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
+        if not dim_scores:
+            return "N/A"
+        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
+        if not dim_averages:
+            return "N/A"
         best_dim = max(dim_averages.items(), key=lambda x: x[1])
         return f"{best_dim[0]} ({best_dim[1]:.2f})"
     
     def _find_weakest_dimension(self, clusters: Dict) -> str:
         """Encuentra la dimensión más débil globalmente"""
         dim_scores = self._extract_dimension_scores_from_clusters(clusters)
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
+        if not dim_scores:
+            return "N/A"
+        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
+        if not dim_averages:
+            return "N/A"
         weak_dim = min(dim_averages.items(), key=lambda x: x[1])
         return f"{weak_dim[0]} ({weak_dim[1]:.2f})"
     
