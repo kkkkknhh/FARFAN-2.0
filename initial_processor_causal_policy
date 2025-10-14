@@ -110,8 +110,16 @@ class SemanticProcessor:
             logger.info("BGE-M3 loaded successfully")
             
         except ImportError as e:
+            missing = None
+            msg = str(e)
+            if "transformers" in msg:
+                missing = "transformers"
+            elif "torch" in msg:
+                missing = "torch"
+            else:
+                missing = "transformers or torch"
             raise RuntimeError(
-                "Missing dependencies: pip install transformers torch"
+                f"Missing dependency: {missing}. Please install with 'pip install {missing}'"
             ) from e
     
     def chunk_text(self, text: str, preserve_structure: bool = True) -> list[dict[str, Any]]:
