@@ -523,7 +523,13 @@ class IndustrialGradeValidator:
         """Valida la matriz de transiciones causales."""
         self.logger.info("  [Capa 3] Validando matriz de transiciones causales...")
         tc = TeoriaCambio()
-        errors = sum(1 for o in CategoriaCausal for d in CategoriaCausal if tc._es_conexion_valida(o, d) != (d in tc._MATRIZ_VALIDACION.get(o, set())))
+        errors = 0
+        for o in CategoriaCausal:
+            for d in CategoriaCausal:
+                is_valid = tc._es_conexion_valida(o, d)
+                expected = d in tc._MATRIZ_VALIDACION.get(o, set())
+                if is_valid != expected:
+                    errors += 1
         if errors > 0:
             self.logger.error("    ❌ %d inconsistencias encontradas en la matriz de validación.", errors)
             return False
