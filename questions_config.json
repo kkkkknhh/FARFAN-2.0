@@ -1,0 +1,905 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "created_date": "2024-10-14",
+    "title": "Configuración de 300 Preguntas - Sistema de Evaluación Causal FARFAN 2.0",
+    "description": "30 preguntas base × 10 áreas de política = 300 preguntas de evaluación",
+    "total_questions": 300,
+    "base_questions": 30,
+    "policy_areas": 10,
+    "dimensions": 6
+  },
+  
+  "dimensiones": {
+    "D1": {
+      "nombre": "Insumos (Diagnóstico y Líneas Base)",
+      "descripcion": "Evalúa la calidad del diagnóstico territorial, líneas base cuantitativas, identificación de brechas y suficiencia de recursos",
+      "peso_por_punto": {
+        "P1": 0.20, "P2": 0.25, "P3": 0.20, "P4": 0.20, "P5": 0.25,
+        "P6": 0.20, "P7": 0.25, "P8": 0.25, "P9": 0.20, "P10": 0.25
+      },
+      "preguntas": 5,
+      "umbral_minimo": 0.50
+    },
+    "D2": {
+      "nombre": "Actividades (Formalizadas)",
+      "descripcion": "Evalúa la formalización de actividades con estructura clara, responsables, cronogramas, costos y mecanismos causales",
+      "peso_por_punto": {
+        "P1": 0.20, "P2": 0.20, "P3": 0.15, "P4": 0.15, "P5": 0.20,
+        "P6": 0.20, "P7": 0.15, "P8": 0.20, "P9": 0.20, "P10": 0.20
+      },
+      "preguntas": 5,
+      "umbral_minimo": 0.50
+    },
+    "D3": {
+      "nombre": "Productos (Verificables)",
+      "descripcion": "Evalúa la especificación de productos con indicadores verificables, fórmulas, fuentes y trazabilidad presupuestal",
+      "peso_por_punto": {
+        "P1": 0.15, "P2": 0.15, "P3": 0.20, "P4": 0.20, "P5": 0.15,
+        "P6": 0.15, "P7": 0.20, "P8": 0.15, "P9": 0.20, "P10": 0.15
+      },
+      "preguntas": 5,
+      "umbral_minimo": 0.50
+    },
+    "D4": {
+      "nombre": "Resultados (Medibles)",
+      "descripcion": "Evalúa la definición de resultados con métricas, líneas base, metas, ventanas de maduración y encadenamiento causal",
+      "peso_por_punto": {
+        "P1": 0.20, "P2": 0.20, "P3": 0.20, "P4": 0.25, "P5": 0.20,
+        "P6": 0.25, "P7": 0.20, "P8": 0.20, "P9": 0.20, "P10": 0.20
+      },
+      "preguntas": 5,
+      "umbral_minimo": 0.50
+    },
+    "D5": {
+      "nombre": "Impactos (Largo Plazo)",
+      "descripcion": "Evalúa la proyección de impactos con rutas de transmisión, rezagos temporales y consideración de riesgos sistémicos",
+      "peso_por_punto": {
+        "P1": 0.15, "P2": 0.10, "P3": 0.15, "P4": 0.15, "P5": 0.10,
+        "P6": 0.10, "P7": 0.10, "P8": 0.10, "P9": 0.10, "P10": 0.10
+      },
+      "preguntas": 5,
+      "umbral_minimo": 0.45
+    },
+    "D6": {
+      "nombre": "Causalidad (Teoría de Cambio Explícita)",
+      "descripcion": "Evalúa la explicitación de teorías de cambio, identificación de causas raíz, mediadores, moderadores y supuestos verificables",
+      "peso_por_punto": {
+        "P1": 0.10, "P2": 0.10, "P3": 0.10, "P4": 0.05, "P5": 0.10,
+        "P6": 0.10, "P7": 0.10, "P8": 0.10, "P9": 0.10, "P10": 0.10
+      },
+      "preguntas": 5,
+      "umbral_minimo": 0.45
+    }
+  },
+  
+  "puntos_decalogo": {
+    "P1": {
+      "nombre": "Seguridad y Convivencia",
+      "descripcion": "Estrategias para reducir violencia, fortalecer convivencia y mejorar percepción de seguridad ciudadana",
+      "dimensiones_criticas": ["D1", "D2", "D4"],
+      "indicadores_clave": ["tasa_homicidios", "percepcion_seguridad", "cobertura_videovigilancia"]
+    },
+    "P2": {
+      "nombre": "Alertas Tempranas y Prevención",
+      "descripcion": "Sistemas de alerta temprana, gestión de riesgos y prevención de conflictos",
+      "dimensiones_criticas": ["D1", "D6"],
+      "indicadores_clave": ["alertas_gestionadas", "poblacion_desplazada_atendida"]
+    },
+    "P3": {
+      "nombre": "Ambiente y Recursos Naturales",
+      "descripcion": "Protección ambiental, gestión de recursos naturales y adaptación al cambio climático",
+      "dimensiones_criticas": ["D1", "D3", "D4"],
+      "indicadores_clave": ["cobertura_acueducto", "irca", "hectareas_reforestadas"]
+    },
+    "P4": {
+      "nombre": "Derechos Básicos",
+      "descripcion": "Acceso a educación, salud, vivienda digna y servicios públicos básicos",
+      "dimensiones_criticas": ["D1", "D3", "D4"],
+      "indicadores_clave": ["cobertura_educacion", "cobertura_salud", "deficit_habitacional"]
+    },
+    "P5": {
+      "nombre": "Víctimas del Conflicto",
+      "descripcion": "Reparación integral, retornos, reubicaciones y garantías de no repetición",
+      "dimensiones_criticas": ["D1", "D2"],
+      "indicadores_clave": ["victimas_reparacion_integral", "retornos_reubicaciones"]
+    },
+    "P6": {
+      "nombre": "Niñez, Adolescencia y Juventud",
+      "descripcion": "Protección integral, prevención de vulneraciones y promoción de desarrollo integral",
+      "dimensiones_criticas": ["D1", "D4"],
+      "indicadores_clave": ["desercion_escolar", "embarazo_adolescente", "cobertura_pae"]
+    },
+    "P7": {
+      "nombre": "Desarrollo Rural y Formalización",
+      "descripcion": "Formalización de predios, infraestructura rural y fortalecimiento de economía campesina",
+      "dimensiones_criticas": ["D1", "D3"],
+      "indicadores_clave": ["predios_formalizados", "actualizacion_catastral", "vias_terciarias"]
+    },
+    "P8": {
+      "nombre": "Líderes Sociales y Defensores",
+      "descripcion": "Protección de líderes sociales, defensores de derechos humanos y garantías para su labor",
+      "dimensiones_criticas": ["D1", "D2", "D6"],
+      "indicadores_clave": ["lideres_con_proteccion", "amenazas_a_lideres"]
+    },
+    "P9": {
+      "nombre": "Sistema Carcelario y Resocialización",
+      "descripcion": "Condiciones dignas para privados de libertad y programas de resocialización",
+      "dimensiones_criticas": ["D1", "D3", "D4"],
+      "indicadores_clave": ["hacinamiento_carcelario", "atencion_salud_ppl"]
+    },
+    "P10": {
+      "nombre": "Migración y Atención Humanitaria",
+      "descripcion": "Regularización migratoria, atención humanitaria e integración social",
+      "dimensiones_criticas": ["D1", "D2"],
+      "indicadores_clave": ["migrantes_regularizados", "atencion_humanitaria_migrantes"]
+    }
+  },
+  
+  "preguntas_base": [
+    {
+      "id": "D1-Q1",
+      "dimension": "D1",
+      "numero": 1,
+      "texto_template": "¿El plan presenta líneas base cuantitativas con fuentes oficiales (DANE, DNP, SISPRO, etc.) para el área de {}?",
+      "criterios_evaluacion": {
+        "indicadores_cuantitativos_minimos": 3,
+        "fuentes_oficiales_minimas": 2,
+        "series_temporales_años_minimos": 3,
+        "cobertura_territorial_especificada": true
+      },
+      "patrones_verificacion": [
+        "\\d{4}",
+        "fuente:|según|datos de",
+        "DANE|DNP|SISPRO|SIVIGILA|Ministerio",
+        "línea base|año base",
+        "\\d+(\\.\\d+)?\\s*%"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "5+ indicadores, fuentes oficiales, 5+ años serie"},
+        "bueno": {"min_score": 0.70, "criteria": "3-4 indicadores, 2+ fuentes, 3-4 años"},
+        "aceptable": {"min_score": 0.55, "criteria": "2 indicadores, 1-2 fuentes, 2 años"},
+        "insuficiente": {"min_score": 0.0, "criteria": "< 2 indicadores o sin fuentes"}
+      },
+      "modulos_responsables": ["initial_processor_causal_policy", "dereck_beach"]
+    },
+    {
+      "id": "D1-Q2",
+      "dimension": "D1",
+      "numero": 2,
+      "texto_template": "¿Se cuantifica la magnitud del problema y se reconocen explícitamente vacíos de información y sesgos en {}?",
+      "criterios_evaluacion": {
+        "cuantificacion_brecha": true,
+        "vacios_explicitos": true,
+        "sesgos_reconocidos": true,
+        "calidad_datos_evaluada": true
+      },
+      "patrones_verificacion": [
+        "brecha de|déficit de",
+        "no se cuenta con|información insuficiente",
+        "sesgo de|limitación de|subregistro"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Brecha cuantificada, vacíos explícitos, sesgos reconocidos"},
+        "bueno": {"min_score": 0.70, "criteria": "Brecha estimada, algunos vacíos identificados"},
+        "aceptable": {"min_score": 0.55, "criteria": "Brecha mencionada, reconocimiento parcial"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin cuantificación o sin reconocimiento de limitaciones"}
+      },
+      "modulos_responsables": ["dereck_beach", "initial_processor_causal_policy"]
+    },
+    {
+      "id": "D1-Q3",
+      "dimension": "D1",
+      "numero": 3,
+      "texto_template": "¿Los recursos asignados a {} son trazables (BPIN/PPI) y suficientes según el diagnóstico?",
+      "criterios_evaluacion": {
+        "trazabilidad_ppi_bpin": true,
+        "asignacion_explicita": true,
+        "suficiencia_justificada": true
+      },
+      "patrones_verificacion": [
+        "PPI|BPIN|código proyecto",
+        "\\$\\s*\\d+|COP\\s*\\d+",
+        "suficiente para|permite alcanzar"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Recursos trazables, suficiencia justificada con cálculos"},
+        "bueno": {"min_score": 0.70, "criteria": "Recursos identificados, suficiencia mencionada"},
+        "aceptable": {"min_score": 0.55, "criteria": "Recursos generales, suficiencia implícita"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin trazabilidad o sin evaluación de suficiencia"}
+      },
+      "modulos_responsables": ["dereck_beach", "dnp_integration"]
+    },
+    {
+      "id": "D1-Q4",
+      "dimension": "D1",
+      "numero": 4,
+      "texto_template": "¿Se identifican capacidades institucionales (talento humano, procesos, datos, gobernanza) y cuellos de botella para {}?",
+      "criterios_evaluacion": {
+        "talento_humano": true,
+        "procesos": true,
+        "datos_sistemas": true,
+        "gobernanza": true,
+        "cuellos_botella": true
+      },
+      "patrones_verificacion": [
+        "personal capacitado|equipo técnico",
+        "proceso|procedimiento|protocolo",
+        "sistema de información|base de datos",
+        "coordinación|articulación|comité",
+        "cuello de botella|limitación|restricción"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "4 capacidades descritas + cuellos de botella identificados"},
+        "bueno": {"min_score": 0.70, "criteria": "3 capacidades + algunos cuellos de botella"},
+        "aceptable": {"min_score": 0.55, "criteria": "2 capacidades mencionadas"},
+        "insuficiente": {"min_score": 0.0, "criteria": "< 2 capacidades o sin análisis de limitaciones"}
+      },
+      "modulos_responsables": ["dereck_beach", "competencias_municipales"]
+    },
+    {
+      "id": "D1-Q5",
+      "dimension": "D1",
+      "numero": 5,
+      "texto_template": "¿Hay coherencia entre objetivos y recursos considerando restricciones legales, presupuestales y temporales en {}?",
+      "criterios_evaluacion": {
+        "restricciones_legales": true,
+        "restricciones_presupuestales": true,
+        "restricciones_temporales": true,
+        "coherencia_demostrada": true
+      },
+      "patrones_verificacion": [
+        "ley \\d+|decreto|competencia",
+        "límite fiscal|techo presupuestal",
+        "cuatrienio|\\d{4}-\\d{4}"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Coherencia demostrada, 3 restricciones modeladas"},
+        "bueno": {"min_score": 0.70, "criteria": "Coherencia argumentada, 2 restricciones"},
+        "aceptable": {"min_score": 0.55, "criteria": "Coherencia mencionada, 1 restricción"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin análisis de coherencia o restricciones"}
+      },
+      "modulos_responsables": ["dnp_integration", "dereck_beach"]
+    },
+    
+    {
+      "id": "D2-Q6",
+      "dimension": "D2",
+      "numero": 6,
+      "texto_template": "¿Las actividades de {} están formalizadas en estructura tabular con responsables, insumos, productos, cronograma y costos?",
+      "criterios_evaluacion": {
+        "estructura_tabular": true,
+        "columna_responsable": true,
+        "columna_insumo": true,
+        "columna_output": true,
+        "columna_calendario": true,
+        "columna_costo": true
+      },
+      "patrones_verificacion": [
+        "tabla|cuadro|matriz",
+        "responsable|actor|entidad",
+        "insumo|recurso",
+        "producto|entregable",
+        "cronograma|trimestre",
+        "costo|presupuesto"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Tabla completa con 6 columnas para 5+ actividades"},
+        "bueno": {"min_score": 0.70, "criteria": "Tabla con 5 columnas para 3+ actividades"},
+        "aceptable": {"min_score": 0.55, "criteria": "Tabla con 4 columnas o narrativa muy estructurada"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Solo narrativa genérica sin estructura"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D2-Q7",
+      "dimension": "D2",
+      "numero": 7,
+      "texto_template": "¿Las actividades de {} especifican instrumento, mecanismo causal y población diana?",
+      "criterios_evaluacion": {
+        "instrumento": true,
+        "mecanismo_causal": true,
+        "poblacion_diana": true
+      },
+      "patrones_verificacion": [
+        "mediante|a través de|instrumento",
+        "porque|genera|produce|mecanismo",
+        "población objetivo|beneficiarios|\\d+\\s*personas"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Instrumento + mecanismo + población para cada actividad"},
+        "bueno": {"min_score": 0.70, "criteria": "2 de 3 elementos para mayoría de actividades"},
+        "aceptable": {"min_score": 0.55, "criteria": "1-2 elementos para algunas actividades"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Actividades genéricas sin especificidad"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D2-Q8",
+      "dimension": "D2",
+      "numero": 8,
+      "texto_template": "¿Las actividades de {} atienden causas raíz o mediadores identificados en el diagnóstico?",
+      "criterios_evaluacion": {
+        "problema_priorizado": true,
+        "causa_raiz_o_mediador": true,
+        "actividad_vinculada": true
+      },
+      "patrones_verificacion": [
+        "problema principal|causa principal",
+        "causa raíz|determinante|mediador",
+        "para atender|para abordar"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Cada problema tiene actividad atacando causa raíz"},
+        "bueno": {"min_score": 0.70, "criteria": "Mayoría de problemas con actividad causal clara"},
+        "aceptable": {"min_score": 0.55, "criteria": "Algunos problemas con actividades vinculadas"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Actividades desconectadas de problemas"}
+      },
+      "modulos_responsables": ["dereck_beach", "initial_processor_causal_policy"]
+    },
+    {
+      "id": "D2-Q9",
+      "dimension": "D2",
+      "numero": 9,
+      "texto_template": "¿Se identifican riesgos de implementación (desplazamiento de efectos, cuellos de botella, conflictos) y mitigaciones para {}?",
+      "criterios_evaluacion": {
+        "desplazamiento_efectos": true,
+        "cuellos_implementacion": true,
+        "conflictos_actividades": false,
+        "mitigaciones": true
+      },
+      "patrones_verificacion": [
+        "desplazamiento|efecto colateral|riesgo",
+        "dificultad|barrera|obstáculo",
+        "mitigación|contingencia|medida preventiva"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Riesgos identificados + mitigaciones específicas"},
+        "bueno": {"min_score": 0.70, "criteria": "Algunos riesgos + mitigaciones generales"},
+        "aceptable": {"min_score": 0.55, "criteria": "Mención de riesgos sin mitigaciones detalladas"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin identificación de riesgos"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D2-Q10",
+      "dimension": "D2",
+      "numero": 10,
+      "texto_template": "¿Se explicita la teoría de intervención (complementariedades, secuenciación, no redundancias) para {}?",
+      "criterios_evaluacion": {
+        "complementariedades": true,
+        "secuenciacion": true,
+        "no_redundancias": true
+      },
+      "patrones_verificacion": [
+        "complementa|sinergia|integración",
+        "secuencia|orden|prerrequisito",
+        "sin duplicar|evita redundancia"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Complementariedades + secuenciación + no redundancias explícitas"},
+        "bueno": {"min_score": 0.70, "criteria": "2 de 3 elementos presentes"},
+        "aceptable": {"min_score": 0.55, "criteria": "1 elemento o coherencia implícita"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Actividades inconexas o contradictorias"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    
+    {
+      "id": "D3-Q11",
+      "dimension": "D3",
+      "numero": 11,
+      "texto_template": "¿Los productos de {} tienen indicadores con fórmula, fuente de verificación, línea base y meta?",
+      "criterios_evaluacion": {
+        "formula_indicador": true,
+        "fuente_verificacion": true,
+        "linea_base": true,
+        "meta": true
+      },
+      "patrones_verificacion": [
+        "fórmula|cálculo|metodología",
+        "fuente|medio de verificación",
+        "línea base.*\\d+",
+        "meta.*\\d+"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Fórmula + fuente + línea base + meta para 3+ productos"},
+        "bueno": {"min_score": 0.70, "criteria": "3 de 4 elementos para mayoría de productos"},
+        "aceptable": {"min_score": 0.55, "criteria": "2 elementos para algunos productos"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Productos sin indicadores verificables"}
+      },
+      "modulos_responsables": ["mga_indicadores", "dereck_beach"]
+    },
+    {
+      "id": "D3-Q12",
+      "dimension": "D3",
+      "numero": 12,
+      "texto_template": "¿La cobertura y dosificación de productos en {} es proporcional a la brecha identificada?",
+      "criterios_evaluacion": {
+        "cobertura_vs_brecha": true,
+        "dosificacion": true,
+        "tamano_efecto": true
+      },
+      "patrones_verificacion": [
+        "cobertura de \\d+%",
+        "intensidad|frecuencia|dosis",
+        "efecto esperado|reducción de \\d+%"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Cobertura + dosificación justificada vs. tamaño efecto"},
+        "bueno": {"min_score": 0.70, "criteria": "Cobertura razonable + alguna justificación"},
+        "aceptable": {"min_score": 0.55, "criteria": "Cobertura mencionada sin justificación completa"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Cobertura irreal o sin relación con brecha"}
+      },
+      "modulos_responsables": ["dereck_beach", "mga_indicadores"]
+    },
+    {
+      "id": "D3-Q13",
+      "dimension": "D3",
+      "numero": 13,
+      "texto_template": "¿Existe trazabilidad presupuestal (BPIN/PPI) y organizacional para los productos de {}?",
+      "criterios_evaluacion": {
+        "trazabilidad_presupuestal": true,
+        "trazabilidad_organizacional": true,
+        "vinculacion_actividades": true
+      },
+      "patrones_verificacion": [
+        "BPIN|PPI|código proyecto",
+        "responsable|secretaría|dependencia",
+        "vinculado a|corresponde a"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Trazabilidad completa: presupuesto + organización + actividades"},
+        "bueno": {"min_score": 0.70, "criteria": "2 de 3 elementos de trazabilidad"},
+        "aceptable": {"min_score": 0.55, "criteria": "1 elemento de trazabilidad"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin trazabilidad identificable"}
+      },
+      "modulos_responsables": ["dereck_beach", "dnp_integration"]
+    },
+    {
+      "id": "D3-Q14",
+      "dimension": "D3",
+      "numero": 14,
+      "texto_template": "¿Es factible que las actividades planteadas generen los productos propuestos en {} (capacidad productiva, dosificación, plazos)?",
+      "criterios_evaluacion": {
+        "capacidad_productiva": true,
+        "dosificacion_realista": true,
+        "plazos_realistas": true
+      },
+      "patrones_verificacion": [
+        "capacidad de|puede producir|factible",
+        "\\d+\\s*por",
+        "\\d+\\s*meses"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Actividad puede producir output en plazos y dosificación planteados"},
+        "bueno": {"min_score": 0.70, "criteria": "Factibilidad probable con ajustes menores"},
+        "aceptable": {"min_score": 0.55, "criteria": "Factibilidad cuestionable pero no imposible"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Contradicción evidente: actividad insuficiente"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D3-Q15",
+      "dimension": "D3",
+      "numero": 15,
+      "texto_template": "¿Se especifican puentes causales (mediadores, mecanismos) entre productos y resultados en {}?",
+      "criterios_evaluacion": {
+        "productos_a_resultados": true,
+        "mediadores_especificados": true,
+        "mecanismo_explicito": true
+      },
+      "patrones_verificacion": [
+        "producto.*resultado",
+        "mediador|eslabón|a través de",
+        "mecanismo|porque|dado que"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Cadena producto→mediador→resultado explícita"},
+        "bueno": {"min_score": 0.70, "criteria": "Conexión causal con algunos mediadores"},
+        "aceptable": {"min_score": 0.55, "criteria": "Conexión implícita o parcialmente explícita"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin conexión causal identificable"}
+      },
+      "modulos_responsables": ["dereck_beach", "initial_processor_causal_policy"]
+    },
+    
+    {
+      "id": "D4-Q16",
+      "dimension": "D4",
+      "numero": 16,
+      "texto_template": "¿Los resultados de {} están definidos con métrica, línea base, meta y ventana de maduración?",
+      "criterios_evaluacion": {
+        "metrica_outcome": true,
+        "linea_base_resultado": true,
+        "meta_resultado": true,
+        "ventana_maduracion": true
+      },
+      "patrones_verificacion": [
+        "tasa de|índice de|porcentaje de",
+        "línea base.*\\d+",
+        "meta.*\\d+",
+        "en \\d+ años|cuatrienio"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Métrica + línea base + meta + ventana para 3+ resultados"},
+        "bueno": {"min_score": 0.70, "criteria": "3 de 4 elementos para mayoría de resultados"},
+        "aceptable": {"min_score": 0.55, "criteria": "2 elementos para algunos resultados"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Resultados vagos sin métricas"}
+      },
+      "modulos_responsables": ["dereck_beach", "mga_indicadores"]
+    },
+    {
+      "id": "D4-Q17",
+      "dimension": "D4",
+      "numero": 17,
+      "texto_template": "¿Se explicita el encadenamiento causal productos→resultados con supuestos y condiciones habilitantes en {}?",
+      "criterios_evaluacion": {
+        "productos_a_resultados": true,
+        "supuestos": true,
+        "condiciones_habilitantes": true
+      },
+      "patrones_verificacion": [
+        "producto.*resultado",
+        "supuesto|asumiendo que",
+        "requiere|depende de|condicionado a"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Encadenamiento explícito + supuestos + condiciones"},
+        "bueno": {"min_score": 0.70, "criteria": "Encadenamiento + algunos supuestos"},
+        "aceptable": {"min_score": 0.55, "criteria": "Encadenamiento básico sin supuestos completos"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin encadenamiento causal identificable"}
+      },
+      "modulos_responsables": ["dereck_beach", "initial_processor_causal_policy"]
+    },
+    {
+      "id": "D4-Q18",
+      "dimension": "D4",
+      "numero": 18,
+      "texto_template": "¿La ambición de las metas de {} es realista considerando recursos, capacidades y evidencia comparada?",
+      "criterios_evaluacion": {
+        "recursos_vs_meta": true,
+        "capacidades_vs_meta": true,
+        "evidencia_comparada": false
+      },
+      "patrones_verificacion": [
+        "presupuesto.*permite",
+        "capacidad|equipo técnico",
+        "similar a|casos exitosos"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Ambición justificada con recursos + capacidades + evidencia"},
+        "bueno": {"min_score": 0.70, "criteria": "2 de 3 elementos de justificación"},
+        "aceptable": {"min_score": 0.55, "criteria": "Alguna justificación básica"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Metas irreales sin justificación"}
+      },
+      "modulos_responsables": ["dnp_integration", "dereck_beach"]
+    },
+    {
+      "id": "D4-Q19",
+      "dimension": "D4",
+      "numero": 19,
+      "texto_template": "¿Los resultados propuestos atienden los problemas priorizados en el diagnóstico de {}?",
+      "criterios_evaluacion": {
+        "resultados_vs_problemas": true,
+        "criterios_exito": true,
+        "umbrales_claros": true
+      },
+      "patrones_verificacion": [
+        "resultado.*problema",
+        "criterio de éxito",
+        "umbral|límite|meta mínima"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Resultados vinculados a problemas + criterios + umbrales"},
+        "bueno": {"min_score": 0.70, "criteria": "Vinculación + algunos criterios"},
+        "aceptable": {"min_score": 0.55, "criteria": "Vinculación básica"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Resultados desconectados de diagnóstico"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D4-Q20",
+      "dimension": "D4",
+      "numero": 20,
+      "texto_template": "¿Los resultados de {} se alinean con el Plan Nacional de Desarrollo y los ODS sin romper la lógica local?",
+      "criterios_evaluacion": {
+        "alineacion_pnd": true,
+        "alineacion_ods": true,
+        "coherencia_local": true
+      },
+      "patrones_verificacion": [
+        "PND|Plan Nacional",
+        "ODS|objetivo \\d+",
+        "coherente con|mantiene"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Alineación PND/ODS + coherencia lógica local"},
+        "bueno": {"min_score": 0.70, "criteria": "Alineación presente + coherencia parcial"},
+        "aceptable": {"min_score": 0.55, "criteria": "Alineación mencionada"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin alineación o alineación forzada"}
+      },
+      "modulos_responsables": ["dnp_integration", "dereck_beach"]
+    },
+    
+    {
+      "id": "D5-Q21",
+      "dimension": "D5",
+      "numero": 21,
+      "texto_template": "¿Los impactos de {} están definidos con ruta de transmisión, rezagos temporales y medibilidad?",
+      "criterios_evaluacion": {
+        "definicion_impacto": true,
+        "ruta_transmision": true,
+        "rezagos": true,
+        "medibilidad": true
+      },
+      "patrones_verificacion": [
+        "impacto|transformación",
+        "resultado.*impacto",
+        "rezago de \\d+|en \\d+ años",
+        "medible mediante"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Impacto definido + ruta + rezagos + medible"},
+        "bueno": {"min_score": 0.70, "criteria": "3 de 4 elementos presentes"},
+        "aceptable": {"min_score": 0.55, "criteria": "2 elementos presentes"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Impacto vago sin ruta ni medición"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D5-Q22",
+      "dimension": "D5",
+      "numero": 22,
+      "texto_template": "¿Se utilizan indicadores compuestos o proxies válidos para medir impactos en {}?",
+      "criterios_evaluacion": {
+        "indicadores_compuestos": true,
+        "proxies": true,
+        "validez_mecanismo": true
+      },
+      "patrones_verificacion": [
+        "índice de|indicador compuesto",
+        "proxy|medición indirecta",
+        "válido porque|captura"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Indicadores compuestos/proxies + validez justificada"},
+        "bueno": {"min_score": 0.70, "criteria": "Alguna integración + validez mencionada"},
+        "aceptable": {"min_score": 0.55, "criteria": "Indicadores sin justificación completa"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin integración resultado-impacto"}
+      },
+      "modulos_responsables": ["mga_indicadores", "dereck_beach"]
+    },
+    {
+      "id": "D5-Q23",
+      "dimension": "D5",
+      "numero": 23,
+      "texto_template": "¿Se explicita el uso de proxies con validez externa y limitaciones reconocidas en {}?",
+      "criterios_evaluacion": {
+        "uso_proxies": true,
+        "validez_externa": true,
+        "limitaciones": true
+      },
+      "patrones_verificacion": [
+        "proxy|indicador aproximado",
+        "validez externa|generalizable",
+        "limitación|no captura completamente"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Proxies + validez documentada + limitaciones reconocidas"},
+        "bueno": {"min_score": 0.70, "criteria": "Proxies + alguna justificación"},
+        "aceptable": {"min_score": 0.55, "criteria": "Proxies sin justificación completa"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin proxies cuando son necesarios"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D5-Q24",
+      "dimension": "D5",
+      "numero": 24,
+      "texto_template": "¿Se consideran riesgos sistémicos (crisis, choques externos) que podrían romper el mecanismo causal en {}?",
+      "criterios_evaluacion": {
+        "marcos_nacionales_globales": true,
+        "riesgos_sistemicos": true,
+        "ruptura_mecanismo": true
+      },
+      "patrones_verificacion": [
+        "PND|ODS|marco nacional",
+        "riesgo sistémico|choque|crisis",
+        "puede romper|amenaza"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Alineación + riesgos sistémicos + análisis ruptura"},
+        "bueno": {"min_score": 0.70, "criteria": "Alineación + algunos riesgos"},
+        "aceptable": {"min_score": 0.55, "criteria": "Alineación sin análisis de riesgos"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin alineación o sin consideración de riesgos"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D5-Q25",
+      "dimension": "D5",
+      "numero": 25,
+      "texto_template": "¿La ambición de impactos en {} es realista considerando recursos, efectos no deseados e hipótesis límite?",
+      "criterios_evaluacion": {
+        "recursos_adecuados": true,
+        "efectos_no_deseados": true,
+        "hipotesis_limite": true
+      },
+      "patrones_verificacion": [
+        "recursos suficientes|presupuesto permite",
+        "efecto no deseado|riesgo|externalidad",
+        "límite|hasta donde|supuesto crítico"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Ambición realista + efectos considerados + límites declarados"},
+        "bueno": {"min_score": 0.70, "criteria": "2 de 3 elementos presentes"},
+        "aceptable": {"min_score": 0.55, "criteria": "1 elemento presente"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Ambición desproporcionada sin consideraciones"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    
+    {
+      "id": "D6-Q26",
+      "dimension": "D6",
+      "numero": 26,
+      "texto_template": "¿Existe una teoría de cambio explícita para {} con diagrama, causas, mediadores, moderadores y supuestos verificables?",
+      "criterios_evaluacion": {
+        "diagrama_explicito": true,
+        "causas": true,
+        "mediadores": true,
+        "moderadores": true,
+        "supuestos_verificables": true
+      },
+      "patrones_verificacion": [
+        "diagrama|gráfico|esquema|figura",
+        "causa|determinante",
+        "mediador|eslabón",
+        "moderador|condición|depende de",
+        "supuesto.*verificable|testeable"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Diagrama + causas + mediadores + moderadores + supuestos"},
+        "bueno": {"min_score": 0.70, "criteria": "4 de 5 elementos presentes"},
+        "aceptable": {"min_score": 0.55, "criteria": "3 elementos o teoría narrativa completa"},
+        "insuficiente": {"min_score": 0.0, "criteria": "< 3 elementos o teoría implícita"}
+      },
+      "modulos_responsables": ["dereck_beach", "initial_processor_causal_policy"]
+    },
+    {
+      "id": "D6-Q27",
+      "dimension": "D6",
+      "numero": 27,
+      "texto_template": "¿Los enlaces causales en {} son proporcionales, graduales y factibles (sin saltos lógicos)?",
+      "criterios_evaluacion": {
+        "enlaces_proporcionales": true,
+        "sin_saltos": true,
+        "no_milagros": true
+      },
+      "patrones_verificacion": [
+        "proporcional|acorde|razonable",
+        "gradual|incremental|paso a paso",
+        "factible|posible|alcanzable"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Enlaces proporcionales + graduales + factibles"},
+        "bueno": {"min_score": 0.70, "criteria": "Enlaces mayormente razonables"},
+        "aceptable": {"min_score": 0.55, "criteria": "Algunos enlaces cuestionables"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Saltos lógicos evidentes o milagros"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D6-Q28",
+      "dimension": "D6",
+      "numero": 28,
+      "texto_template": "¿Se identifican inconsistencias en la teoría de cambio de {} y se proponen validaciones (pilotos, pruebas)?",
+      "criterios_evaluacion": {
+        "identificacion_inconsistencias": true,
+        "validaciones": true,
+        "pruebas_mecanismo": true
+      },
+      "patrones_verificacion": [
+        "inconsistencia|contradicción",
+        "piloto|prueba|validación",
+        "probar mecanismo|verificar"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Inconsistencias identificadas + validaciones propuestas"},
+        "bueno": {"min_score": 0.70, "criteria": "Algunas inconsistencias + propuestas genéricas"},
+        "aceptable": {"min_score": 0.55, "criteria": "Reconocimiento parcial de problemas"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin identificación de inconsistencias"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D6-Q29",
+      "dimension": "D6",
+      "numero": 29,
+      "texto_template": "¿Se incluyen mecanismos de monitoreo de patrones de fallo (drift, layering, conversión) y corrección en {}?",
+      "criterios_evaluacion": {
+        "drift": false,
+        "layering": false,
+        "conversion": false,
+        "mecanismos_correccion": true
+      },
+      "patrones_verificacion": [
+        "drift|desviación",
+        "layering|superposición",
+        "conversión|reinterpretación",
+        "corrección|retroalimentación|ajuste"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Monitoreo de patrones + mecanismos corrección + aprendizaje"},
+        "bueno": {"min_score": 0.70, "criteria": "Algunos patrones + mecanismos básicos"},
+        "aceptable": {"min_score": 0.55, "criteria": "Mecanismos genéricos de seguimiento"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin monitoreo de patrones de fallo"}
+      },
+      "modulos_responsables": ["dereck_beach"]
+    },
+    {
+      "id": "D6-Q30",
+      "dimension": "D6",
+      "numero": 30,
+      "texto_template": "¿La teoría de cambio de {} reconoce restricciones contextuales (grupos afectados, territoriales, culturales, regulatorias)?",
+      "criterios_evaluacion": {
+        "grupos_afectados": true,
+        "restricciones_territoriales": true,
+        "restricciones_culturales": false,
+        "restricciones_regulatorias": true
+      },
+      "patrones_verificacion": [
+        "grupo afectado|población vulnerable",
+        "territorial|geográfico|zona",
+        "cultural|étnico|identidad",
+        "regulatorio|legal|competencia"
+      ],
+      "scoring": {
+        "excelente": {"min_score": 0.85, "criteria": "Grupos + 3 tipos de restricciones reconocidas"},
+        "bueno": {"min_score": 0.70, "criteria": "Grupos + 2 tipos de restricciones"},
+        "aceptable": {"min_score": 0.55, "criteria": "Grupos + 1 tipo de restricción"},
+        "insuficiente": {"min_score": 0.0, "criteria": "Sin contextualización"}
+      },
+      "modulos_responsables": ["dereck_beach", "pdet_lineamientos"]
+    }
+  ],
+  
+  "clusters_meso": {
+    "C1": {
+      "nombre": "Seguridad, Paz y Protección",
+      "descripcion": "Clúster enfocado en seguridad ciudadana, prevención de conflictos y protección de líderes sociales",
+      "puntos": ["P1", "P2", "P8"],
+      "dimensiones_criticas": ["D1", "D2", "D6"],
+      "umbral_cluster": 0.60
+    },
+    "C2": {
+      "nombre": "Derechos Sociales y Poblaciones Vulnerables",
+      "descripcion": "Clúster centrado en garantía de derechos básicos y atención a poblaciones vulnerables",
+      "puntos": ["P4", "P5", "P6"],
+      "dimensiones_criticas": ["D1", "D3", "D4"],
+      "umbral_cluster": 0.60
+    },
+    "C3": {
+      "nombre": "Territorio, Ambiente y Desarrollo Rural",
+      "descripcion": "Clúster enfocado en desarrollo territorial sostenible y fortalecimiento rural",
+      "puntos": ["P3", "P7"],
+      "dimensiones_criticas": ["D1", "D3"],
+      "umbral_cluster": 0.60
+    },
+    "C4": {
+      "nombre": "Poblaciones en Contextos Especiales",
+      "descripcion": "Clúster para atención de privados de libertad y población migrante",
+      "puntos": ["P9", "P10"],
+      "dimensiones_criticas": ["D1", "D2"],
+      "umbral_cluster": 0.55
+    }
+  },
+  
+  "nivel_macro": {
+    "umbral_alineacion_optimo": 0.85,
+    "umbral_alineacion_bueno": 0.70,
+    "umbral_alineacion_aceptable": 0.55,
+    "umbral_aprobacion": 0.60,
+    "preguntas_criticas_minimas": 0.50
+  }
+}
