@@ -569,6 +569,8 @@ class IndustrialGradeValidator:
         elapsed = time.time() - start_time
         self._log_metric(operation_name, elapsed, "s", threshold)
         return result
+
+    def _log_metric(self, name: str, value: float, unit: str, threshold: float):
         """Registra y reporta una métrica de validación."""
         status = "✅ PASÓ" if value <= threshold else "❌ FALLÓ"
         metric = ValidationMetric(name, value, unit, threshold, status)
