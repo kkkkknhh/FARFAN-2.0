@@ -15,3 +15,6 @@ env/
 .env
 *.log
 index.html
+index.html
+*.html
+index.html
