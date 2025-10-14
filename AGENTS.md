@@ -4,7 +4,7 @@
 
 **Setup:**  
 ```bash
-pip install pymupdf networkx pandas spacy pyyaml fuzzywuzzy python-Levenshtein pydot scipy numpy
+pip install -r requirements.txt
 python -m spacy download es_core_news_lg
 ```
 
