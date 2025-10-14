@@ -275,20 +275,20 @@ class ReportGenerator:
     def _get_cluster_name(self, cluster: ClusterMeso) -> str:
         """Retorna el nombre descriptivo del clúster"""
         names = {
-            ClusterMeso.C1_SEGURIDAD_PAZ: "Seguridad, Paz y Protección",
-            ClusterMeso.C2_DERECHOS_SOCIALES: "Derechos Sociales y Poblaciones Vulnerables",
-            ClusterMeso.C3_TERRITORIO_AMBIENTE: "Territorio, Ambiente y Desarrollo Rural",
-            ClusterMeso.C4_POBLACIONES_ESPECIALES: "Poblaciones en Contextos Especiales"
+            ClusterMeso.C1_SEGURIDAD_PAZ: "Derechos de las Mujeres, Prevención de Violencia y Protección de Líderes",
+            ClusterMeso.C2_DERECHOS_SOCIALES: "Derechos Económicos, Sociales, Culturales y Poblaciones Vulnerables",
+            ClusterMeso.C3_TERRITORIO_AMBIENTE: "Ambiente, Cambio Climático, Tierras y Territorios",
+            ClusterMeso.C4_POBLACIONES_ESPECIALES: "Personas Privadas de Libertad y Migración"
         }
         return names[cluster]
     
     def _get_cluster_puntos(self, cluster: ClusterMeso) -> List[str]:
         """Retorna los puntos del decálogo incluidos en el clúster"""
         punto_lists = {
-            ClusterMeso.C1_SEGURIDAD_PAZ: ["P1-Seguridad", "P2-Alertas", "P8-Líderes"],
-            ClusterMeso.C2_DERECHOS_SOCIALES: ["P4-Derechos", "P5-Víctimas", "P6-Niñez"],
-            ClusterMeso.C3_TERRITORIO_AMBIENTE: ["P3-Ambiente", "P7-Rural"],
-            ClusterMeso.C4_POBLACIONES_ESPECIALES: ["P9-Cárcel", "P10-Migración"]
+            ClusterMeso.C1_SEGURIDAD_PAZ: ["P1-Mujeres/Género", "P2-Prevención Violencia", "P8-Líderes DDHH"],
+            ClusterMeso.C2_DERECHOS_SOCIALES: ["P4-Derechos ESC", "P5-Víctimas/Paz", "P6-Niñez/Juventud"],
+            ClusterMeso.C3_TERRITORIO_AMBIENTE: ["P3-Ambiente/Clima", "P7-Tierras"],
+            ClusterMeso.C4_POBLACIONES_ESPECIALES: ["P9-PPL", "P10-Migración"]
         }
         return punto_lists[cluster]
     
