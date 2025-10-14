@@ -1885,7 +1885,7 @@ Análisis completo con contradicciones y métricas avanzadas
         try:
             communities = nx.community.greedy_modularity_communities(undirected)
             modularity = nx.community.modularity(undirected, communities)
-        except:
+        except (nx.exception.NetworkXError, ValueError):
             modularity = 0.0
 
         if num_nodes > 1:
