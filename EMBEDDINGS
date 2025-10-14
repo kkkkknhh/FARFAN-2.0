@@ -182,7 +182,8 @@ class AdvancedSemanticChunker:
             )
 
             # Count tokens (approximation: Spanish has ~1.3 chars/token)
-            token_count = len(chunk_text) // 4  # Conservative estimate
+            AVG_CHARS_PER_TOKEN = 1.3  # Source: Spanish language statistics
+            token_count = int(len(chunk_text) / AVG_CHARS_PER_TOKEN)  # Approximate token count
 
             # Create structured chunk
             chunk_id = hashlib.sha256(
