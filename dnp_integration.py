@@ -236,18 +236,18 @@ class ValidadorDNP:
     def _validar_lineamientos_pdet(self,
                                    sector: str,
                                    es_rural: bool,
-                                   poblacion_victimas: bool) -> Dict[str, Any]:
+                                   poblacion_victimas: bool,
+                                   lineamientos_cumplidos: List[str]) -> Dict[str, Any]:
         """Validate PDET guidelines compliance"""
         lineamientos_recomendados = self.lineamientos_pdet.recomendar_lineamientos(
             sector, es_rural, poblacion_victimas
         )
         
-        # For demo, assume partial compliance
-        # In real implementation, this would check actual project design
-        cumplidos = [lin.codigo for lin in lineamientos_recomendados[:len(lineamientos_recomendados)//2]]
-        pendientes = [lin.codigo for lin in lineamientos_recomendados[len(lineamientos_recomendados)//2:]]
+        # Evaluate actual compliance based on provided fulfilled guidelines
+        cumplidos = [lin.codigo for lin in lineamientos_recomendados if lin.codigo in lineamientos_cumplidos]
+        pendientes = [lin.codigo for lin in lineamientos_recomendados if lin.codigo not in lineamientos_cumplidos]
         
-        cumple = len(cumplidos) >= len(pendientes)
+        cumple = len(pendientes) == 0  # True if all recommended guidelines are fulfilled
         
         recomendaciones = []
         if not cumple:
