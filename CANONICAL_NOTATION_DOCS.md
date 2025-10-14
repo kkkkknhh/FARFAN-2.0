@@ -10,31 +10,31 @@ The Canonical Notation System provides a standardized format for all question id
 
 The system defines 10 thematic policy areas representing the core pillars of Colombian Municipal Development Plans:
 
-| ID | Title |
-|----|-------|
-| P1 | Derechos de las mujeres e igualdad de género |
-| P2 | Prevención de la violencia y protección frente al conflicto |
-| P3 | Ambiente sano, cambio climático, prevención y atención a desastres |
-| P4 | Derechos económicos, sociales y culturales |
-| P5 | Derechos de las víctimas y construcción de paz |
-| P6 | Derecho al buen futuro de la niñez, adolescencia, juventud |
-| P7 | Tierras y territorios |
-| P8 | Líderes y defensores de derechos humanos |
-| P9 | Crisis de derechos de personas privadas de la libertad |
-| P10 | Migración transfronteriza |
+| ID  | Title                                                              |
+|-----|--------------------------------------------------------------------|
+| P1  | Derechos de las mujeres e igualdad de género                      |
+| P2  | Prevención de la violencia y protección frente al conflicto       |
+| P3  | Ambiente sano, cambio climático, prevención y atención a desastres |
+| P4  | Derechos económicos, sociales y culturales                         |
+| P5  | Derechos de las víctimas y construcción de paz                     |
+| P6  | Derecho al buen futuro de la niñez, adolescencia, juventud         |
+| P7  | Tierras y territorios                                              |
+| P8  | Líderes y defensores de derechos humanos                           |
+| P9  | Crisis de derechos de personas privadas de la libertad             |
+| P10 | Migración transfronteriza                                          |
 
 ### Analytical Dimensions (D1-D6)
 
 Six analytical dimensions are used to evaluate each policy area:
 
-| ID | Name | Focus Areas |
-|----|------|-------------|
-| D1 | Diagnóstico y Recursos | Baseline, problem magnitude, resources, institutional capacity |
-| D2 | Diseño de Intervención | Activities, target population, intervention design |
-| D3 | Productos y Outputs | Technical standards, proportionality, quantification, accountability |
-| D4 | Resultados y Outcomes | Result indicators, differentiation, magnitude of change, attribution |
-| D5 | Impactos y Efectos de Largo Plazo | Impact indicators, temporal horizons, systemic effects, sustainability |
-| D6 | Teoría de Cambio y Coherencia Causal | Theory of change, assumptions, logical framework, monitoring |
+| ID | Name                                   | Focus Areas                                                                       |
+|----|----------------------------------------|-----------------------------------------------------------------------------------|
+| D1 | Diagnóstico y Recursos                 | Baseline, problem magnitude, resources, institutional capacity                    |
+| D2 | Diseño de Intervención                 | Activities, target population, intervention design                                |
+| D3 | Productos y Outputs                    | Technical standards, proportionality, quantification, accountability              |
+| D4 | Resultados y Outcomes                  | Result indicators, differentiation, magnitude of change, attribution              |
+| D5 | Impactos y Efectos de Largo Plazo      | Impact indicators, temporal horizons, systemic effects, sustainability            |
+| D6 | Teoría de Cambio y Coherencia Causal   | Theory of change, assumptions, logical framework, monitoring                      |
 
 ## Canonical Formats
 

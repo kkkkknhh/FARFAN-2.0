@@ -395,34 +395,28 @@ sostenibles en el territorio.
         
         return f"{weak_cluster} ({weak_score:.2f})" if weak_cluster else "N/A"
     
-    def _find_best_dimension(self, clusters: Dict) -> str:
-        """Encuentra la dimensión con mejor desempeño global"""
+    def _extract_dimension_scores_from_clusters(self, clusters: Dict) -> Dict[str, List[float]]:
+        """Helper: extrae scores de dimensiones desde clusters"""
         dim_scores = {}
-        
         for cluster_data in clusters.values():
             for dim_id, dim_data in cluster_data["dimensiones"].items():
                 if dim_id not in dim_scores:
                     dim_scores[dim_id] = []
                 dim_scores[dim_id].append(dim_data["score"])
-        
+        return dim_scores
+    
+    def _find_best_dimension(self, clusters: Dict) -> str:
+        """Encuentra la dimensión con mejor desempeño global"""
+        dim_scores = self._extract_dimension_scores_from_clusters(clusters)
         dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
         best_dim = max(dim_averages.items(), key=lambda x: x[1])
-        
         return f"{best_dim[0]} ({best_dim[1]:.2f})"
     
     def _find_weakest_dimension(self, clusters: Dict) -> str:
         """Encuentra la dimensión más débil globalmente"""
-        dim_scores = {}
-        
-        for cluster_data in clusters.values():
-            for dim_id, dim_data in cluster_data["dimensiones"].items():
-                if dim_id not in dim_scores:
-                    dim_scores[dim_id] = []
-                dim_scores[dim_id].append(dim_data["score"])
-        
+        dim_scores = self._extract_dimension_scores_from_clusters(clusters)
         dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
         weak_dim = min(dim_averages.items(), key=lambda x: x[1])
-        
         return f"{weak_dim[0]} ({weak_dim[1]:.2f})"
     
     def _get_alignment_level(self, score: float) -> str:
@@ -513,6 +507,19 @@ La implementación de estas mejoras debe priorizarse según:
 """
         return analysis.strip()
     
+    def _extract_dimension_scores_from_responses(self, responses: Dict) -> Dict[str, List[float]]:
+        """Helper: extrae scores de dimensiones desde respuestas de preguntas"""
+        dim_scores = {}
+        for qid, r in responses.items():
+            # Extract dimension from question_id (e.g., "P1-D1-Q1" -> "D1")
+            parts = qid.split('-')
+            if len(parts) >= 2:
+                dim = parts[1]
+                if dim not in dim_scores:
+                    dim_scores[dim] = []
+                dim_scores[dim].append(r.nota_cuantitativa)
+        return dim_scores
+    
     def _generate_priority_recommendations(self, responses: Dict,
                                           compliance_score: float) -> List[str]:
         """Genera recomendaciones prioritarias"""
@@ -537,15 +544,7 @@ La implementación de estas mejoras debe priorizarse según:
             )
         
         # Dimension-specific recommendations
-        dim_scores = {}
-        for qid, r in responses.items():
-            # Extract dimension from question_id (e.g., "P1-D1-Q1" -> "D1")
-            parts = qid.split('-')
-            if len(parts) >= 2:
-                dim = parts[1]
-                if dim not in dim_scores:
-                    dim_scores[dim] = []
-                dim_scores[dim].append(r.nota_cuantitativa)
+        dim_scores = self._extract_dimension_scores_from_responses(responses)
         
         for dim, scores in dim_scores.items():
             avg = sum(scores) / len(scores)
@@ -577,14 +576,7 @@ La implementación de estas mejoras debe priorizarse según:
             )
         
         # Identify strong dimensions
-        dim_scores = {}
-        for qid, r in responses.items():
-            parts = qid.split('-')
-            if len(parts) >= 2:
-                dim = parts[1]
-                if dim not in dim_scores:
-                    dim_scores[dim] = []
-                dim_scores[dim].append(r.nota_cuantitativa)
+        dim_scores = self._extract_dimension_scores_from_responses(responses)
         
         for dim, scores in dim_scores.items():
             avg = sum(scores) / len(scores)
@@ -611,14 +603,7 @@ La implementación de estas mejoras debe priorizarse según:
             )
         
         # Identify weak dimensions
-        dim_scores = {}
-        for qid, r in responses.items():
-            parts = qid.split('-')
-            if len(parts) >= 2:
-                dim = parts[1]
-                if dim not in dim_scores:
-                    dim_scores[dim] = []
-                dim_scores[dim].append(r.nota_cuantitativa)
+        dim_scores = self._extract_dimension_scores_from_responses(responses)
         
         for dim, scores in dim_scores.items():
             avg = sum(scores) / len(scores)
