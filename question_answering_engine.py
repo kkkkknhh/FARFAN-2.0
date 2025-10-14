@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Question Answering Engine for FARFAN 2.0
 Sistema de respuesta a las 300 preguntas del cuestionario de evaluación causal

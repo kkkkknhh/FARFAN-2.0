@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Demo: Category 2 Improvements - Module Wiring
 Demonstrates the new interfaces, DI container, and DAG-based pipeline

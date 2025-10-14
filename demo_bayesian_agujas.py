@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Example demonstrating the three AGUJAS Bayesian inference capabilities
 without requiring full framework dependencies

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Resource Management Module
 Provides context managers and utilities for managing memory and resources

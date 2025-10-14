@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Module Choreographer for FARFAN 2.0
 Coordina la ejecución secuencial de todos los módulos y acumula respuestas

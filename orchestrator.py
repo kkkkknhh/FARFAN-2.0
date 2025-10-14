@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 FARFAN 2.0 - Orchestrator Principal
 Flujo Canónico, Determinista e Inmutable para Evaluación de Planes de Desarrollo
@@ -19,12 +20,10 @@ Principios:
 import logging
 import json
 import sys
-import gc
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any
 from enum import Enum
-import warnings
 
 # Import validation and resource management
 from pipeline_validators import (
@@ -36,15 +35,17 @@ from pipeline_validators import (
     DNPValidationData,
     QuestionAnsweringData,
     ReportGenerationData,
-    ValidatedPipelineContext,
     validate_stage_transition
 )
 from resource_management import (
     managed_stage_execution,
-    memory_profiling_decorator,
-    MemoryMonitor,
-    cleanup_intermediate_data
+    MemoryMonitor
 )
+
+# Import module wiring components
+from module_interfaces import DependencyInjectionContainer, CDAFAdapter
+from module_choreographer import ModuleChoreographer
+from pipeline_dag import create_default_pipeline
 
 # Configure logging
 logging.basicConfig(
@@ -103,7 +104,7 @@ class PipelineContext:
     compliance_score: float = 0.0
     
     # Stage 8: Question answering
-    question_responses: Dict[str, Dict] = field(default_factory=dict)
+    question_responses: Dict[str, Any] = field(default_factory=dict)
     
     # Stage 9: Reports
     micro_report: Dict = field(default_factory=dict)

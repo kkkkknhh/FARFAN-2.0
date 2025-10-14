@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 DAG-based Pipeline Configuration for FARFAN 2.0
 Following Category 2.2 requirement for declarative orchestration

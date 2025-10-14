@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Causal Deconstruction and Audit Framework (CDAF) v2.0
 Framework de Producción para Análisis Causal de Planes de Desarrollo Territorial

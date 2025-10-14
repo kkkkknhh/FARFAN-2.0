@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Pipeline Data Validation Module
 Provides Pydantic models and validators for pipeline stages
