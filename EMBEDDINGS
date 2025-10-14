@@ -1229,11 +1229,12 @@ class PolicyAnalysisEmbedder:
 
     @lru_cache(maxsize=1024)
     def _cached_similarity(
-        self, text_hash1: str, text_hash2: str, emb1_tuple: tuple, emb2_tuple: tuple
+        self, text_hash1: str, text_hash2: str
     ) -> float:
-        """Cached similarity computation for performance."""
-        emb1 = np.array(emb1_tuple)
-        emb2 = np.array(emb2_tuple)
+        """Cached similarity computation for performance.
+        Assumes embeddings are cached in self._embedding_cache using text_hash as key."""
+        emb1 = self._embedding_cache[text_hash1]
+        emb2 = self._embedding_cache[text_hash2]
         return float(cosine_similarity(emb1.reshape(1, -1), emb2.reshape(1, -1))[0, 0])
 
     def get_diagnostics(self) -> dict[str, Any]:
