@@ -495,7 +495,6 @@ class TestRedisIntegration(unittest.TestCase):
     
     def test_distributed_workers_share_state(self):
         """Workers distribuidos deben compartir estado vía Redis"""
-        import json
         
         mock_redis = Mock()
         
