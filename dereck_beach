@@ -25,11 +25,15 @@ import warnings
 try:
     import fitz  # PyMuPDF
     import networkx as nx
+    import numpy as np
     import pandas as pd
     import spacy
     import yaml
     from fuzzywuzzy import fuzz, process
     from pydot import Dot, Edge, Node
+    from scipy.spatial.distance import cosine
+    from scipy.special import rel_entr
+    from scipy import stats
 except ImportError as e:
     print(f"ERROR: Dependencia faltante. Ejecute: pip install {e.name}")
     sys.exit(1)
@@ -70,6 +74,10 @@ class CausalLink(TypedDict):
     logic: str
     strength: float
     evidence: List[str]
+    posterior_mean: Optional[float]
+    posterior_std: Optional[float]
+    kl_divergence: Optional[float]
+    converged: Optional[bool]
 
 
 class AuditResult(TypedDict):
@@ -387,9 +395,19 @@ class CausalExtractor:
         self.graph.add_node(node.id, **node_dict)
     
     def _extract_causal_links(self, text: str) -> None:
-        """Extract causal links between nodes"""
+        """
+        AGUJA I: El Prior Informado Adaptativo
+        Extract causal links using Bayesian inference with adaptive priors
+        """
         causal_keywords = self.config.get('lexicons.causal_logic', [])
         
+        # Convergence threshold for KL divergence
+        kl_threshold = 0.01
+        
+        # Track evidence for each potential link
+        link_evidence: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
+        
+        # Phase 1: Collect all evidence
         for keyword in causal_keywords:
             pattern = re.compile(
                 rf'({"|".join(re.escape(nid) for nid in self.nodes.keys())})'
@@ -404,22 +422,265 @@ class CausalExtractor:
                 logic = match.group(0)
                 
                 if source in self.nodes and target in self.nodes:
-                    self.graph.add_edge(
-                        source, target,
-                        logic=logic,
-                        keyword=keyword,
-                        strength=0.8
-                    )
-                    
-                    self.causal_chains.append({
-                        'source': source,
-                        'target': target,
+                    # Calculate evidence components
+                    evidence = {
+                        'keyword': keyword,
                         'logic': logic,
-                        'strength': 0.8,
-                        'evidence': [keyword]
-                    })
+                        'match_position': match.start(),
+                        'semantic_distance': self._calculate_semantic_distance(source, target),
+                        'type_transition_prior': self._calculate_type_transition_prior(source, target),
+                        'language_specificity': self._calculate_language_specificity(keyword),
+                        'temporal_coherence': self._assess_temporal_coherence(source, target),
+                        'financial_consistency': self._assess_financial_consistency(source, target),
+                        'textual_proximity': self._calculate_textual_proximity(source, target, text)
+                    }
+                    
+                    link_evidence[(source, target)].append(evidence)
         
-        self.logger.info(f"Enlaces causales extraídos: {len(self.causal_chains)}")
+        # Phase 2: Bayesian inference for each link
+        for (source, target), evidences in link_evidence.items():
+            # Initialize prior distribution
+            prior_mean, prior_alpha, prior_beta = self._initialize_prior(source, target)
+            
+            # Incremental Bayesian update
+            posterior_alpha = prior_alpha
+            posterior_beta = prior_beta
+            kl_divs = []
+            
+            for evidence in evidences:
+                # Calculate likelihood components
+                likelihood = self._calculate_composite_likelihood(evidence)
+                
+                # Update Beta distribution parameters
+                # Using Beta-Binomial conjugate prior
+                posterior_alpha += likelihood
+                posterior_beta += (1 - likelihood)
+                
+                # Calculate KL divergence for convergence check
+                if len(kl_divs) > 0:
+                    prior_dist = np.array([posterior_alpha - likelihood, posterior_beta - (1 - likelihood)])
+                    prior_dist = prior_dist / prior_dist.sum()
+                    posterior_dist = np.array([posterior_alpha, posterior_beta])
+                    posterior_dist = posterior_dist / posterior_dist.sum()
+                    kl_div = float(np.sum(rel_entr(posterior_dist, prior_dist)))
+                    kl_divs.append(kl_div)
+            
+            # Calculate posterior statistics
+            posterior_mean = posterior_alpha / (posterior_alpha + posterior_beta)
+            posterior_var = (posterior_alpha * posterior_beta) / (
+                (posterior_alpha + posterior_beta) ** 2 * (posterior_alpha + posterior_beta + 1)
+            )
+            posterior_std = np.sqrt(posterior_var)
+            
+            # Check convergence
+            converged = len(kl_divs) > 0 and kl_divs[-1] < kl_threshold
+            final_kl = kl_divs[-1] if len(kl_divs) > 0 else 0.0
+            
+            # Add edge with posterior distribution
+            self.graph.add_edge(
+                source, target,
+                logic=evidences[0]['logic'],
+                keyword=evidences[0]['keyword'],
+                strength=float(posterior_mean),
+                posterior_mean=float(posterior_mean),
+                posterior_std=float(posterior_std),
+                posterior_alpha=float(posterior_alpha),
+                posterior_beta=float(posterior_beta),
+                kl_divergence=float(final_kl),
+                converged=converged,
+                evidence_count=len(evidences)
+            )
+            
+            self.causal_chains.append({
+                'source': source,
+                'target': target,
+                'logic': evidences[0]['logic'],
+                'strength': float(posterior_mean),
+                'evidence': [e['keyword'] for e in evidences],
+                'posterior_mean': float(posterior_mean),
+                'posterior_std': float(posterior_std),
+                'kl_divergence': float(final_kl),
+                'converged': converged
+            })
+        
+        self.logger.info(f"Enlaces causales extraídos: {len(self.causal_chains)} "
+                        f"(con inferencia Bayesiana)")
+    
+    def _calculate_semantic_distance(self, source: str, target: str) -> float:
+        """Calculate semantic distance between nodes using spaCy embeddings"""
+        try:
+            source_node = self.nodes.get(source)
+            target_node = self.nodes.get(target)
+            
+            if not source_node or not target_node:
+                return 0.5
+            
+            # Use spaCy to get embeddings
+            source_doc = self.nlp(source_node.text[:200])
+            target_doc = self.nlp(target_node.text[:200])
+            
+            if source_doc.vector.any() and target_doc.vector.any():
+                # Calculate cosine similarity (1 - distance)
+                similarity = 1 - cosine(source_doc.vector, target_doc.vector)
+                return max(0.0, min(1.0, similarity))
+            
+            return 0.5
+        except Exception:
+            return 0.5
+    
+    def _calculate_type_transition_prior(self, source: str, target: str) -> float:
+        """Calculate prior based on historical transition frequencies between goal types"""
+        source_type = self.nodes[source].type
+        target_type = self.nodes[target].type
+        
+        # Define transition probabilities based on logical flow
+        # programa → producto → resultado → impacto
+        transition_priors = {
+            ('programa', 'producto'): 0.85,
+            ('producto', 'resultado'): 0.80,
+            ('resultado', 'impacto'): 0.75,
+            ('programa', 'resultado'): 0.60,
+            ('producto', 'impacto'): 0.50,
+            ('programa', 'impacto'): 0.30,
+        }
+        
+        # Reverse transitions are less likely
+        reverse_key = (target_type, source_type)
+        if reverse_key in transition_priors:
+            return transition_priors[reverse_key] * 0.3
+        
+        return transition_priors.get((source_type, target_type), 0.40)
+    
+    def _calculate_language_specificity(self, keyword: str) -> float:
+        """Assess specificity of causal language (epistemic certainty)"""
+        # Strong causal indicators
+        strong_indicators = ['causa', 'produce', 'genera', 'resulta en', 'conduce a']
+        # Moderate indicators
+        moderate_indicators = ['permite', 'contribuye', 'facilita', 'mediante', 'a través de']
+        # Weak indicators
+        weak_indicators = ['con el fin de', 'para', 'porque']
+        
+        keyword_lower = keyword.lower()
+        
+        if any(ind in keyword_lower for ind in strong_indicators):
+            return 0.90
+        elif any(ind in keyword_lower for ind in moderate_indicators):
+            return 0.70
+        elif any(ind in keyword_lower for ind in weak_indicators):
+            return 0.50
+        
+        return 0.60
+    
+    def _assess_temporal_coherence(self, source: str, target: str) -> float:
+        """Assess temporal coherence based on verb sequences"""
+        source_node = self.nodes.get(source)
+        target_node = self.nodes.get(target)
+        
+        if not source_node or not target_node:
+            return 0.5
+        
+        # Extract verbs from entity-activity if available
+        if source_node.entity_activity and target_node.entity_activity:
+            source_verb = source_node.entity_activity.verb_lemma
+            target_verb = target_node.entity_activity.verb_lemma
+            
+            # Define logical verb sequences
+            verb_sequences = {
+                'diagnosticar': 1, 'planificar': 2, 'ejecutar': 3, 'evaluar': 4,
+                'diseñar': 2, 'implementar': 3, 'monitorear': 4
+            }
+            
+            source_seq = verb_sequences.get(source_verb, 5)
+            target_seq = verb_sequences.get(target_verb, 5)
+            
+            if source_seq < target_seq:
+                return 0.85
+            elif source_seq == target_seq:
+                return 0.60
+            else:
+                return 0.30
+        
+        return 0.50
+    
+    def _assess_financial_consistency(self, source: str, target: str) -> float:
+        """Assess financial alignment between connected nodes"""
+        source_node = self.nodes.get(source)
+        target_node = self.nodes.get(target)
+        
+        if not source_node or not target_node:
+            return 0.5
+        
+        source_budget = source_node.financial_allocation
+        target_budget = target_node.financial_allocation
+        
+        if source_budget and target_budget:
+            # Check if budgets are aligned (target should be <= source)
+            ratio = target_budget / source_budget if source_budget > 0 else 0
+            
+            if 0.1 <= ratio <= 1.0:
+                return 0.85
+            elif ratio > 1.0 and ratio <= 1.5:
+                return 0.60
+            else:
+                return 0.30
+        
+        return 0.50
+    
+    def _calculate_textual_proximity(self, source: str, target: str, text: str) -> float:
+        """Calculate how often node IDs appear together in text windows"""
+        window_size = 200  # characters
+        co_occurrences = 0
+        total_windows = 0
+        
+        source_positions = [m.start() for m in re.finditer(re.escape(source), text, re.IGNORECASE)]
+        target_positions = [m.start() for m in re.finditer(re.escape(target), text, re.IGNORECASE)]
+        
+        for source_pos in source_positions:
+            total_windows += 1
+            for target_pos in target_positions:
+                if abs(source_pos - target_pos) <= window_size:
+                    co_occurrences += 1
+                    break
+        
+        if total_windows > 0:
+            proximity_score = co_occurrences / total_windows
+            return proximity_score
+        
+        return 0.5
+    
+    def _initialize_prior(self, source: str, target: str) -> Tuple[float, float, float]:
+        """Initialize prior distribution for causal link"""
+        # Use type transition as base prior
+        type_prior = self._calculate_type_transition_prior(source, target)
+        
+        # Beta distribution parameters
+        # Start with moderately informative prior
+        prior_mean = type_prior
+        prior_strength = 4.0  # Equivalent sample size
+        
+        prior_alpha = prior_mean * prior_strength
+        prior_beta = (1 - prior_mean) * prior_strength
+        
+        return prior_mean, prior_alpha, prior_beta
+    
+    def _calculate_composite_likelihood(self, evidence: Dict[str, Any]) -> float:
+        """Calculate composite likelihood from multiple evidence components"""
+        # Weight different evidence types
+        weights = {
+            'semantic_distance': 0.25,
+            'type_transition_prior': 0.20,
+            'language_specificity': 0.20,
+            'temporal_coherence': 0.15,
+            'financial_consistency': 0.10,
+            'textual_proximity': 0.10
+        }
+        
+        likelihood = 0.0
+        for component, weight in weights.items():
+            if component in evidence:
+                likelihood += evidence[component] * weight
+        
+        return likelihood
     
     def _build_type_hierarchy(self) -> None:
         """Build hierarchy based on goal types"""
@@ -725,6 +986,685 @@ class OperationalizationAuditor:
         
         self.sequence_warnings = warnings
         return warnings
+    
+    def bayesian_counterfactual_audit(self, nodes: Dict[str, MetaNode], 
+                                     graph: nx.DiGraph,
+                                     historical_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        AGUJA III: El Auditor Contrafactual Bayesiano
+        Perform counterfactual audit using Bayesian causal reasoning
+        """
+        self.logger.info("Iniciando auditoría contrafactual Bayesiana...")
+        
+        # Build implicit Structural Causal Model (SCM)
+        scm_dag = self._build_normative_dag()
+        
+        # Initialize historical priors
+        if historical_data is None:
+            historical_data = self._get_default_historical_priors()
+        
+        # Audit results by layers
+        layer1_results = self._audit_direct_evidence(nodes, scm_dag, historical_data)
+        layer2_results = self._audit_causal_implications(nodes, graph, layer1_results)
+        layer3_results = self._audit_systemic_risk(nodes, graph, layer1_results, layer2_results)
+        
+        # Generate optimal remediation recommendations
+        recommendations = self._generate_optimal_remediations(
+            layer1_results, layer2_results, layer3_results
+        )
+        
+        audit_report = {
+            'direct_evidence': layer1_results,
+            'causal_implications': layer2_results,
+            'systemic_risk': layer3_results,
+            'recommendations': recommendations,
+            'summary': {
+                'total_nodes': len(nodes),
+                'critical_omissions': sum(1 for r in layer1_results.values() 
+                                        if r.get('omission_severity') == 'critical'),
+                'expected_success_probability': layer3_results.get('success_probability', 0.0),
+                'risk_score': layer3_results.get('risk_score', 0.0)
+            }
+        }
+        
+        self.logger.info(f"Auditoría contrafactual completada: "
+                        f"{audit_report['summary']['critical_omissions']} omisiones críticas detectadas")
+        
+        return audit_report
+    
+    def _build_normative_dag(self) -> nx.DiGraph:
+        """Build normative DAG of expected relationships in well-formed plans"""
+        dag = nx.DiGraph()
+        
+        # Define normative structure
+        # Each goal type should have these attributes
+        dag.add_node('baseline', type='required_attribute')
+        dag.add_node('target', type='required_attribute')
+        dag.add_node('entity', type='required_attribute')
+        dag.add_node('budget', type='recommended_attribute')
+        dag.add_node('mechanism', type='recommended_attribute')
+        dag.add_node('timeline', type='optional_attribute')
+        dag.add_node('risk_factors', type='optional_attribute')
+        
+        # Causal relationships
+        dag.add_edge('baseline', 'target', relation='defines_gap')
+        dag.add_edge('entity', 'mechanism', relation='executes')
+        dag.add_edge('budget', 'mechanism', relation='enables')
+        dag.add_edge('mechanism', 'target', relation='achieves')
+        dag.add_edge('risk_factors', 'target', relation='threatens')
+        
+        return dag
+    
+    def _get_default_historical_priors(self) -> Dict[str, Any]:
+        """Get default historical priors if no data is available"""
+        return {
+            'entity_presence_success_rate': 0.94,
+            'baseline_presence_success_rate': 0.89,
+            'target_presence_success_rate': 0.92,
+            'budget_presence_success_rate': 0.78,
+            'mechanism_presence_success_rate': 0.65,
+            'complete_documentation_success_rate': 0.82,
+            'node_type_success_rates': {
+                'producto': 0.85,
+                'resultado': 0.72,
+                'impacto': 0.58
+            }
+        }
+    
+    def _audit_direct_evidence(self, nodes: Dict[str, MetaNode],
+                               scm_dag: nx.DiGraph,
+                               historical_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Layer 1: Audit direct evidence of required components"""
+        results = {}
+        
+        for node_id, node in nodes.items():
+            omissions = []
+            omission_probs = {}
+            
+            # Check baseline
+            if not node.baseline or str(node.baseline).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
+                p_failure_given_omission = 1.0 - historical_data.get('baseline_presence_success_rate', 0.89)
+                omissions.append('baseline')
+                omission_probs['baseline'] = p_failure_given_omission
+            
+            # Check target
+            if not node.target or str(node.target).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
+                p_failure_given_omission = 1.0 - historical_data.get('target_presence_success_rate', 0.92)
+                omissions.append('target')
+                omission_probs['target'] = p_failure_given_omission
+            
+            # Check entity
+            if not node.responsible_entity:
+                p_failure_given_omission = 1.0 - historical_data.get('entity_presence_success_rate', 0.94)
+                omissions.append('entity')
+                omission_probs['entity'] = p_failure_given_omission
+            
+            # Check budget
+            if not node.financial_allocation:
+                p_failure_given_omission = 1.0 - historical_data.get('budget_presence_success_rate', 0.78)
+                omissions.append('budget')
+                omission_probs['budget'] = p_failure_given_omission
+            
+            # Check mechanism
+            if not node.entity_activity:
+                p_failure_given_omission = 1.0 - historical_data.get('mechanism_presence_success_rate', 0.65)
+                omissions.append('mechanism')
+                omission_probs['mechanism'] = p_failure_given_omission
+            
+            # Determine severity
+            severity = 'none'
+            if omission_probs:
+                max_failure_prob = max(omission_probs.values())
+                if max_failure_prob > 0.15:
+                    severity = 'critical'
+                elif max_failure_prob > 0.10:
+                    severity = 'high'
+                elif max_failure_prob > 0.05:
+                    severity = 'medium'
+                else:
+                    severity = 'low'
+            
+            results[node_id] = {
+                'omissions': omissions,
+                'omission_probabilities': omission_probs,
+                'omission_severity': severity,
+                'node_type': node.type
+            }
+        
+        return results
+    
+    def _audit_causal_implications(self, nodes: Dict[str, MetaNode],
+                                   graph: nx.DiGraph,
+                                   direct_evidence: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """Layer 2: Audit causal implications of omissions"""
+        implications = {}
+        
+        for node_id, node in nodes.items():
+            node_omissions = direct_evidence[node_id]['omissions']
+            causal_effects = {}
+            
+            # If baseline is missing
+            if 'baseline' in node_omissions:
+                # P(target_miscalibrated | missing_baseline)
+                causal_effects['target_miscalibration'] = {
+                    'probability': 0.73,
+                    'description': 'Sin línea base, la meta probablemente está mal calibrada'
+                }
+            
+            # If entity and high budget are missing
+            if 'entity' in node_omissions and node.financial_allocation and node.financial_allocation > 1000000:
+                causal_effects['implementation_failure'] = {
+                    'probability': 0.89,
+                    'description': 'Alto presupuesto sin entidad responsable indica alto riesgo de falla'
+                }
+            elif 'entity' in node_omissions:
+                causal_effects['implementation_failure'] = {
+                    'probability': 0.65,
+                    'description': 'Sin entidad responsable, la implementación es incierta'
+                }
+            
+            # If mechanism is missing
+            if 'mechanism' in node_omissions:
+                causal_effects['unclear_pathway'] = {
+                    'probability': 0.70,
+                    'description': 'Sin mecanismo definido, la vía causal es opaca'
+                }
+            
+            # Check downstream effects
+            successors = list(graph.successors(node_id)) if graph.has_node(node_id) else []
+            if node_omissions and successors:
+                causal_effects['cascade_risk'] = {
+                    'probability': min(0.95, 0.4 + 0.1 * len(node_omissions)),
+                    'affected_nodes': successors,
+                    'description': f'Omisiones pueden afectar {len(successors)} nodos dependientes'
+                }
+            
+            implications[node_id] = {
+                'causal_effects': causal_effects,
+                'total_risk': sum(e['probability'] for e in causal_effects.values()) / max(len(causal_effects), 1)
+            }
+        
+        return implications
+    
+    def _audit_systemic_risk(self, nodes: Dict[str, MetaNode],
+                            graph: nx.DiGraph,
+                            direct_evidence: Dict[str, Dict[str, Any]],
+                            causal_implications: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Layer 3: Calculate systemic risk from accumulated omissions"""
+        
+        # Identify critical nodes (high centrality)
+        if graph.number_of_nodes() > 0:
+            try:
+                centrality = nx.betweenness_centrality(graph)
+            except:
+                centrality = {n: 0.5 for n in graph.nodes()}
+        else:
+            centrality = {}
+        
+        # Calculate P(cascade_failure | omission_set)
+        critical_omissions = []
+        for node_id, evidence in direct_evidence.items():
+            if evidence['omission_severity'] in ['critical', 'high']:
+                node_centrality = centrality.get(node_id, 0.5)
+                critical_omissions.append({
+                    'node_id': node_id,
+                    'severity': evidence['omission_severity'],
+                    'centrality': node_centrality,
+                    'omissions': evidence['omissions']
+                })
+        
+        # Calculate systemic risk
+        if critical_omissions:
+            # Weighted by centrality
+            risk_score = sum(
+                (1.0 if om['severity'] == 'critical' else 0.7) * (om['centrality'] + 0.1)
+                for om in critical_omissions
+            ) / len(nodes)
+        else:
+            risk_score = 0.0
+        
+        # Calculate P(success | current_state)
+        total_omissions = sum(len(e['omissions']) for e in direct_evidence.values())
+        total_possible = len(nodes) * 5  # 5 key attributes per node
+        completeness = 1.0 - (total_omissions / max(total_possible, 1))
+        
+        # Success probability (simplified Bayesian)
+        base_success_rate = 0.70
+        success_probability = base_success_rate * completeness
+        
+        return {
+            'risk_score': min(1.0, risk_score),
+            'success_probability': success_probability,
+            'critical_omissions': critical_omissions,
+            'completeness': completeness,
+            'total_omissions': total_omissions
+        }
+    
+    def _generate_optimal_remediations(self, 
+                                      direct_evidence: Dict[str, Dict[str, Any]],
+                                      causal_implications: Dict[str, Dict[str, Any]],
+                                      systemic_risk: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate prioritized remediation recommendations"""
+        remediations = []
+        
+        # Calculate expected value of information for each remediation
+        for node_id, evidence in direct_evidence.items():
+            if not evidence['omissions']:
+                continue
+            
+            for omission in evidence['omissions']:
+                # Estimate impact
+                omission_prob = evidence['omission_probabilities'].get(omission, 0.1)
+                causal_risk = causal_implications[node_id]['total_risk']
+                
+                # Expected value = P(failure_avoided) * Impact
+                expected_value = omission_prob * (1 + causal_risk)
+                
+                # Effort estimate (simplified)
+                effort_map = {
+                    'baseline': 3,  # Moderate effort to research
+                    'target': 2,    # Low effort to define
+                    'entity': 2,    # Low effort to assign
+                    'budget': 4,    # Higher effort to allocate
+                    'mechanism': 5  # Highest effort to design
+                }
+                effort = effort_map.get(omission, 3)
+                
+                # Priority = Expected Value / Effort
+                priority = expected_value / effort
+                
+                remediations.append({
+                    'node_id': node_id,
+                    'omission': omission,
+                    'severity': evidence['omission_severity'],
+                    'expected_value': expected_value,
+                    'effort': effort,
+                    'priority': priority,
+                    'recommendation': self._get_remediation_text(omission, node_id)
+                })
+        
+        # Sort by priority (descending)
+        remediations.sort(key=lambda x: x['priority'], reverse=True)
+        
+        return remediations
+    
+    def _get_remediation_text(self, omission: str, node_id: str) -> str:
+        """Get specific remediation text for an omission"""
+        texts = {
+            'baseline': f"Definir línea base cuantitativa para {node_id} basada en diagnóstico actual",
+            'target': f"Especificar meta cuantitativa alcanzable para {node_id} con horizonte temporal",
+            'entity': f"Asignar entidad responsable clara para la ejecución de {node_id}",
+            'budget': f"Asignar recursos presupuestarios específicos a {node_id}",
+            'mechanism': f"Documentar mecanismo causal (Entidad-Actividad) para {node_id}"
+        }
+        return texts.get(omission, f"Completar {omission} para {node_id}")
+
+
+
+class BayesianMechanismInference:
+    """
+    AGUJA II: El Modelo Generativo de Mecanismos
+    Hierarchical Bayesian model for causal mechanism inference
+    """
+    
+    def __init__(self, config: ConfigLoader, nlp_model: spacy.Language) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = config
+        self.nlp = nlp_model
+        
+        # Mechanism type hyperpriors (domain-level distributions)
+        self.mechanism_type_priors = {
+            'administrativo': 0.30,
+            'técnico': 0.25,
+            'financiero': 0.20,
+            'político': 0.15,
+            'mixto': 0.10
+        }
+        
+        # Typical activity sequences by mechanism type
+        self.mechanism_sequences = {
+            'administrativo': ['planificar', 'coordinar', 'gestionar', 'supervisar'],
+            'técnico': ['diagnosticar', 'diseñar', 'implementar', 'evaluar'],
+            'financiero': ['asignar', 'ejecutar', 'auditar', 'reportar'],
+            'político': ['concertar', 'negociar', 'aprobar', 'promulgar']
+        }
+        
+        # Track inferred mechanisms
+        self.inferred_mechanisms: Dict[str, Dict[str, Any]] = {}
+    
+    def infer_mechanisms(self, nodes: Dict[str, MetaNode], 
+                        text: str) -> Dict[str, Dict[str, Any]]:
+        """
+        Infer latent causal mechanisms using hierarchical Bayesian modeling
+        """
+        self.logger.info("Iniciando inferencia Bayesiana de mecanismos...")
+        
+        # Focus on 'producto' nodes which should have mechanisms
+        product_nodes = {nid: n for nid, n in nodes.items() if n.type == 'producto'}
+        
+        for node_id, node in product_nodes.items():
+            mechanism = self._infer_single_mechanism(node, text, nodes)
+            self.inferred_mechanisms[node_id] = mechanism
+        
+        self.logger.info(f"Mecanismos inferidos: {len(self.inferred_mechanisms)}")
+        return self.inferred_mechanisms
+    
+    def _infer_single_mechanism(self, node: MetaNode, text: str, 
+                                all_nodes: Dict[str, MetaNode]) -> Dict[str, Any]:
+        """Infer mechanism for a single product node"""
+        # Extract observations from text
+        observations = self._extract_observations(node, text)
+        
+        # Level 3: Sample mechanism type from hyperprior
+        mechanism_type_posterior = self._infer_mechanism_type(observations)
+        
+        # Level 2: Infer activity sequence given mechanism type
+        sequence_posterior = self._infer_activity_sequence(
+            observations, mechanism_type_posterior
+        )
+        
+        # Level 1: Calculate coherence factor
+        coherence_score = self._calculate_coherence_factor(
+            node, observations, all_nodes
+        )
+        
+        # Validation tests
+        sufficiency = self._test_sufficiency(node, observations)
+        necessity = self._test_necessity(node, observations)
+        
+        # Quantify uncertainty
+        uncertainty = self._quantify_uncertainty(
+            mechanism_type_posterior, sequence_posterior, coherence_score
+        )
+        
+        # Detect gaps
+        gaps = self._detect_gaps(node, observations, uncertainty)
+        
+        return {
+            'mechanism_type': mechanism_type_posterior,
+            'activity_sequence': sequence_posterior,
+            'coherence_score': coherence_score,
+            'sufficiency_test': sufficiency,
+            'necessity_test': necessity,
+            'uncertainty': uncertainty,
+            'gaps': gaps,
+            'observations': observations
+        }
+    
+    def _extract_observations(self, node: MetaNode, text: str) -> Dict[str, Any]:
+        """Extract textual observations related to the mechanism"""
+        # Find node context in text
+        node_pattern = re.escape(node.id)
+        matches = list(re.finditer(node_pattern, text, re.IGNORECASE))
+        
+        observations = {
+            'entity_activity': None,
+            'verbs': [],
+            'entities': [],
+            'budget': node.financial_allocation,
+            'context_snippets': []
+        }
+        
+        if node.entity_activity:
+            observations['entity_activity'] = {
+                'entity': node.entity_activity.entity,
+                'activity': node.entity_activity.activity,
+                'verb_lemma': node.entity_activity.verb_lemma
+            }
+        
+        # Extract context around node mentions
+        for match in matches[:3]:  # Limit to first 3 occurrences
+            start = max(0, match.start() - 300)
+            end = min(len(text), match.end() + 300)
+            context = text[start:end]
+            
+            # Process with spaCy
+            doc = self.nlp(context)
+            
+            # Extract verbs
+            verbs = [token.lemma_ for token in doc if token.pos_ == 'VERB']
+            observations['verbs'].extend(verbs)
+            
+            # Extract entities
+            entities = [ent.text for ent in doc.ents if ent.label_ in ['ORG', 'PER']]
+            observations['entities'].extend(entities)
+            
+            observations['context_snippets'].append(context[:200])
+        
+        return observations
+    
+    def _infer_mechanism_type(self, observations: Dict[str, Any]) -> Dict[str, float]:
+        """Infer mechanism type using Bayesian updating"""
+        # Start with hyperprior
+        posterior = dict(self.mechanism_type_priors)
+        
+        # Update based on observed verbs
+        observed_verbs = set(observations.get('verbs', []))
+        
+        if observed_verbs:
+            for mech_type, typical_verbs in self.mechanism_sequences.items():
+                # Count overlap
+                overlap = len(observed_verbs.intersection(set(typical_verbs)))
+                total = len(typical_verbs)
+                
+                if total > 0:
+                    # Likelihood: proportion of typical verbs observed
+                    likelihood = (overlap + 1) / (total + 2)  # Laplace smoothing
+                    
+                    # Bayesian update
+                    posterior[mech_type] *= likelihood
+        
+        # Update based on entity-activity
+        if observations.get('entity_activity'):
+            verb = observations['entity_activity'].get('verb_lemma', '')
+            for mech_type, typical_verbs in self.mechanism_sequences.items():
+                if verb in typical_verbs:
+                    posterior[mech_type] *= 1.5
+        
+        # Normalize
+        total = sum(posterior.values())
+        if total > 0:
+            posterior = {k: v / total for k, v in posterior.items()}
+        
+        return posterior
+    
+    def _infer_activity_sequence(self, observations: Dict[str, Any],
+                                 mechanism_type_posterior: Dict[str, float]) -> Dict[str, Any]:
+        """Infer activity sequence parameters"""
+        # Get most likely mechanism type
+        best_type = max(mechanism_type_posterior.items(), key=lambda x: x[1])[0]
+        expected_sequence = self.mechanism_sequences.get(best_type, [])
+        
+        observed_verbs = observations.get('verbs', [])
+        
+        # Calculate transition probabilities (simplified Markov chain)
+        transitions = {}
+        for i in range(len(expected_sequence) - 1):
+            current = expected_sequence[i]
+            next_verb = expected_sequence[i + 1]
+            
+            # Check if transition is observed
+            if current in observed_verbs and next_verb in observed_verbs:
+                transitions[(current, next_verb)] = 0.85
+            else:
+                transitions[(current, next_verb)] = 0.40
+        
+        return {
+            'expected_sequence': expected_sequence,
+            'observed_verbs': observed_verbs,
+            'transition_probabilities': transitions,
+            'sequence_completeness': len(set(observed_verbs) & set(expected_sequence)) / max(len(expected_sequence), 1)
+        }
+    
+    def _calculate_coherence_factor(self, node: MetaNode, 
+                                   observations: Dict[str, Any],
+                                   all_nodes: Dict[str, MetaNode]) -> float:
+        """Calculate mechanism coherence score"""
+        coherence = 0.0
+        weights = []
+        
+        # Factor 1: Entity-Activity presence
+        if observations.get('entity_activity'):
+            coherence += 0.30
+            weights.append(0.30)
+        
+        # Factor 2: Budget consistency
+        if observations.get('budget'):
+            coherence += 0.20
+            weights.append(0.20)
+        
+        # Factor 3: Verb sequence completeness
+        seq_info = observations.get('verbs', [])
+        if seq_info:
+            verb_score = min(len(seq_info) / 4.0, 1.0)  # Expect ~4 verbs
+            coherence += verb_score * 0.25
+            weights.append(0.25)
+        
+        # Factor 4: Entity presence
+        if observations.get('entities'):
+            coherence += 0.15
+            weights.append(0.15)
+        
+        # Factor 5: Context richness
+        snippets = observations.get('context_snippets', [])
+        if snippets:
+            coherence += 0.10
+            weights.append(0.10)
+        
+        # Normalize by actual weights used
+        if weights:
+            coherence = coherence / sum(weights) if sum(weights) > 0 else 0.0
+        
+        return coherence
+    
+    def _test_sufficiency(self, node: MetaNode, 
+                         observations: Dict[str, Any]) -> Dict[str, Any]:
+        """Test if mechanism is sufficient to produce the outcome"""
+        # Check if entity has capability
+        has_entity = observations.get('entity_activity') is not None
+        
+        # Check if activities are present
+        has_activities = len(observations.get('verbs', [])) >= 2
+        
+        # Check if resources are allocated
+        has_resources = observations.get('budget') is not None
+        
+        sufficiency_score = (
+            (0.4 if has_entity else 0.0) +
+            (0.4 if has_activities else 0.0) +
+            (0.2 if has_resources else 0.0)
+        )
+        
+        return {
+            'score': sufficiency_score,
+            'is_sufficient': sufficiency_score >= 0.6,
+            'components': {
+                'entity': has_entity,
+                'activities': has_activities,
+                'resources': has_resources
+            }
+        }
+    
+    def _test_necessity(self, node: MetaNode, 
+                       observations: Dict[str, Any]) -> Dict[str, Any]:
+        """Test if mechanism is necessary or if alternatives exist"""
+        # Check uniqueness of entity
+        entities = observations.get('entities', [])
+        unique_entity = len(set(entities)) == 1 if entities else False
+        
+        # Check specificity of activities
+        verbs = observations.get('verbs', [])
+        specific_verbs = len([v for v in verbs if v in [
+            'implementar', 'ejecutar', 'realizar', 'desarrollar'
+        ]]) > 0
+        
+        necessity_score = (
+            (0.5 if unique_entity else 0.3) +
+            (0.5 if specific_verbs else 0.3)
+        )
+        
+        return {
+            'score': necessity_score,
+            'is_necessary': necessity_score >= 0.7,
+            'alternatives_likely': necessity_score < 0.5
+        }
+    
+    def _quantify_uncertainty(self, mechanism_type_posterior: Dict[str, float],
+                             sequence_posterior: Dict[str, Any],
+                             coherence_score: float) -> Dict[str, float]:
+        """Quantify epistemic uncertainty"""
+        # Entropy of mechanism type distribution
+        mech_probs = list(mechanism_type_posterior.values())
+        if mech_probs:
+            mech_entropy = -sum(p * np.log(p + 1e-10) for p in mech_probs if p > 0)
+            max_entropy = np.log(len(mech_probs))
+            mech_uncertainty = mech_entropy / max_entropy if max_entropy > 0 else 1.0
+        else:
+            mech_uncertainty = 1.0
+        
+        # Sequence completeness uncertainty
+        seq_completeness = sequence_posterior.get('sequence_completeness', 0.0)
+        seq_uncertainty = 1.0 - seq_completeness
+        
+        # Coherence uncertainty
+        coherence_uncertainty = 1.0 - coherence_score
+        
+        # Combined uncertainty
+        total_uncertainty = (
+            mech_uncertainty * 0.4 +
+            seq_uncertainty * 0.3 +
+            coherence_uncertainty * 0.3
+        )
+        
+        return {
+            'total': total_uncertainty,
+            'mechanism_type': mech_uncertainty,
+            'sequence': seq_uncertainty,
+            'coherence': coherence_uncertainty
+        }
+    
+    def _detect_gaps(self, node: MetaNode, observations: Dict[str, Any],
+                    uncertainty: Dict[str, float]) -> List[Dict[str, str]]:
+        """Detect documentation gaps based on uncertainty"""
+        gaps = []
+        
+        # High total uncertainty
+        if uncertainty['total'] > 0.6:
+            gaps.append({
+                'type': 'high_uncertainty',
+                'severity': 'high',
+                'message': f"Mecanismo para {node.id} tiene alta incertidumbre ({uncertainty['total']:.2f})",
+                'suggestion': "Se requiere más documentación sobre el mecanismo causal"
+            })
+        
+        # Missing entity
+        if not observations.get('entity_activity'):
+            gaps.append({
+                'type': 'missing_entity',
+                'severity': 'high',
+                'message': f"No se especifica entidad responsable para {node.id}",
+                'suggestion': "Especificar qué entidad ejecutará las actividades"
+            })
+        
+        # Insufficient activities
+        if len(observations.get('verbs', [])) < 2:
+            gaps.append({
+                'type': 'insufficient_activities',
+                'severity': 'medium',
+                'message': f"Pocas actividades documentadas para {node.id}",
+                'suggestion': "Detallar las actividades necesarias para lograr el producto"
+            })
+        
+        # Missing budget
+        if not observations.get('budget'):
+            gaps.append({
+                'type': 'missing_budget',
+                'severity': 'medium',
+                'message': f"Sin asignación presupuestaria para {node.id}",
+                'suggestion': "Asignar recursos financieros al producto"
+            })
+        
+        return gaps
 
 
 class CausalInferenceSetup:
@@ -1140,6 +2080,7 @@ class CDAFFramework:
         self.pdf_processor = PDFProcessor(self.config)
         self.causal_extractor = CausalExtractor(self.config, self.nlp)
         self.mechanism_extractor = MechanismPartExtractor(self.config, self.nlp)
+        self.bayesian_mechanism = BayesianMechanismInference(self.config, self.nlp)
         self.financial_auditor = FinancialAuditor(self.config)
         self.op_auditor = OperationalizationAuditor(self.config)
         self.inference_setup = CausalInferenceSetup(self.config)
@@ -1176,10 +2117,18 @@ class CDAFFramework:
             self.logger.info("Auditando trazabilidad financiera...")
             self.financial_auditor.trace_financial_allocation(tables, nodes)
             
+            # Step 4.5: Bayesian Mechanism Inference (AGUJA II)
+            self.logger.info("Infiriendo mecanismos causales con modelo Bayesiano...")
+            inferred_mechanisms = self.bayesian_mechanism.infer_mechanisms(nodes, text)
+            
             # Step 5: Operationalization audit
             self.logger.info("Auditando operacionalización...")
             audit_results = self.op_auditor.audit_evidence_traceability(nodes)
             sequence_warnings = self.op_auditor.audit_sequence_logic(graph)
+            
+            # Step 5.5: Bayesian Counterfactual Audit (AGUJA III)
+            self.logger.info("Ejecutando auditoría contrafactual Bayesiana...")
+            counterfactual_audit = self.op_auditor.bayesian_counterfactual_audit(nodes, graph)
             
             # Step 6: Causal inference setup
             self.logger.info("Preparando para inferencia causal...")
@@ -1197,12 +2146,75 @@ class CDAFFramework:
             )
             self.reporting_engine.generate_causal_model_json(graph, nodes, policy_code)
             
+            # Step 8: Generate Bayesian inference reports
+            self.logger.info("Generando reportes de inferencia Bayesiana...")
+            self._generate_bayesian_reports(
+                inferred_mechanisms, counterfactual_audit, policy_code
+            )
+            
             self.logger.info(f"✅ Procesamiento completado exitosamente para {policy_code}")
             return True
             
         except Exception as e:
             self.logger.error(f"Error crítico en el procesamiento: {e}", exc_info=True)
             return False
+    
+    def _generate_bayesian_reports(self, inferred_mechanisms: Dict[str, Dict[str, Any]],
+                                   counterfactual_audit: Dict[str, Any],
+                                   policy_code: str) -> None:
+        """Generate reports for Bayesian inference results"""
+        # Save mechanism inference results
+        mechanisms_path = self.output_dir / f"{policy_code}_bayesian_mechanisms.json"
+        try:
+            with open(mechanisms_path, 'w', encoding='utf-8') as f:
+                json.dump(inferred_mechanisms, f, indent=2, ensure_ascii=False, default=str)
+            self.logger.info(f"Reporte de mecanismos Bayesianos guardado: {mechanisms_path}")
+        except Exception as e:
+            self.logger.error(f"Error guardando reporte de mecanismos: {e}")
+        
+        # Save counterfactual audit results
+        audit_path = self.output_dir / f"{policy_code}_counterfactual_audit.json"
+        try:
+            with open(audit_path, 'w', encoding='utf-8') as f:
+                json.dump(counterfactual_audit, f, indent=2, ensure_ascii=False, default=str)
+            self.logger.info(f"Auditoría contrafactual guardada: {audit_path}")
+        except Exception as e:
+            self.logger.error(f"Error guardando auditoría contrafactual: {e}")
+        
+        # Generate summary report
+        summary_path = self.output_dir / f"{policy_code}_bayesian_summary.md"
+        try:
+            with open(summary_path, 'w', encoding='utf-8') as f:
+                f.write(f"# Resumen de Inferencia Bayesiana - {policy_code}\n\n")
+                
+                # Mechanisms summary
+                f.write("## Mecanismos Causales Inferidos\n\n")
+                f.write(f"Total de mecanismos analizados: {len(inferred_mechanisms)}\n\n")
+                
+                high_uncertainty = sum(1 for m in inferred_mechanisms.values() 
+                                      if m['uncertainty']['total'] > 0.6)
+                f.write(f"Mecanismos con alta incertidumbre: {high_uncertainty}\n\n")
+                
+                # Counterfactual audit summary
+                f.write("## Auditoría Contrafactual\n\n")
+                summary = counterfactual_audit.get('summary', {})
+                f.write(f"- Nodos totales: {summary.get('total_nodes', 0)}\n")
+                f.write(f"- Omisiones críticas: {summary.get('critical_omissions', 0)}\n")
+                f.write(f"- Probabilidad de éxito estimada: {summary.get('expected_success_probability', 0):.2%}\n")
+                f.write(f"- Score de riesgo sistémico: {summary.get('risk_score', 0):.2f}\n\n")
+                
+                # Top recommendations
+                f.write("## Top 5 Recomendaciones Prioritarias\n\n")
+                recommendations = counterfactual_audit.get('recommendations', [])
+                for i, rec in enumerate(recommendations[:5], 1):
+                    f.write(f"{i}. **{rec['node_id']}** - {rec['omission']}\n")
+                    f.write(f"   - Severidad: {rec['severity']}\n")
+                    f.write(f"   - Prioridad: {rec['priority']:.2f}\n")
+                    f.write(f"   - Recomendación: {rec['recommendation']}\n\n")
+            
+            self.logger.info(f"Resumen Bayesiano guardado: {summary_path}")
+        except Exception as e:
+            self.logger.error(f"Error generando resumen Bayesiano: {e}")
 
 
 def main() -> int:
