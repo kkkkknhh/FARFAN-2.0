@@ -211,10 +211,12 @@ class PDETMunicipalPlanAnalyzer:
         try:
             self.nlp = spacy.load("es_dep_news_trf")
         except OSError:
-            print("⚠️  Descargando modelo SpaCy español...")
-            import subprocess
-            subprocess.run(["python", "-m", "spacy", "download", "es_dep_news_trf"])
-            self.nlp = spacy.load("es_dep_news_trf")
+            print("❌ El modelo SpaCy 'es_dep_news_trf' no está instalado.")
+            raise RuntimeError(
+                "El modelo SpaCy 'es_dep_news_trf' no está instalado. "
+                "Por favor, instálalo manualmente ejecutando:\n"
+                "    python -m spacy download es_dep_news_trf"
+            )
         
         # 3. Pipeline de clasificación para entidades
         self.entity_classifier = pipeline(
