@@ -511,7 +511,7 @@ class PolicyDocumentAnalyzer:
             if len(relevant_sims) >= self.config.min_evidence_chunks:
                 evidence = self.bayesian.integrate_evidence(
                     relevant_sims,
-                    [chunks[i] for i in np.where(relevant_mask)[0]]
+                    relevant_chunks
                 )
             else:
                 evidence = self.bayesian._null_evidence()
