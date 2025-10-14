@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 SMART Recommendations Framework with AHP Prioritization
 ========================================================
@@ -20,7 +21,6 @@ from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, timedelta
 from enum import Enum
-import json
 
 
 class Priority(Enum):

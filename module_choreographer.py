@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Module Choreographer for FARFAN 2.0
 Coordina la ejecución secuencial de todos los módulos y acumula respuestas
@@ -12,8 +13,7 @@ Este módulo garantiza que:
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple
-from enum import Enum
+from typing import Dict, List, Any, Tuple
 
 logger = logging.getLogger("module_choreographer")
 

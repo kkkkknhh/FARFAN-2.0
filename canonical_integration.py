@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Integration utility between canonical notation and guia_cuestionario
 ====================================================================
@@ -15,7 +16,6 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from canonical_notation import (
     CanonicalID,
-    RubricKey,
     EvidenceEntry,
     PolicyArea,
     AnalyticalDimension

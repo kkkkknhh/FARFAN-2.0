@@ -12,7 +12,7 @@ Based on:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Dict, Set, Optional, Any
+from typing import List, Dict, Optional, Any
 import logging
 
 logging.basicConfig(level=logging.INFO)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Causal Deconstruction and Audit Framework (CDAF) v2.0
 Framework de Producción para Análisis Causal de Planes de Desarrollo Territorial
@@ -12,12 +13,11 @@ import logging
 import re
 import sys
 from collections import defaultdict
-from dataclasses import dataclass, field, asdict
-from enum import Enum
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (
     Any, Dict, List, Optional, Set, Tuple, Union, TypedDict, 
-    NamedTuple, Protocol, Literal, cast
+    NamedTuple, Literal, cast
 )
 import warnings
 

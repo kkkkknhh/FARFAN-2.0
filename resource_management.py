@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Resource Management Module
 Provides context managers and utilities for managing memory and resources
@@ -9,7 +10,7 @@ import logging
 import psutil
 import os
 from contextlib import contextmanager
-from typing import Any, Optional, Callable, Generator, Dict
+from typing import Any, Callable, Generator, Dict
 from functools import wraps
 from pathlib import Path
 

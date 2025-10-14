@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Tests for Pipeline Validators
 Validates Pydantic models and invariant checks

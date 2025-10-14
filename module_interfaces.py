@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Module Interfaces for FARFAN 2.0
 Defines formal Protocol classes for all module interfaces

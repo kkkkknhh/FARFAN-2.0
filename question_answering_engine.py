@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Question Answering Engine for FARFAN 2.0
 Sistema de respuesta a las 300 preguntas del cuestionario de evaluación causal
@@ -10,14 +11,10 @@ Este módulo:
 4. Genera respuestas estructuradas (respuesta + argumento + nota cuantitativa)
 """
 
-import json
 import logging
-import re
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Any, Tuple
 from enum import Enum
-
 logger = logging.getLogger("question_answering_engine")
 
 

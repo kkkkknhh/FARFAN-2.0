@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 DAG-based Pipeline Configuration for FARFAN 2.0
 Following Category 2.2 requirement for declarative orchestration
@@ -12,12 +13,7 @@ This module provides:
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Set, Callable
-from enum import Enum
-import networkx as nx
-from pathlib import Path
-import yaml
-
+from typing import Dict, List, Any, Optional
 logger = logging.getLogger("pipeline_dag")
 
 
