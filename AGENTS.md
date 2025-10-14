@@ -10,7 +10,11 @@ python -m spacy download es_core_news_lg
 
 **Build:** N/A (Python project)
 
-**Lint:** N/A (no linter configured)
+**Lint/Pre-test Validation:**  
+```bash
+# Comprehensive compilation and test validation
+python3 pretest_compilation.py
+```
 
 **Tests:**  
 ```bash
