@@ -160,6 +160,7 @@ python ejemplo_dnp_completo.py
 - `mga_indicadores.py` - Catálogo de indicadores MGA
 - `pdet_lineamientos.py` - Lineamientos PDET
 - `dnp_integration.py` - Integración y validación DNP
+- `canonical_notation.py` - **NUEVO:** Sistema canónico de notación (P#-D#-Q#)
 - `ejemplo_dnp_completo.py` - Ejemplos de uso
 
 ### Módulos Framework Principal
@@ -181,6 +182,7 @@ El framework genera automáticamente:
 ## Documentación
 
 - [DNP Integration Documentation](DNP_INTEGRATION_DOCS.md) - Guía completa de validación DNP
+- [Canonical Notation Documentation](CANONICAL_NOTATION_DOCS.md) - **NUEVO:** Sistema canónico de notación
 - Ver ejemplos en `ejemplo_dnp_completo.py`
 
 ## Estándares y Normativa
