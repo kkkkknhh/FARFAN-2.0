@@ -586,7 +586,7 @@
               "indicadores_con_meta": "COUNT(TARGET presente)",
               "indicadores_completos": "COUNT(indicador con todos los elementos)"
             },
-            "formula_score": "score = (ind_completos / total_productos) * (formula*0.2 + fuente*0.25 + baseline*0.25 + meta*0.3)"
+            "formula_score": "score = 0.2*(formula/total_productos) + 0.25*(fuente/total_productos) + 0.25*(baseline/total_productos) + 0.3*(meta/total_productos)"
           },
           "paso_5_mapear_escala": {
             "0_AUSENTE": "Productos sin indicadores definidos",
