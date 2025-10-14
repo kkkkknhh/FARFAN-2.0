@@ -2200,7 +2200,7 @@ class CDAFFramework:
                     sector = "salud"
                 elif "agua" in entity_lower or "acueducto" in entity_lower:
                     sector = "agua_potable_saneamiento"
-                elif "v" in entity_lower or "infraestructura" in entity_lower:
+                elif ("via" in entity_lower or "vial" in entity_lower or "transporte" in entity_lower or "infraestructura" in entity_lower):
                     sector = "vias_transporte"
                 elif "agr" in entity_lower or "rural" in entity_lower:
                     sector = "desarrollo_agropecuario"
