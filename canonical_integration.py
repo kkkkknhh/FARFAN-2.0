@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from canonical_notation import (
     CanonicalID,
-    RubricKey,
     EvidenceEntry,
     PolicyArea,
     AnalyticalDimension

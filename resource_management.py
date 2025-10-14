@@ -10,7 +10,7 @@ import logging
 import psutil
 import os
 from contextlib import contextmanager
-from typing import Any, Optional, Callable, Generator, Dict
+from typing import Any, Callable, Generator, Dict
 from functools import wraps
 from pathlib import Path
 

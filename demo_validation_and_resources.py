@@ -5,7 +5,6 @@ Integration test demonstrating data validation and resource management
 This test shows how the validators and resource managers work together in the pipeline
 """
 
-from pathlib import Path
 from pipeline_validators import (
     CausalExtractionData,
     DNPValidationData,

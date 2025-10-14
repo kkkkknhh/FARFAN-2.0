@@ -13,8 +13,7 @@ Este módulo garantiza que:
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple
-from enum import Enum
+from typing import Dict, List, Any, Tuple
 
 logger = logging.getLogger("module_choreographer")
 

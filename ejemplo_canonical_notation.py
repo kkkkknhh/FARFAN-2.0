@@ -24,12 +24,11 @@ from canonical_notation import (
     RubricKey,
     EvidenceEntry,
     CanonicalNotationValidator,
-    PolicyArea,
-    AnalyticalDimension,
+
+
     generate_default_questions,
     get_system_structure_summary
 )
-import json
 
 
 def example_1_basic_canonical_ids():

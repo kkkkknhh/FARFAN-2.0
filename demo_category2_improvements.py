@@ -6,14 +6,11 @@ Demonstrates the new interfaces, DI container, and DAG-based pipeline
 """
 
 from pathlib import Path
-import json
 
 # Import new components
 from module_interfaces import (
     DependencyInjectionContainer,
-    ModuleDependencies,
-    IPDFProcessor,
-    ICausalExtractor
+    IPDFProcessor
 )
 from pipeline_dag import (
     PipelineDAG,
