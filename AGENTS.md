@@ -16,6 +16,7 @@ python -m spacy download es_core_news_lg
 ```bash
 python -m unittest test_canonical_notation.py
 python -m unittest test_circuit_breaker.py
+python test_risk_mitigation.py
 ```
 
 **Dev/Run:**  
@@ -40,6 +41,7 @@ FARFAN 2.0 is a framework for auditing Colombian Municipal Development Plans (PD
 - `canonical_notation.py`: Canonical notation system (P#-D#-Q# format)
 - `dnp_integration.py`, `competencias_municipales.py`, `mga_indicadores.py`, `pdet_lineamientos.py`: DNP compliance validation
 - `circuit_breaker.py`: Circuit breaker pattern for distributed pipeline resilience
+- `risk_mitigation_layer.py`: Pre-execution risk assessment with severity-based escalation and comprehensive logging
 - `dereck_beach`: CDAF (Causal Deconstruction and Audit Framework) standalone processor
 
 ## Code Style
