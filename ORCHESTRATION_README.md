@@ -64,16 +64,16 @@ Crea reportes a tres niveles:
 - D6: Causalidad (Teoría de Cambio) - 5 preguntas
 
 **10 Áreas de Política** (Decálogo):
-- P1: Seguridad y Convivencia
-- P2: Alertas Tempranas
-- P3: Ambiente y Recursos Naturales
-- P4: Derechos Básicos
-- P5: Víctimas
-- P6: Niñez y Juventud
-- P7: Desarrollo Rural
-- P8: Líderes Sociales
-- P9: Sistema Carcelario
-- P10: Migración
+- P1: Derechos de las mujeres e igualdad de género
+- P2: Prevención de la violencia y protección frente al conflicto
+- P3: Ambiente sano, cambio climático, prevención y atención a desastres
+- P4: Derechos económicos, sociales y culturales
+- P5: Derechos de las víctimas y construcción de paz
+- P6: Derecho al buen futuro de la niñez, adolescencia, juventud
+- P7: Tierras y territorios
+- P8: Líderes y defensores de derechos humanos
+- P9: Crisis de derechos de personas privadas de la libertad
+- P10: Migración transfronteriza
 
 **Total: 30 × 10 = 300 preguntas**
 
@@ -196,23 +196,23 @@ El orquestador integra **TODOS** los módulos del framework:
 
 ## Clústeres Meso
 
-**C1: Seguridad, Paz y Protección**
-- P1: Seguridad y Convivencia
-- P2: Alertas Tempranas  
-- P8: Líderes Sociales
+**C1: Derechos de las Mujeres, Prevención de Violencia y Protección de Líderes**
+- P1: Derechos de las mujeres e igualdad de género
+- P2: Prevención de la violencia y protección frente al conflicto
+- P8: Líderes y defensores de derechos humanos
 
-**C2: Derechos Sociales y Poblaciones Vulnerables**
-- P4: Derechos Básicos
-- P5: Víctimas
-- P6: Niñez y Juventud
+**C2: Derechos Económicos, Sociales, Culturales y Poblaciones Vulnerables**
+- P4: Derechos económicos, sociales y culturales
+- P5: Derechos de las víctimas y construcción de paz
+- P6: Derecho al buen futuro de la niñez, adolescencia, juventud
 
-**C3: Territorio, Ambiente y Desarrollo Rural**
-- P3: Ambiente y Recursos Naturales
-- P7: Desarrollo Rural
+**C3: Ambiente, Cambio Climático, Tierras y Territorios**
+- P3: Ambiente sano, cambio climático, prevención y atención a desastres
+- P7: Tierras y territorios
 
-**C4: Poblaciones en Contextos Especiales**
-- P9: Sistema Carcelario
-- P10: Migración
+**C4: Personas Privadas de Libertad y Migración**
+- P9: Crisis de derechos de personas privadas de la libertad
+- P10: Migración transfronteriza
 
 ## Garantías del Sistema
 
@@ -243,7 +243,7 @@ El orquestador integra **TODOS** los módulos del framework:
 {
   "P1-D1-Q1": {
     "respuesta": "Sí, el plan cumple excelentemente...",
-    "argumento": "La evaluación de Seguridad y Convivencia...\n\nLa evidencia encontrada...",
+    "argumento": "La evaluación de Derechos de las mujeres e igualdad de género...\n\nLa evidencia encontrada...",
     "nota_cuantitativa": 0.85,
     "evidencia": ["Nodo X: ...", "Score DNP: 82/100"],
     "modulos_utilizados": ["dereck_beach", "dnp_integration"]

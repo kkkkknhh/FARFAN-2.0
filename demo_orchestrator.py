@@ -47,10 +47,10 @@ MUNICIPIO DE EJEMPLO, COLOMBIA
 El municipio cuenta con 45,000 habitantes, de los cuales 60% reside en zona rural.
 La tasa de pobreza multidimensional es 42.3%, superior al promedio departamental.
 
-Seguridad y Convivencia:
-- Tasa de homicidios: 28 por 100,000 habitantes (Fuente: Policía Nacional 2023)
-- Percepción de seguridad: 45% de los ciudadanos se sienten seguros
-- Cobertura videovigilancia: 30% del área urbana
+Derechos de las mujeres e igualdad de género:
+- Tasa de violencia de género: 28 por 100,000 habitantes (Fuente: Policía Nacional 2023)
+- Participación de mujeres en concejos municipales: 45%
+- Cobertura de programas de empoderamiento: 30% de las mujeres
 
 2. VISIÓN ESTRATÉGICA
 Para 2027, el municipio será reconocido por su desarrollo sostenible e inclusivo.
@@ -236,16 +236,16 @@ def demo_simple():
     ]
     
     puntos = [
-        ("P1", "Seguridad y Convivencia"),
-        ("P2", "Alertas Tempranas"),
-        ("P3", "Ambiente y Recursos Naturales"),
-        ("P4", "Derechos Básicos"),
-        ("P5", "Víctimas"),
-        ("P6", "Niñez y Juventud"),
-        ("P7", "Desarrollo Rural"),
-        ("P8", "Líderes Sociales"),
-        ("P9", "Sistema Carcelario"),
-        ("P10", "Migración")
+        ("P1", "Derechos de las mujeres e igualdad de género"),
+        ("P2", "Prevención de la violencia y protección frente al conflicto"),
+        ("P3", "Ambiente sano, cambio climático, prevención y atención a desastres"),
+        ("P4", "Derechos económicos, sociales y culturales"),
+        ("P5", "Derechos de las víctimas y construcción de paz"),
+        ("P6", "Derecho al buen futuro de la niñez, adolescencia, juventud"),
+        ("P7", "Tierras y territorios"),
+        ("P8", "Líderes y defensores de derechos humanos"),
+        ("P9", "Crisis de derechos de personas privadas de la libertad"),
+        ("P10", "Migración transfronteriza")
     ]
     
     print("Dimensiones Analíticas:")

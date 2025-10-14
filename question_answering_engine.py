@@ -403,16 +403,16 @@ class QuestionAnsweringEngine:
     def _get_area_keywords(self, area_nombre: str) -> List[str]:
         """Obtiene palabras clave para filtrar por área"""
         keywords_map = {
-            "Seguridad y Convivencia": ["seguridad", "policía", "convivencia", "violencia"],
-            "Alertas Tempranas": ["alerta", "prevención", "riesgo", "defensoría"],
-            "Ambiente y Recursos Naturales": ["ambiente", "agua", "reforestación", "residuos"],
-            "Derechos Básicos": ["educación", "salud", "vivienda", "servicios"],
-            "Víctimas": ["víctima", "reparación", "restitución", "desplazamiento"],
-            "Niñez y Juventud": ["niño", "niña", "joven", "adolescente", "educación"],
-            "Desarrollo Rural": ["rural", "campesino", "agropecuario", "tierra"],
-            "Líderes Sociales": ["líder", "defensor", "protección", "amenaza"],
-            "Sistema Carcelario": ["cárcel", "reclusión", "ppl", "privados de libertad"],
-            "Migración": ["migrante", "venezolano", "extranjero", "frontera"]
+            "Derechos de las mujeres e igualdad de género": ["mujeres", "género", "igualdad", "mujer", "equidad"],
+            "Prevención de la violencia y protección frente al conflicto": ["violencia", "prevención", "conflicto", "protección", "seguridad"],
+            "Ambiente sano, cambio climático, prevención y atención a desastres": ["ambiente", "climático", "agua", "desastres", "reforestación", "residuos"],
+            "Derechos económicos, sociales y culturales": ["educación", "salud", "vivienda", "servicios", "derechos", "sociales"],
+            "Derechos de las víctimas y construcción de paz": ["víctima", "paz", "reparación", "restitución", "desplazamiento"],
+            "Derecho al buen futuro de la niñez, adolescencia, juventud": ["niño", "niña", "joven", "adolescente", "juventud", "niñez"],
+            "Tierras y territorios": ["tierras", "territorio", "rural", "campesino", "predios"],
+            "Líderes y defensores de derechos humanos": ["líder", "defensor", "derechos humanos", "protección", "amenaza"],
+            "Crisis de derechos de personas privadas de la libertad": ["cárcel", "reclusión", "ppl", "privados de libertad", "carcelario"],
+            "Migración transfronteriza": ["migrante", "migración", "venezolano", "extranjero", "frontera"]
         }
         return keywords_map.get(area_nombre, [area_nombre.lower()])
     
@@ -424,16 +424,16 @@ class QuestionAnsweringEngine:
     def _map_area_to_sector(self, area_nombre: str) -> str:
         """Mapea área temática a sector para consultas"""
         sector_map = {
-            "Seguridad y Convivencia": "seguridad_convivencia",
-            "Alertas Tempranas": "seguridad_convivencia",
-            "Ambiente y Recursos Naturales": "medio_ambiente",
-            "Derechos Básicos": "educacion",  # Multiple sectors
-            "Víctimas": "atencion_grupos_vulnerables",
-            "Niñez y Juventud": "educacion",
-            "Desarrollo Rural": "desarrollo_rural",
-            "Líderes Sociales": "seguridad_convivencia",
-            "Sistema Carcelario": "justicia_seguridad",
-            "Migración": "atencion_grupos_vulnerables"
+            "Derechos de las mujeres e igualdad de género": "atencion_grupos_vulnerables",
+            "Prevención de la violencia y protección frente al conflicto": "seguridad_convivencia",
+            "Ambiente sano, cambio climático, prevención y atención a desastres": "medio_ambiente",
+            "Derechos económicos, sociales y culturales": "educacion",  # Multiple sectors
+            "Derechos de las víctimas y construcción de paz": "atencion_grupos_vulnerables",
+            "Derecho al buen futuro de la niñez, adolescencia, juventud": "educacion",
+            "Tierras y territorios": "desarrollo_rural",
+            "Líderes y defensores de derechos humanos": "seguridad_convivencia",
+            "Crisis de derechos de personas privadas de la libertad": "justicia_seguridad",
+            "Migración transfronteriza": "atencion_grupos_vulnerables"
         }
         return sector_map.get(area_nombre, "general")
     
@@ -520,15 +520,15 @@ sean inadecuados para la rendición de cuentas y el aprendizaje institucional.
     def _get_area_nombre(self, punto: PuntoDecalogo) -> str:
         """Obtiene el nombre completo del área temática"""
         nombres = {
-            PuntoDecalogo.P1_SEGURIDAD: "Seguridad y Convivencia",
-            PuntoDecalogo.P2_ALERTAS_TEMPRANAS: "Alertas Tempranas",
-            PuntoDecalogo.P3_AMBIENTE: "Ambiente y Recursos Naturales",
-            PuntoDecalogo.P4_DERECHOS_BASICOS: "Derechos Básicos",
-            PuntoDecalogo.P5_VICTIMAS: "Víctimas",
-            PuntoDecalogo.P6_NINEZ_JUVENTUD: "Niñez y Juventud",
-            PuntoDecalogo.P7_RURAL: "Desarrollo Rural",
-            PuntoDecalogo.P8_LIDERES_SOCIALES: "Líderes Sociales",
-            PuntoDecalogo.P9_CARCEL: "Sistema Carcelario",
-            PuntoDecalogo.P10_MIGRACION: "Migración"
+            PuntoDecalogo.P1_SEGURIDAD: "Derechos de las mujeres e igualdad de género",
+            PuntoDecalogo.P2_ALERTAS_TEMPRANAS: "Prevención de la violencia y protección frente al conflicto",
+            PuntoDecalogo.P3_AMBIENTE: "Ambiente sano, cambio climático, prevención y atención a desastres",
+            PuntoDecalogo.P4_DERECHOS_BASICOS: "Derechos económicos, sociales y culturales",
+            PuntoDecalogo.P5_VICTIMAS: "Derechos de las víctimas y construcción de paz",
+            PuntoDecalogo.P6_NINEZ_JUVENTUD: "Derecho al buen futuro de la niñez, adolescencia, juventud",
+            PuntoDecalogo.P7_RURAL: "Tierras y territorios",
+            PuntoDecalogo.P8_LIDERES_SOCIALES: "Líderes y defensores de derechos humanos",
+            PuntoDecalogo.P9_CARCEL: "Crisis de derechos de personas privadas de la libertad",
+            PuntoDecalogo.P10_MIGRACION: "Migración transfronteriza"
         }
         return nombres[punto]
