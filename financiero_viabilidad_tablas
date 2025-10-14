@@ -24,7 +24,8 @@ from pathlib import Path
 from decimal import Decimal
 from datetime import datetime
 import warnings
-warnings.filterwarnings('ignore')
+# Consider selectively suppressing only specific warnings if needed, e.g.:
+# warnings.filterwarnings('ignore', category=DeprecationWarning, module='some_module')
 
 # === CORE SCIENTIFIC COMPUTING ===
 import numpy as np
