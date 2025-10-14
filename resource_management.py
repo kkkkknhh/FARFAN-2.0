@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 def get_memory_usage_mb() -> float:
     """Get current process memory usage in MB"""
     process = psutil.Process(os.getpid())
-    return process.memory_info().rss / 1024 / 1024
+    memory_bytes: int = process.memory_info().rss
+    return float(memory_bytes / 1024 / 1024)
 
 
 def memory_profiling_decorator(func: Callable) -> Callable:

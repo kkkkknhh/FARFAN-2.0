@@ -6,7 +6,7 @@ Provides Pydantic models and validators for pipeline stages
 
 from typing import Dict, List, Any, Optional
 from pathlib import Path
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -124,6 +124,8 @@ class ValidatedPipelineContext(BaseModel):
     Fully validated pipeline context with Pydantic models
     Ensures data integrity at each stage
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
     # Input (immutable)
     pdf_path: Path
     policy_code: str
@@ -138,10 +140,6 @@ class ValidatedPipelineContext(BaseModel):
     stage_7: DNPValidationData = Field(default_factory=DNPValidationData)
     stage_8: QuestionAnsweringData = Field(default_factory=QuestionAnsweringData)
     stage_9: ReportGenerationData = Field(default_factory=ReportGenerationData)
-    
-    class Config:
-        arbitrary_types_allowed = True  # Allow networkx graphs and other custom types
-        from_attributes = True  # Enable ORM mode for compatibility
 
 
 def validate_stage_transition(stage_name: str, data: BaseModel) -> None:
