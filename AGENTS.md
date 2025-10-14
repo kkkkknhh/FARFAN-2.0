@@ -1,41 +1,30 @@
-# AGENTS.md
+# AGENTS.md - FARFAN-2.0 Development Guide
 
-## Commands
-
-### Initial Setup
+## Setup
 ```bash
-# No virtual environment needed (Python scripts only)
 pip install pymupdf networkx pandas spacy pyyaml fuzzywuzzy python-Levenshtein pydot
 python -m spacy download es_core_news_lg
 ```
 
-### Build
-No build step required (Python scripts).
-
-### Lint
-No linter configured.
-
-### Tests
-```bash
-python test_canonical_notation.py
-```
-
-### Dev Server
-No dev server (batch processing framework).
+## Commands
+- **Build**: N/A (Python project, no compilation)
+- **Lint**: N/A (no linter configured)
+- **Test**: `python test_canonical_notation.py` or `python -m unittest test_canonical_notation.py`
+- **Demo**: `python demo_orchestrator.py --simple` or `python orchestrator.py <pdf_file> --policy-code <code> --output-dir <dir>`
 
 ## Tech Stack
 - **Language**: Python 3.11+
-- **Core Libraries**: PyMuPDF (PDF), spaCy (NLP), NetworkX (graphs), pandas (data)
-- **Domain**: Colombian territorial development plan auditing and DNP standards compliance
+- **Core**: PyMuPDF (PDF parsing), spaCy (NLP), NetworkX (causal graphs), Pandas (data)
+- **Domain**: Colombian Municipal Development Plan (PDM) evaluation framework with DNP compliance validation
 
 ## Architecture
-- **Orchestrator** (`orchestrator.py`): Main entry point, 300-question evaluation system
-- **DNP Modules**: Municipal competencies, MGA indicators, PDET guidelines, validation
-- **Canonical Notation** (`canonical_notation.py`): P#-D#-Q# ID system (10 policies × 6 dimensions)
-- **Reports**: Micro (300 answers), Meso (clusters × dimensions), Macro (global alignment)
+- **Orchestrator**: `orchestrator.py` - main 9-stage canonical evaluation pipeline
+- **DNP Modules**: `dnp_integration.py`, `competencias_municipales.py`, `mga_indicadores.py`, `pdet_lineamientos.py`
+- **Canonical Notation**: `canonical_notation.py` - P#-D#-Q# system (10 policies × 6 dimensions × N questions = 300 questions)
+- **Reporting**: `report_generator.py` - micro (300 answers), meso (clusters), macro (global alignment)
 
 ## Code Style
-- Python 3.11+ with type hints and dataclasses
-- Docstrings in English for modules, Spanish for domain-specific content
-- Canonical IDs format: P1-P10 (policies), D1-D6 (dimensions), Q1+ (questions)
-- Enums for categorical data, dataclasses for structured data
+- Python 3 with type hints, dataclasses, and enums
+- Docstrings: triple-quoted with module/function purpose
+- Imports: standard lib, third-party, local (grouped and sorted)
+- Spanish for domain terms (e.g., "Teoría de Cambio"), English for code
