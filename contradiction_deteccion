@@ -199,12 +199,10 @@ Returns:
         if not cause.temporal_markers or not effect.temporal_markers:
             return False
 
-        cause_time = min(m.get('timestamp', float('inf')) 
-                         for m in cause.temporal_markers 
-                         if m.get('timestamp'))
-        effect_time = min(m.get('timestamp', float('inf')) 
-                          for m in effect.temporal_markers 
-                          if m.get('timestamp'))
+        cause_timestamps = [m.get('timestamp') for m in cause.temporal_markers if m.get('timestamp') is not None]
+        effect_timestamps = [m.get('timestamp') for m in effect.temporal_markers if m.get('timestamp') is not None]
+        cause_time = min(cause_timestamps) if cause_timestamps else float('inf')
+        effect_time = min(effect_timestamps) if effect_timestamps else float('inf')
 
         return cause_time < effect_time
 
