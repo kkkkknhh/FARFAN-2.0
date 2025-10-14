@@ -5,7 +5,7 @@
 ### Initial Setup
 ```bash
 # No virtual environment needed (Python scripts only)
-pip install pymupdf networkx pandas spacy pyyaml fuzzywuzzy python-Levenshtein pydot
+pip install pymupdf networkx pandas spacy pyyaml fuzzywuzzy python-Levenshtein pydot pydantic
 python -m spacy download es_core_news_lg
 ```
 
