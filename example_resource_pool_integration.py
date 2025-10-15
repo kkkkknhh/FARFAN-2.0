@@ -8,6 +8,7 @@ Shows how to integrate the Resource Pool Manager with the existing BayesianSampl
 import asyncio
 import sys
 from pathlib import Path
+from typing import Optional, List
 
 from infrastructure import ResourceConfig, ResourcePool
 
@@ -106,8 +107,8 @@ async def demo_integration():
     class MockLink:
         cause_id: str
         effect_id: str
-        cause_emb: list = None
-        effect_emb: list = None
+        cause_emb: Optional[List[float]] = None
+        effect_emb: Optional[List[float]] = None
 
         def __post_init__(self):
             if self.cause_emb is None:
@@ -117,7 +118,7 @@ async def demo_integration():
 
     @dataclass
     class MockContext:
-        overall_pdm_embedding: list = None
+        overall_pdm_embedding: Optional[List[float]] = None
         municipality_name: str = "Ejemplo"
 
         def __post_init__(self):

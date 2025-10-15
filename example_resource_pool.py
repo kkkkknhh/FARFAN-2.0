@@ -230,7 +230,7 @@ async def example_pool_monitoring():
     # Create monitoring task
     async def monitor_pool():
         """Monitor pool status periodically"""
-        for i in range(5):
+        for _ in range(5):
             await asyncio.sleep(0.3)
             status = pool.get_pool_status()
             print(

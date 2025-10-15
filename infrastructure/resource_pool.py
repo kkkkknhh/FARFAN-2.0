@@ -252,8 +252,10 @@ class ResourcePool:
 
         finally:
             # Cleanup: cancel monitoring and return worker
-            if monitor_task is not None:
+            if monitor_task is not None and not monitor_task.done():
                 monitor_task.cancel()
+                # Wait for cancellation to complete, suppress the CancelledError
+                # since we initiated this cancellation ourselves
                 try:
                     await monitor_task
                 except asyncio.CancelledError:
