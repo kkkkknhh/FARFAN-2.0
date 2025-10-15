@@ -440,7 +440,6 @@ class UnifiedOrchestrator:
         self,
         graph: nx.DiGraph,
         chunks: List[Any],
-        prior_snapshot: PriorSnapshot,
         run_id: str
     ) -> Dict[str, Any]:
         """Stage 3: Bayesian Inference (3 AGUJAS)"""
@@ -479,7 +478,7 @@ class UnifiedOrchestrator:
             return {'mechanisms': mechanisms, 'posteriors': posteriors}
     
     async def _stage_4_contradiction(
-        self, graph: nx.DiGraph, chunks: List[Any], run_id: str
+        self, chunks: List[Any], run_id: str
     ) -> List[Dict[str, Any]]:
         """Stage 4: Contradiction Detection"""
         async with self._stage_context(PipelineStage.STAGE_4_CONTRADICTION) as metric:

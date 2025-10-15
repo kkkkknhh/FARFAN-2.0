@@ -453,7 +453,7 @@ class PDMOrchestrator:
 
         return recommendations
 
-    def _handle_timeout(self, run_id: str, pdf_path: str) -> AnalysisResult:
+    def _handle_timeout(self, run_id: str) -> AnalysisResult:
         """Handle timeout scenario"""
         self._transition_state(PDMAnalysisState.FAILED)
         self.logger.error(f"Analysis timeout for run {run_id}")
@@ -472,7 +472,7 @@ class PDMOrchestrator:
         )
 
     def _handle_failure(
-        self, run_id: str, pdf_path: str, error: Exception
+        self, run_id: str, error: Exception
     ) -> AnalysisResult:
         """Handle failure scenario"""
         self._transition_state(PDMAnalysisState.FAILED)

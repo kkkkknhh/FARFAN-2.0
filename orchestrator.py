@@ -288,9 +288,7 @@ class AnalyticalOrchestrator:
     def _detect_contradictions(
         self,
         statements: List[Any],
-        text: str,
-        plan_name: str,
-        dimension: str
+        text: str
     ) -> PhaseResult:
         """
         Phase 2: Detect contradictions across statements.
@@ -326,7 +324,6 @@ class AnalyticalOrchestrator:
     def _analyze_regulatory_constraints(
         self,
         statements: List[Any],
-        text: str,
         temporal_conflicts: List[Any]
     ) -> PhaseResult:
         """
@@ -364,8 +361,7 @@ class AnalyticalOrchestrator:
     def _calculate_coherence_metrics(
         self,
         contradictions: List[Any],
-        statements: List[Any],
-        text: str
+        statements: List[Any]
     ) -> PhaseResult:
         """
         Phase 4: Calculate advanced coherence metrics.

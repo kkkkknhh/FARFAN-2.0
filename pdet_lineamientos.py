@@ -568,7 +568,6 @@ class LineamientosPDET:
     
     def recomendar_lineamientos(self, 
                                 sector: str, 
-                                es_rural: bool = True,
                                 poblacion_victimas: bool = False) -> List[LineamientoPDET]:
         """Recommend relevant PDET guidelines based on project characteristics"""
         recomendaciones = []
