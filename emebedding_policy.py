@@ -35,9 +35,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 # DESIGN CONSTANTS - Model Configuration
 # ============================================================================
 
-# Embedding model for semantic similarity
-DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
-
 # Cross-encoder model for semantic reranking
 DEFAULT_CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
@@ -183,11 +180,9 @@ class AdvancedSemanticChunker:
         # Enrich chunks with metadata and P-D-Q context
         semantic_chunks: list[SemanticChunk] = []
 
-        for idx, (chunk_text, chunk_start, chunk_end) in enumerate(raw_chunks):
-            # Infer P-D-Q context from surrounding text
-            pdq_context = self._infer_pdq_context(
-                chunk_text
-            )
+        for idx, chunk_text in enumerate(raw_chunks):
+            # Infer P-D-Q context from chunk text
+            pdq_context = self._infer_pdq_context(chunk_text)
 
             # Count tokens (approximation: Spanish has ~1.3 chars/token)
             AVG_CHARS_PER_TOKEN = 1.3  # Source: Spanish language statistics
@@ -207,14 +202,14 @@ class AdvancedSemanticChunker:
                 "metadata": {
                     "document_id": document_metadata.get("doc_id"),
                     "chunk_index": idx,
-                    "has_table": self._contains_table(chunk_start, chunk_end, tables),
+                    "has_table": self._contains_table(chunk_text, tables),
                     "has_list": self._contains_list(chunk_text, lists),
                     "has_numbers": bool(self.NUMERIC_INDICATORS.search(chunk_text)),
                     "section_title": self._find_section(chunk_text, sections),
                 },
                 "pdq_context": pdq_context,
                 "token_count": token_count,
-                "position": (chunk_start, chunk_end),
+                "position": (0, len(chunk_text)),  # Updated during splitting
             }
 
             semantic_chunks.append(semantic_chunk)
@@ -234,18 +229,14 @@ class AdvancedSemanticChunker:
         text = re.sub(r"\n{3,}", "\n\n", text)
         return text.strip()
 
-    def _recursive_split(
-        self, text: str, target_size: int, overlap: int
-    ) -> list[tuple[str, int, int]]:
+    def _recursive_split(self, text: str, target_size: int, overlap: int) -> list[str]:
         """
         Recursive character splitting with semantic boundary respect.
 
         Priority: Paragraph > Sentence > Word > Character
-        
-        Returns: List of (chunk_text, start_pos, end_pos) tuples
         """
         if len(text) <= target_size:
-            return [(text, 0, len(text))]
+            return [text]
 
         chunks = []
         current_pos = 0
@@ -269,7 +260,7 @@ class AdvancedSemanticChunker:
 
             chunk = text[current_pos:end_pos].strip()
             if len(chunk) >= self.config.min_chunk_size:
-                chunks.append((chunk, current_pos, end_pos))
+                chunks.append(chunk)
 
             # Move position with overlap
             current_pos = end_pos - overlap if overlap > 0 else end_pos
@@ -333,7 +324,7 @@ class AdvancedSemanticChunker:
         chunk_text: str,
     ) -> PDQIdentifier | None:
         """
-        Infer P-D-Q context from chunk content and structure.
+        Infer P-D-Q context from chunk content.
 
         Uses heuristics based on Colombian policy vocabulary.
         """
@@ -393,7 +384,10 @@ class AdvancedSemanticChunker:
         self, chunk_text: str, tables: list[dict[str, Any]]
     ) -> bool:
         """Check if chunk contains table markers."""
-        return any(table["marker"][:20] in chunk_text for table in tables)
+        return any(
+            table["marker"] in chunk_text
+            for table in tables
+        )
 
     def _contains_list(self, chunk_text: str, lists: list[dict[str, Any]]) -> bool:
         """Check if chunk contains list structures."""
@@ -673,24 +667,22 @@ class PolicyCrossEncoderReranker:
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self.retry_handler = retry_handler
-
+        
         # Load model with retry logic if available
         if retry_handler:
             try:
                 from retry_handler import DependencyType
-
+                
                 @retry_handler.with_retry(
                     DependencyType.EMBEDDING_SERVICE,
                     operation_name="load_cross_encoder",
-                    exceptions=(OSError, IOError, ConnectionError, RuntimeError),
+                    exceptions=(OSError, IOError, ConnectionError, RuntimeError)
                 )
                 def load_model():
                     return CrossEncoder(model_name, max_length=max_length)
-
+                
                 self.model = load_model()
-                self._logger.info(
-                    f"Cross-encoder loaded with retry protection: {model_name}"
-                )
+                self._logger.info(f"Cross-encoder loaded with retry protection: {model_name}")
             except Exception as e:
                 self._logger.error(f"Failed to load cross-encoder: {e}")
                 raise
@@ -747,7 +739,7 @@ class PolicyEmbeddingConfig:
     """Configuration for policy embedding system."""
 
     # Model selection
-    embedding_model: str = DEFAULT_EMBEDDING_MODEL
+    embedding_model: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
     cross_encoder_model: str = DEFAULT_CROSS_ENCODER_MODEL
 
     # Chunking parameters
@@ -790,33 +782,29 @@ class PolicyAnalysisEmbedder:
         if retry_handler:
             try:
                 from retry_handler import DependencyType
-
+                
                 @retry_handler.with_retry(
                     DependencyType.EMBEDDING_SERVICE,
                     operation_name="load_sentence_transformer",
-                    exceptions=(OSError, IOError, ConnectionError, RuntimeError),
+                    exceptions=(OSError, IOError, ConnectionError, RuntimeError)
                 )
                 def load_embedding_model():
                     return SentenceTransformer(config.embedding_model)
-
-                self._logger.info(
-                    "Initializing embedding model with retry: %s",
-                    config.embedding_model,
-                )
+                
+                self._logger.info("Initializing embedding model with retry: %s", config.embedding_model)
                 self.embedding_model = load_embedding_model()
             except Exception as e:
                 self._logger.error(f"Failed to load embedding model: {e}")
                 raise
         else:
-            self._logger.info(
-                "Initializing embedding model: %s", config.embedding_model
-            )
+            self._logger.info("Initializing embedding model: %s", config.embedding_model)
             self.embedding_model = SentenceTransformer(config.embedding_model)
 
         # Initialize cross-encoder with retry logic
         self._logger.info("Initializing cross-encoder: %s", config.cross_encoder_model)
         self.cross_encoder = PolicyCrossEncoderReranker(
-            config.cross_encoder_model, retry_handler=retry_handler
+            config.cross_encoder_model,
+            retry_handler=retry_handler
         )
 
         self.chunker = AdvancedSemanticChunker(
@@ -888,7 +876,6 @@ class PolicyAnalysisEmbedder:
         document_chunks: list[SemanticChunk],
         pdq_filter: PDQIdentifier | None = None,
         use_reranking: bool = True,
-        use_mmr: bool = True,
     ) -> list[tuple[SemanticChunk, float]]:
         """
         Advanced semantic search with P-D-Q filtering and reranking.
@@ -897,14 +884,13 @@ class PolicyAnalysisEmbedder:
         1. Bi-encoder retrieval (fast, approximate)
         2. P-D-Q filtering (if specified)
         3. Cross-encoder reranking (precise)
-        4. MMR diversification (if enabled)
+        4. MMR diversification
 
         Args:
             query: Search query
             document_chunks: Pool of chunks to search
             pdq_filter: Optional P-D-Q context filter
             use_reranking: Enable cross-encoder reranking
-            use_mmr: Enable MMR diversification
 
         Returns:
             Ranked list of (chunk, score) tuples
@@ -912,11 +898,9 @@ class PolicyAnalysisEmbedder:
         if not document_chunks:
             return []
 
-        # Generate query embedding
-        query_embedding = self._embed_texts([query])[0]
-
         # Bi-encoder retrieval: fast approximate search
         chunk_embeddings = np.vstack([c["embedding"] for c in document_chunks])
+        query_embedding = self._embed_texts([query])[0]
         similarities = cosine_similarity(
             query_embedding.reshape(1, -1), chunk_embeddings
         ).ravel()
@@ -951,7 +935,7 @@ class PolicyAnalysisEmbedder:
             reranked = reranked[: self.config.top_k_rerank]
 
         # MMR diversification
-        if use_mmr and len(reranked) > 1:
+        if len(reranked) > 1:
             reranked = self._apply_mmr(reranked)
 
         return reranked
@@ -1104,16 +1088,11 @@ class PolicyAnalysisEmbedder:
             if self.retry_handler:
                 try:
                     from retry_handler import DependencyType
-
+                    
                     @self.retry_handler.with_retry(
                         DependencyType.EMBEDDING_SERVICE,
                         operation_name="encode_texts",
-                        exceptions=(
-                            ConnectionError,
-                            TimeoutError,
-                            RuntimeError,
-                            OSError,
-                        ),
+                        exceptions=(ConnectionError, TimeoutError, RuntimeError, OSError)
                     )
                     def encode_with_retry():
                         return self.embedding_model.encode(
@@ -1123,7 +1102,7 @@ class PolicyAnalysisEmbedder:
                             show_progress_bar=False,
                             convert_to_numpy=True,
                         )
-
+                    
                     new_embeddings = encode_with_retry()
                 except Exception as e:
                     self._logger.error(f"Failed to encode texts with retry: {e}")
@@ -1357,7 +1336,7 @@ def create_policy_embedder(
             - "fast": Lightweight, low latency
             - "balanced": Good performance/accuracy balance (default)
             - "accurate": Maximum accuracy, higher latency
-        
+
     Returns:
         Configured PolicyAnalysisEmbedder instance
     """
@@ -1372,7 +1351,7 @@ def create_policy_embedder(
             batch_size=64,
         ),
         "balanced": PolicyEmbeddingConfig(
-            embedding_model=DEFAULT_EMBEDDING_MODEL,
+            embedding_model="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
             cross_encoder_model=DEFAULT_CROSS_ENCODER_MODEL,
             chunk_size=512,
             chunk_overlap=128,
@@ -1381,7 +1360,7 @@ def create_policy_embedder(
             batch_size=32,
         ),
         "accurate": PolicyEmbeddingConfig(
-            embedding_model=DEFAULT_EMBEDDING_MODEL,
+            embedding_model="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
             cross_encoder_model="cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
             chunk_size=768,
             chunk_overlap=192,
