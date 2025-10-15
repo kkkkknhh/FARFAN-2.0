@@ -96,7 +96,8 @@ VERSION="${VERSION#v}"
 # The channel to install from:
 #   * stable
 #   * test
-DEFAULT_CHANNEL_VALUE="stable"
+DEFAULT_DOCKER_CHANNEL="stable"
+DEFAULT_CHANNEL_VALUE="$DEFAULT_DOCKER_CHANNEL"
 if [ -z "$CHANNEL" ]; then
 	CHANNEL=$DEFAULT_CHANNEL_VALUE
 fi
@@ -166,10 +167,10 @@ case "$mirror" in
 esac
 
 case "$CHANNEL" in
-	stable|test)
+	"$DEFAULT_DOCKER_CHANNEL"|test)
 		;;
 	*)
-		>&2 echo "unknown CHANNEL '$CHANNEL': use either stable or test."
+		>&2 echo "unknown CHANNEL '$CHANNEL': use either $DEFAULT_DOCKER_CHANNEL or test."
 		exit 1
 		;;
 esac
@@ -612,7 +613,7 @@ do_install() {
 					$sh_c "dnf -y -q --setopt=install_weak_deps=False install dnf-plugins-core"
 					$sh_c "dnf5 config-manager addrepo --overwrite --save-filename=docker-ce.repo --from-repofile='$repo_file_url'"
 
-					if [ "$CHANNEL" != "stable" ]; then
+					if [ "$CHANNEL" != "$DEFAULT_DOCKER_CHANNEL" ]; then
 						$sh_c "dnf5 config-manager setopt \"docker-ce-*.enabled=0\""
 						$sh_c "dnf5 config-manager setopt \"docker-ce-$CHANNEL.enabled=1\""
 					fi
@@ -622,7 +623,7 @@ do_install() {
 					$sh_c "rm -f /etc/yum.repos.d/docker-ce.repo  /etc/yum.repos.d/docker-ce-staging.repo"
 					$sh_c "dnf config-manager --add-repo $repo_file_url"
 
-					if [ "$CHANNEL" != "stable" ]; then
+					if [ "$CHANNEL" != "$DEFAULT_DOCKER_CHANNEL" ]; then
 						$sh_c "dnf config-manager --set-disabled \"docker-ce-*\""
 						$sh_c "dnf config-manager --set-enabled \"docker-ce-$CHANNEL\""
 					fi
@@ -632,7 +633,7 @@ do_install() {
 					$sh_c "rm -f /etc/yum.repos.d/docker-ce.repo  /etc/yum.repos.d/docker-ce-staging.repo"
 					$sh_c "yum-config-manager --add-repo $repo_file_url"
 
-					if [ "$CHANNEL" != "stable" ]; then
+					if [ "$CHANNEL" != "$DEFAULT_DOCKER_CHANNEL" ]; then
 						$sh_c "yum-config-manager --disable \"docker-ce-*\""
 						$sh_c "yum-config-manager --enable \"docker-ce-$CHANNEL\""
 					fi
