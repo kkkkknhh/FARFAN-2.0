@@ -1279,26 +1279,60 @@ class PDETMunicipalPlanAnalyzer:
         return float(gini)
     
     def _score_temporal_consistency(self, text: str, tables: List[ExtractedTable]) -> float:
-        """Score de consistencia temporal"""
+        """Score de consistencia temporal
         
+        Enhanced for D1-Q2 (Magnitud/Brecha/Limitaciones):
+        - Detects explicit data limitation statements
+        - Verifies presence of quantified gaps (brechas)
+        - Scores 'Excelente' only if narrative contains limitation acknowledgment AND gap metrics
+        """
+        # Import for quantitative claims extraction
+        try:
+            from contradiction_deteccion import PolicyContradictionDetectorV2
+            detector = PolicyContradictionDetectorV2(device='cpu')
+            claims = detector._extract_structured_quantitative_claims(text)
+        except Exception:
+            claims = []
+        
+        # D1-Q2: Check for data limitations (dereck_beach patterns)
+        has_data_limitations = any(claim.get('type') == 'data_limitation' for claim in claims)
+        
+        # D1-Q2: Check for quantified gaps/brechas
+        gap_types = ['deficit', 'gap', 'shortage', 'uncovered', 'uncovered_pct', 'ratio']
+        has_quantified_gaps = any(claim.get('type') in gap_types for claim in claims)
+        
+        # D1-Q2 Score component
+        if has_data_limitations and has_quantified_gaps:
+            d1_q2_score = 1.0  # EXCELENTE: explicit limitations AND quantified gaps
+        elif has_quantified_gaps:
+            d1_q2_score = 0.7  # BUENO: has gap metrics but no limitation acknowledgment
+        elif has_data_limitations:
+            d1_q2_score = 0.5  # ACEPTABLE: acknowledges limitations but no quantified gaps
+        else:
+            d1_q2_score = 0.3  # INSUFICIENTE: neither limitation statements nor gap metrics
+        
+        # Original temporal consistency scoring
         # Buscar años mencionados
         years = re.findall(r'20[12]\d', text)
         unique_years = sorted(set(int(y) for y in years))
         
         if len(unique_years) < 2:
-            return 0.4  # Falta proyección temporal
+            temporal_score = 0.4  # Falta proyección temporal
+        else:
+            # Verificar continuidad (años consecutivos)
+            gaps = [unique_years[i+1] - unique_years[i] for i in range(len(unique_years)-1)]
+            continuity = sum(1 for gap in gaps if gap == 1) / max(len(gaps), 1)
+            
+            # Verificar rango temporal adecuado (4 años típico)
+            temporal_range = max(unique_years) - min(unique_years)
+            range_score = min(temporal_range / 4, 1.0)
+            
+            temporal_score = (continuity * 0.6 + range_score * 0.4)
         
-        # Verificar continuidad (años consecutivos)
-        gaps = [unique_years[i+1] - unique_years[i] for i in range(len(unique_years)-1)]
-        continuity = sum(1 for gap in gaps if gap == 1) / max(len(gaps), 1)
+        # Combine D1-Q2 and temporal scores (weighted)
+        combined_score = (d1_q2_score * 0.5 + temporal_score * 0.5)
         
-        # Verificar rango temporal adecuado (4 años típico)
-        temporal_range = max(unique_years) - min(unique_years)
-        range_score = min(temporal_range / 4, 1.0)
-        
-        score = (continuity * 0.6 + range_score * 0.4)
-        
-        return float(np.clip(score, 0, 1))
+        return float(np.clip(combined_score, 0, 1))
     
     def _score_pdet_alignment(self, text: str, tables: List[ExtractedTable]) -> float:
         """Score de alineación con PDET"""
