@@ -143,6 +143,62 @@ class EventBus:
                 f"Unsubscribed handler {handler.__name__} from event type '{event_type}'"
             )
 
+    def _prepare_handler_task(self, handler: Callable, event: PDMEvent):
+        """
+        Prepare a task for handler execution.
+
+        Args:
+            handler: The handler to execute
+            event: The event to pass to the handler
+
+        Returns:
+            Coroutine or task for execution, or None on error
+        """
+        if asyncio.iscoroutinefunction(handler):
+            return handler(event)
+        else:
+            return asyncio.get_event_loop().run_in_executor(None, handler, event)
+
+    def _collect_handler_tasks(self, handlers: List[Callable], event: PDMEvent) -> List:
+        """
+        Collect tasks from all handlers, handling preparation errors.
+
+        Args:
+            handlers: List of handlers to prepare
+            event: Event to pass to handlers
+
+        Returns:
+            List of tasks ready for execution
+        """
+        tasks = []
+        for handler in handlers:
+            try:
+                task = self._prepare_handler_task(handler, event)
+                tasks.append(task)
+            except Exception as e:
+                logger.error(
+                    f"Error preparing handler {handler.__name__}: {e}", exc_info=True
+                )
+        return tasks
+
+    def _log_handler_exceptions(self, results: List, handlers: List[Callable]) -> None:
+        """
+        Log exceptions from handler execution results.
+
+        Args:
+            results: Results from asyncio.gather with return_exceptions=True
+            handlers: List of handlers that were executed
+        """
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                handler_name = (
+                    handlers[i].__name__ if i < len(handlers) else "unknown"
+                )
+                logger.error(
+                    f"Handler {handler_name} raised exception: {result}",
+                    exc_info=result,
+                )
+
     async def publish(self, event: PDMEvent) -> None:
         """
         Publish an event and execute all registered handlers asynchronously.
@@ -179,37 +235,11 @@ class EventBus:
             f"Publishing event '{event.event_type}' to {len(handlers)} handler(s)"
         )
 
-        # Execute all handlers concurrently
-        tasks = []
-        for handler in handlers:
-            try:
-                # Support both sync and async handlers
-                if asyncio.iscoroutinefunction(handler):
-                    tasks.append(handler(event))
-                else:
-                    # Wrap sync handlers to run in executor
-                    tasks.append(
-                        asyncio.get_event_loop().run_in_executor(None, handler, event)
-                    )
-            except Exception as e:
-                logger.error(
-                    f"Error preparing handler {handler.__name__}: {e}", exc_info=True
-                )
+        tasks = self._collect_handler_tasks(handlers, event)
 
         if tasks:
-            # Gather all tasks, catching exceptions
             results = await asyncio.gather(*tasks, return_exceptions=True)
-
-            # Log any exceptions
-            for i, result in enumerate(results):
-                if isinstance(result, Exception):
-                    handler_name = (
-                        handlers[i].__name__ if i < len(handlers) else "unknown"
-                    )
-                    logger.error(
-                        f"Handler {handler_name} raised exception: {result}",
-                        exc_info=result,
-                    )
+            self._log_handler_exceptions(results, handlers)
 
     def get_event_log(
         self, event_type: str = None, run_id: str = None, limit: int = None
