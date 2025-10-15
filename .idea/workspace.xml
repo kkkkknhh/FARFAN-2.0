@@ -4,7 +4,70 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7de8b31-8538-410c-a7ce-0996291ccd2d" name="Changes" comment="" />
+    <list default="true" id="b7de8b31-8538-410c-a7ce-0996291ccd2d" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AGENTS.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/CANONICAL_NOTATION_IMPLEMENTATION_SUMMARY.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/CANONICAL_NOTATION_QUICK_REF.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/CATEGORY_2_BEFORE_AFTER.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/CATEGORY_2_IMPLEMENTATION.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/CATEGORY_2_QUICK_REFERENCE.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/COMPILATION_VALIDATION.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DNP_INTEGRATION_DOCS.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/FULL_PROJECT_INFO.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUIA_RAPIDA_DNP.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IMPLEMENTATION_CLEAN_SCRIPTS.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IMPLEMENTATION_SUMMARY.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IMPLEMENTATION_SUMMARY_OLD.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ORCHESTRATION_README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ORCHESTRATION_SUMMARY.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ORCHESTRATOR_DOCUMENTATION.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/PROJECT_FULL_INFO.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/QUICK_START_ENHANCED.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/QUICK_START_VALIDATION.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/RESUMEN_EJECUTIVO_DNP.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/RISK_MITIGATION_DOCS.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aws_deployment_info.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/canonical_integration.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/check_dependencies.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/circuit_breaker.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo_category2_improvements.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo_orchestrator.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo_validation_and_resources.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ejemplo_canonical_notation.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ejemplo_dnp_completo.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/estimate_processing.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/example_risk_integration.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/import_analyzer.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/module_choreographer.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/module_interfaces.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/orchestrator.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pipeline_dag.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pipeline_validators.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pretest_compilation.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/project_analysis.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/question_answering_engine.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/questions_config.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/resilience_config.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/resource_management.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/risk_mitigation_layer.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/risk_registry.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/styles.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/system_health_check.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/teoria_cambio_validacion_monte_carlo" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_canonical_notation.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_circuit_breaker.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_config_enhancements.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_module_interfaces.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_pipeline_dag.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_pipeline_validators.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_resource_management.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_risk_mitigation.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_risk_registry.py" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -36,6 +99,9 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.check_dependencies.executor": "Run",
+    "Python.competencias_municipales.executor": "Run",
+    "Python.dereck_beach.executor": "Run",
     "Python.scratch_2.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
@@ -74,6 +140,7 @@
       <updated>1760461641886</updated>
       <workItem from="1760461645760" duration="1264000" />
       <workItem from="1760466237985" duration="679000" />
+      <workItem from="1760486480473" duration="2087000" />
     </task>
     <servers />
   </component>
@@ -81,6 +148,9 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/AGENTS_md$dereck_beach.coverage" NAME="dereck_beach Coverage Results" MODIFIED="1760487544706" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/AGENTS_md$check_dependencies.coverage" NAME="check_dependencies Coverage Results" MODIFIED="1760487526940" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/AGENTS_md$competencias_municipales.coverage" NAME="competencias_municipales Coverage Results" MODIFIED="1760487512131" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/AGENTS_md$scratch_2.coverage" NAME="scratch_2 Coverage Results" MODIFIED="1760462115541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
   </component>
 </project>
