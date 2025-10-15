@@ -51,3 +51,8 @@ Thumbs.db
 resilience_dev_default.yaml
 resilience_prod_default.yaml
 resilience_*.yaml
+
+# Runtime data
+data/
+*.jsonl
+prior_history.json
