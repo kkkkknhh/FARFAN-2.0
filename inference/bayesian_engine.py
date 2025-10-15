@@ -348,6 +348,10 @@ class BayesianPriorBuilder:
         # Prior history for mechanism types (can be loaded from file)
         self.prior_history: Dict[str, List[Tuple[float, float]]] = {}
 
+        # Structural penalty factor (Governance Trigger 3)
+        self.structural_penalty_factor: float = 1.0
+        self.structural_violations: List[Tuple[str, str]] = []
+
         # Type transition priors (hierarchical structure)
         self.type_transitions = {
             ("producto", "resultado"): 0.8,
@@ -584,8 +588,80 @@ class BayesianPriorBuilder:
         # Ensure minimum values
         alpha = max(0.5, alpha)
         beta = max(0.5, beta)
+        
+        # Apply structural penalty if active (Governance Trigger 3)
+        if self.structural_penalty_factor < 1.0:
+            alpha, beta = self._apply_penalty_to_prior(alpha, beta)
+            self.logger.debug(
+                "Applied structural penalty: alpha=%.3f, beta=%.3f (factor=%.3f)",
+                alpha, beta, self.structural_penalty_factor
+            )
 
         return alpha, beta
+    
+    def apply_structural_penalty(
+        self, 
+        penalty_factor: float, 
+        violations: List[Tuple[str, str]]
+    ):
+        """
+        Apply structural penalty to prior builder (Governance Trigger 3).
+        
+        Called by AxiomaticValidator._apply_structural_penalty to propagate
+        structural violation penalties to Bayesian posteriors.
+        
+        Args:
+            penalty_factor: Multiplier in [0, 1] to scale priors
+            violations: List of (source, target) edge violations
+        """
+        self.structural_penalty_factor = penalty_factor
+        self.structural_violations = violations
+        
+        self.logger.info(
+            "Applied structural penalty factor: %.3f for %d violations",
+            penalty_factor, len(violations)
+        )
+    
+    def _apply_penalty_to_prior(
+        self,
+        alpha: float,
+        beta: float
+    ) -> Tuple[float, float]:
+        """
+        Apply structural penalty to computed Beta parameters.
+        
+        Reduces alpha (success parameter) and increases beta (failure parameter)
+        proportionally to penalty factor.
+        
+        Args:
+            alpha: Original alpha parameter
+            beta: Original beta parameter
+            
+        Returns:
+            (penalized_alpha, penalized_beta)
+        """
+        if self.structural_penalty_factor >= 1.0:
+            return alpha, beta
+        
+        # Penalty reduces success probability
+        # New mean should be: original_mean * penalty_factor
+        # For Beta: mean = alpha / (alpha + beta)
+        
+        original_mean = alpha / (alpha + beta)
+        penalized_mean = original_mean * self.structural_penalty_factor
+        
+        # Keep total strength constant
+        total_strength = alpha + beta
+        
+        # Recalculate alpha and beta
+        penalized_alpha = penalized_mean * total_strength
+        penalized_beta = (1.0 - penalized_mean) * total_strength
+        
+        # Ensure minimum values
+        penalized_alpha = max(0.5, penalized_alpha)
+        penalized_beta = max(0.5, penalized_beta)
+        
+        return penalized_alpha, penalized_beta
 
 
 # ============================================================================
