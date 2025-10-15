@@ -928,6 +928,11 @@ class CausalExtractor:
                 logic = match.group(0)
                 
                 if source in self.nodes and target in self.nodes:
+                    # Extract context around the match for language specificity analysis
+                    context_start = max(0, match.start() - 100)
+                    context_end = min(len(text), match.end() + 100)
+                    match_context = text[context_start:context_end]
+                    
                     # Calculate evidence components
                     evidence = {
                         'keyword': keyword,
@@ -935,7 +940,7 @@ class CausalExtractor:
                         'match_position': match.start(),
                         'semantic_distance': self._calculate_semantic_distance(source, target),
                         'type_transition_prior': self._calculate_type_transition_prior(source, target),
-                        'language_specificity': self._calculate_language_specificity(keyword),
+                        'language_specificity': self._calculate_language_specificity(keyword, None, match_context),
                         'temporal_coherence': self._assess_temporal_coherence(source, target),
                         'financial_consistency': self._assess_financial_consistency(source, target),
                         'textual_proximity': self._calculate_textual_proximity(source, target, text)
@@ -1074,8 +1079,18 @@ class CausalExtractor:
         
         return transition_priors.get((source_type, target_type), 0.40)
     
-    def _calculate_language_specificity(self, keyword: str) -> float:
-        """Assess specificity of causal language (epistemic certainty)"""
+    def _calculate_language_specificity(self, keyword: str, policy_area: Optional[str] = None, 
+                                       context: Optional[str] = None) -> float:
+        """Assess specificity of causal language (epistemic certainty)
+        
+        Harmonic Front 3 - Enhancement 4: Language Specificity Assessment
+        Enhanced to check policy-specific vocabulary (patrones_verificacion) for current
+        Policy Area (P1–P10), not just generic causal keywords.
+        
+        For D6-Q5 (Contextual/Differential Focus): rewards use of specialized terminology
+        that anchors intervention in social/cultural context (e.g., "catastro multipropósito",
+        "reparación integral", "mujeres rurales", "guardia indígena").
+        """
         # Strong causal indicators
         strong_indicators = ['causa', 'produce', 'genera', 'resulta en', 'conduce a']
         # Moderate indicators
@@ -1085,14 +1100,94 @@ class CausalExtractor:
         
         keyword_lower = keyword.lower()
         
+        # Base score from causal indicators
+        base_score = 0.60
         if any(ind in keyword_lower for ind in strong_indicators):
-            return 0.90
+            base_score = 0.90
         elif any(ind in keyword_lower for ind in moderate_indicators):
-            return 0.70
+            base_score = 0.70
         elif any(ind in keyword_lower for ind in weak_indicators):
-            return 0.50
+            base_score = 0.50
         
-        return 0.60
+        # HARMONIC FRONT 3 - Enhancement 4: Policy-specific vocabulary boost
+        # Check for specialized terminology per policy area
+        policy_area_vocabulary = {
+            'P1': [  # Ordenamiento Territorial
+                'catastro multipropósito', 'pot', 'pbot', 'eot', 'uaf', 'suelo de protección',
+                'zonificación', 'uso del suelo', 'densificación', 'expansión urbana'
+            ],
+            'P2': [  # Víctimas y Paz
+                'reparación integral', 'restitución de tierras', 'víctimas del conflicto',
+                'desplazamiento forzado', 'despojo', 'acción integral', 'enfoque diferencial étnico',
+                'construcción de paz', 'reconciliación', 'memoria histórica'
+            ],
+            'P3': [  # Desarrollo Rural
+                'mujeres rurales', 'extensión agropecuaria', 'asistencia técnica rural',
+                'adecuación de tierras', 'comercialización campesina', 'economía campesina',
+                'soberanía alimentaria', 'fondo de tierras'
+            ],
+            'P4': [  # Grupos Étnicos
+                'guardia indígena', 'guardia cimarrona', 'territorios colectivos',
+                'autoridades ancestrales', 'consulta previa', 'consentimiento libre',
+                'medicina tradicional', 'sistema de salud propio indígena', 'jurisdicción especial indígena'
+            ],
+            'P5': [  # Infraestructura y Conectividad
+                'terciarias', 'vías terciarias', 'transporte intermodal', 'último kilómetro',
+                'conectividad digital', 'internet rural', 'electrificación rural'
+            ],
+            'P6': [  # Salud Rural
+                'red hospitalaria', 'atención primaria', 'promotores de salud',
+                'prevención de enfermedades tropicales', 'saneamiento básico', 'agua segura'
+            ],
+            'P7': [  # Educación Rural
+                'escuela nueva', 'modelos flexibles', 'post-primaria rural',
+                'educación propia', 'alfabetización', 'deserción escolar rural'
+            ],
+            'P8': [  # Vivienda y Habitabilidad
+                'mejoramiento de vivienda rural', 'materiales locales', 'construcción sostenible',
+                'vivienda de interés social rural', 'titulación predial'
+            ],
+            'P9': [  # Medio Ambiente
+                'páramos', 'humedales', 'áreas protegidas', 'corredores biológicos',
+                'servicios ecosistémicos', 'pago por servicios ambientales', 'restauración ecológica'
+            ],
+            'P10': [  # Reactivación Económica
+                'encadenamientos productivos', 'economía solidaria', 'cooperativas',
+                'microcrédito', 'emprendimiento asociativo', 'fondo rotatorio'
+            ]
+        }
+        
+        # General contextual/differential focus vocabulary (D6-Q5)
+        contextual_vocabulary = [
+            'enfoque diferencial', 'enfoque de género', 'enfoque étnico',
+            'acción sin daño', 'pertinencia cultural', 'contexto territorial',
+            'restricciones territoriales', 'barreras culturales', 'inequidad',
+            'discriminación', 'exclusión', 'vulnerabilidad', 'marginalidad',
+            'ruralidad dispersa', 'aislamiento geográfico', 'baja densidad poblacional',
+            'población dispersa', 'difícil acceso'
+        ]
+        
+        # Check for policy-specific vocabulary boost
+        specificity_boost = 0.0
+        text_to_check = (keyword_lower + ' ' + (context or '')).lower()
+        
+        if policy_area and policy_area in policy_area_vocabulary:
+            for term in policy_area_vocabulary[policy_area]:
+                if term.lower() in text_to_check:
+                    specificity_boost = max(specificity_boost, 0.15)
+                    self.logger.debug(f"Policy-specific term detected: '{term}' for {policy_area}")
+                    break
+        
+        # Check for general contextual vocabulary (D6-Q5)
+        for term in contextual_vocabulary:
+            if term.lower() in text_to_check:
+                specificity_boost = max(specificity_boost, 0.10)
+                self.logger.debug(f"Contextual term detected: '{term}'")
+                break
+        
+        final_score = min(1.0, base_score + specificity_boost)
+        
+        return final_score
     
     def _assess_temporal_coherence(self, source: str, target: str) -> float:
         """Assess temporal coherence based on verb sequences"""
@@ -1190,7 +1285,12 @@ class CausalExtractor:
         return prior_mean, adjusted_alpha, adjusted_beta
     
     def _calculate_composite_likelihood(self, evidence: Dict[str, Any]) -> float:
-        """Calculate composite likelihood from multiple evidence components"""
+        """Calculate composite likelihood from multiple evidence components
+        
+        Enhanced with:
+        - Nonlinear transformation rewarding triangulation
+        - Evidence diversity verification across analytical domains
+        """
         # Weight different evidence types
         weights = {
             'semantic_distance': 0.25,
@@ -1201,12 +1301,47 @@ class CausalExtractor:
             'textual_proximity': 0.10
         }
         
+        # Basic weighted average
         likelihood = 0.0
+        evidence_count = 0
+        domain_diversity = set()
+        
         for component, weight in weights.items():
             if component in evidence:
                 likelihood += evidence[component] * weight
+                evidence_count += 1
+                
+                # Track evidence diversity across domains
+                if component in ['semantic_distance', 'textual_proximity']:
+                    domain_diversity.add('semantic')
+                elif component in ['temporal_coherence']:
+                    domain_diversity.add('temporal')
+                elif component in ['financial_consistency']:
+                    domain_diversity.add('financial')
+                elif component in ['type_transition_prior', 'language_specificity']:
+                    domain_diversity.add('structural')
         
-        return likelihood
+        # Triangulation bonus: Exponentially reward multiple independent observations
+        # D6-Q4/Q5 (Adaptiveness/Context) - evidence across different analytical domains
+        diversity_count = len(domain_diversity)
+        if diversity_count >= 3:
+            # Strong triangulation across semantic, temporal, and financial domains
+            triangulation_bonus = 1.0 + 0.15 * np.exp(diversity_count - 2)
+        elif diversity_count == 2:
+            # Moderate triangulation
+            triangulation_bonus = 1.05
+        else:
+            # Weak or no triangulation
+            triangulation_bonus = 1.0
+        
+        # Apply nonlinear transformation
+        enhanced_likelihood = min(1.0, likelihood * triangulation_bonus)
+        
+        # Penalty for insufficient evidence diversity
+        if evidence_count < 3:
+            enhanced_likelihood *= 0.85
+        
+        return enhanced_likelihood
     
     def _build_type_hierarchy(self) -> None:
         """Build hierarchy based on goal types"""
@@ -1293,10 +1428,19 @@ class FinancialAuditor:
         self.unit_costs: Dict[str, float] = {}
         self.successful_parses = 0
         self.failed_parses = 0
+        self.d3_q3_analysis: Dict[str, Any] = {}  # Harmonic Front 3 - D3-Q3 metrics
     
     def trace_financial_allocation(self, tables: List[pd.DataFrame], 
-                                  nodes: Dict[str, MetaNode]) -> Dict[str, float]:
-        """Trace financial allocations to programs/goals"""
+                                  nodes: Dict[str, MetaNode],
+                                  graph: Optional[nx.DiGraph] = None) -> Dict[str, float]:
+        """Trace financial allocations to programs/goals
+        
+        Harmonic Front 3 - Enhancement 5: Single-Case Counterfactual Budget Check
+        Incorporates logic from single-case counterfactuals to test minimal sufficiency.
+        For D3-Q3 (Traceability/Resources): checks if resource X (BPIN code) were removed,
+        would the mechanism (Product) still execute? Only boosts budget traceability score
+        if allocation is tied to a specific project.
+        """
         for i, table in enumerate(tables):
             try:
                 self.logger.info(f"Procesando tabla financiera {i+1}/{len(tables)}")
@@ -1306,6 +1450,10 @@ class FinancialAuditor:
                 self.logger.error(f"Error procesando tabla financiera {i+1}: {e}")
                 self.failed_parses += 1
                 continue
+        
+        # HARMONIC FRONT 3 - Enhancement 5: Counterfactual sufficiency check
+        if graph is not None:
+            self._perform_counterfactual_budget_check(nodes, graph)
         
         self.logger.info(f"Asignaciones financieras trazadas: {len(self.financial_data)}")
         self.logger.info(f"Tablas parseadas exitosamente: {self.successful_parses}, "
@@ -1400,8 +1548,15 @@ class FinancialAuditor:
     
     def _match_program_to_node(self, program_id: str, 
                                nodes: Dict[str, MetaNode]) -> Optional[str]:
-        """Match program ID to existing node using fuzzy matching"""
+        """Match program ID to existing node using fuzzy matching
+        
+        Enhanced for D1-Q3 / D3-Q3 Financial Traceability:
+        - Implements confidence penalty if fuzzy match ratio < 100
+        - Reduces node.financial_allocation confidence by 15% for imperfect matches
+        - Tracks match quality for overall financial traceability scoring
+        """
         if program_id in nodes:
+            # Perfect match - no penalty
             return program_id
         
         # Try fuzzy matching
@@ -1412,6 +1567,127 @@ class FinancialAuditor:
             score_cutoff=80
         )
         
+        if best_match:
+            matched_node_id = best_match[0]
+            match_ratio = best_match[1]
+            
+            # D1-Q3 / D3-Q3: Apply confidence penalty for non-perfect matches
+            if match_ratio < 100:
+                penalty_factor = 0.85  # 15% reduction as specified
+                node = nodes[matched_node_id]
+                
+                # Track original allocation before penalty
+                if not hasattr(node, '_original_financial_allocation'):
+                    node._original_financial_allocation = node.financial_allocation
+                
+                # Apply penalty to financial allocation confidence
+                if node.financial_allocation:
+                    penalized_allocation = node.financial_allocation * penalty_factor
+                    self.logger.debug(
+                        f"Fuzzy match penalty applied to {matched_node_id}: "
+                        f"ratio={match_ratio}, penalty={penalty_factor:.2f}, "
+                        f"allocation {node.financial_allocation:.0f} -> {penalized_allocation:.0f}"
+                    )
+                    node.financial_allocation = penalized_allocation
+                
+                # Store match confidence for D1-Q3 / D3-Q3 scoring
+                if not hasattr(node, 'financial_match_confidence'):
+                    node.financial_match_confidence = match_ratio / 100.0
+                else:
+                    # Average if multiple matches
+                    node.financial_match_confidence = (node.financial_match_confidence + match_ratio / 100.0) / 2
+            
+            return matched_node_id
+        
+        return None
+    
+    def _perform_counterfactual_budget_check(self, nodes: Dict[str, MetaNode], 
+                                            graph: nx.DiGraph) -> None:
+        """
+        Harmonic Front 3 - Enhancement 5: Counterfactual Sufficiency Test for D3-Q3
+        
+        Tests minimal sufficiency: if resource X (BPIN code) were removed, would the
+        mechanism (Product) still execute? Only boosts budget traceability score if
+        allocation is tied to a specific project.
+        
+        For D3-Q3 (Traceability/Resources): ensures funding is necessary for the mechanism
+        and prevents false positives from generic or disconnected budget entries.
+        """
+        d3_q3_scores = {}
+        
+        for node_id, node in nodes.items():
+            if node.type != 'producto':
+                continue
+            
+            # Check if node has financial allocation
+            has_budget = node.financial_allocation is not None and node.financial_allocation > 0
+            
+            # Check if node has entity-activity (mechanism)
+            has_mechanism = node.entity_activity is not None
+            
+            # Check if node has dependencies (successors in graph)
+            successors = list(graph.successors(node_id)) if graph.has_node(node_id) else []
+            has_dependencies = len(successors) > 0
+            
+            # Counterfactual test: Would mechanism still execute without this budget?
+            # Check if there are alternative funding sources or generic allocations
+            financial_source = self.financial_data.get(node_id, {}).get('source', 'unknown')
+            is_specific_allocation = financial_source == 'budget_table'  # From specific table entry
+            
+            # Calculate counterfactual necessity score
+            # High score = budget is necessary for execution
+            # Low score = budget may be generic/disconnected
+            necessity_score = 0.0
+            
+            if has_budget and has_mechanism:
+                necessity_score += 0.40  # Budget + mechanism present
+            
+            if has_budget and has_dependencies:
+                necessity_score += 0.30  # Budget supports downstream goals
+            
+            if is_specific_allocation:
+                necessity_score += 0.30  # Specific allocation (not generic)
+            
+            # D3-Q3 quality criteria
+            d3_q3_quality = 'insuficiente'
+            if necessity_score >= 0.85:
+                d3_q3_quality = 'excelente'
+            elif necessity_score >= 0.70:
+                d3_q3_quality = 'bueno'
+            elif necessity_score >= 0.50:
+                d3_q3_quality = 'aceptable'
+            
+            d3_q3_scores[node_id] = {
+                'necessity_score': necessity_score,
+                'd3_q3_quality': d3_q3_quality,
+                'has_budget': has_budget,
+                'has_mechanism': has_mechanism,
+                'has_dependencies': has_dependencies,
+                'is_specific_allocation': is_specific_allocation,
+                'counterfactual_sufficient': necessity_score < 0.50,  # Would still execute without budget
+                'budget_necessary': necessity_score >= 0.70  # Budget is necessary
+            }
+            
+            # Store in node for later retrieval
+            node.audit_flags = node.audit_flags or []
+            if necessity_score < 0.50:
+                node.audit_flags.append('budget_not_necessary')
+                self.logger.warning(f"D3-Q3: {node_id} may execute without allocated budget (score={necessity_score:.2f})")
+            elif necessity_score >= 0.85:
+                node.audit_flags.append('budget_well_traced')
+                self.logger.info(f"D3-Q3: {node_id} has well-traced, necessary budget (score={necessity_score:.2f})")
+        
+        # Store aggregate D3-Q3 metrics
+        self.d3_q3_analysis = {
+            'node_scores': d3_q3_scores,
+            'total_products_analyzed': len(d3_q3_scores),
+            'well_traced_count': sum(1 for s in d3_q3_scores.values() if s['d3_q3_quality'] == 'excelente'),
+            'average_necessity_score': sum(s['necessity_score'] for s in d3_q3_scores.values()) / max(len(d3_q3_scores), 1)
+        }
+        
+        self.logger.info(f"D3-Q3 Counterfactual Budget Check completed: "
+                        f"{self.d3_q3_analysis['well_traced_count']}/{len(d3_q3_scores)} "
+                        f"products with excellent traceability")
         if best_match:
             return best_match[0]
         
@@ -1429,7 +1705,24 @@ class OperationalizationAuditor:
         self.sequence_warnings: List[str] = []
     
     def audit_evidence_traceability(self, nodes: Dict[str, MetaNode]) -> Dict[str, AuditResult]:
-        """Audit evidence traceability for all nodes"""
+        """Audit evidence traceability for all nodes
+        
+        Enhanced with D3-Q1 Ficha Técnica validation:
+        - Cross-checks baseline/target against extracted quantitative_claims
+        - Verifies DNP INDICATOR_STRUCTURE compliance for producto nodes
+        - Scores 'Excelente' only if ≥80% of productos pass full audit
+        """
+        # Import for quantitative claims extraction
+        try:
+            from contradiction_deteccion import PolicyContradictionDetectorV2
+            has_detector = True
+        except ImportError:
+            has_detector = False
+            self.logger.warning("PolicyContradictionDetectorV2 not available for quantitative claims validation")
+        
+        producto_nodes_count = 0
+        producto_nodes_passed = 0
+        
         for node_id, node in nodes.items():
             result: AuditResult = {
                 'passed': True,
@@ -1438,19 +1731,74 @@ class OperationalizationAuditor:
                 'recommendations': []
             }
             
+            # Track producto nodes for D3-Q1 scoring
+            if node.type == 'producto':
+                producto_nodes_count += 1
+            
+            # Extract quantitative claims from node text if detector available
+            quantitative_claims = []
+            if has_detector:
+                try:
+                    # Create temporary detector instance
+                    detector = PolicyContradictionDetectorV2(device='cpu')
+                    quantitative_claims = detector._extract_structured_quantitative_claims(node.text)
+                except Exception as e:
+                    self.logger.debug(f"Could not extract quantitative claims: {e}")
+            
             # Check baseline
+            baseline_valid = False
             if not node.baseline or str(node.baseline).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
                 result['errors'].append(f"Línea base no definida para {node_id}")
                 result['passed'] = False
                 node.rigor_status = 'débil'
                 node.audit_flags.append('sin_linea_base')
+            else:
+                baseline_valid = True
+                # Cross-check baseline against quantitative claims (D3-Q1)
+                if quantitative_claims:
+                    baseline_in_claims = any(
+                        claim.get('type') in ['indicator', 'target', 'percentage', 'beneficiaries'] 
+                        for claim in quantitative_claims
+                    )
+                    if not baseline_in_claims:
+                        result['warnings'].append(f"Línea base no verificada en claims cuantitativos para {node_id}")
             
             # Check target
+            target_valid = False
             if not node.target or str(node.target).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
                 result['errors'].append(f"Meta no definida para {node_id}")
                 result['passed'] = False
                 node.rigor_status = 'débil'
                 node.audit_flags.append('sin_meta')
+            else:
+                target_valid = True
+                # Cross-check target against quantitative claims (D3-Q1)
+                if quantitative_claims:
+                    meta_in_claims = any(
+                        claim.get('type') == 'target' or 'meta' in claim.get('context', '').lower()
+                        for claim in quantitative_claims
+                    )
+                    if not meta_in_claims:
+                        result['warnings'].append(f"Meta no verificada en claims cuantitativos para {node_id}")
+            
+            # D3-Q1 Ficha Técnica compliance check for producto nodes
+            if node.type == 'producto':
+                # Check if has all minimum DNP INDICATOR_STRUCTURE elements
+                has_complete_ficha = (
+                    baseline_valid and 
+                    target_valid and 
+                    'sin_linea_base' not in node.audit_flags and
+                    'sin_meta' not in node.audit_flags
+                )
+                
+                if has_complete_ficha and quantitative_claims:
+                    # Node passes D3-Q1 compliance
+                    producto_nodes_passed += 1
+                    result['recommendations'].append(f"D3-Q1 Ficha Técnica completa para {node_id}")
+                elif has_complete_ficha:
+                    # Has baseline/target but no quantitative claims verification
+                    producto_nodes_passed += 0.5  # Partial credit
+                    result['warnings'].append(f"D3-Q1 parcial: Ficha básica sin verificación cuantitativa en {node_id}")
             
             # Check responsible entity
             if not node.responsible_entity:
@@ -1467,6 +1815,19 @@ class OperationalizationAuditor:
                 node.rigor_status = 'fuerte'
             
             self.audit_results[node_id] = result
+        
+        # Calculate D3-Q1 compliance score
+        if producto_nodes_count > 0:
+            d3_q1_compliance_pct = (producto_nodes_passed / producto_nodes_count) * 100
+            self.logger.info(f"D3-Q1 Ficha Técnica Compliance: {d3_q1_compliance_pct:.1f}% "
+                           f"({producto_nodes_passed}/{producto_nodes_count} productos)")
+            
+            if d3_q1_compliance_pct >= 80:
+                self.logger.info("D3-Q1 Score: EXCELENTE (≥80% productos con Ficha Técnica completa)")
+            elif d3_q1_compliance_pct >= 60:
+                self.logger.info("D3-Q1 Score: BUENO (60-80% compliance)")
+            else:
+                self.logger.warning("D3-Q1 Score: INSUFICIENTE (<60% compliance)")
         
         passed_count = sum(1 for r in self.audit_results.values() if r['passed'])
         self.logger.info(f"Auditoría de trazabilidad: {passed_count}/{len(nodes)} nodos aprobados")
@@ -1515,10 +1876,13 @@ class OperationalizationAuditor:
     
     def bayesian_counterfactual_audit(self, nodes: Dict[str, MetaNode], 
                                      graph: nx.DiGraph,
-                                     historical_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                                     historical_data: Optional[Dict[str, Any]] = None,
+                                     pdet_alignment: Optional[float] = None) -> Dict[str, Any]:
         """
         AGUJA III: El Auditor Contrafactual Bayesiano
         Perform counterfactual audit using Bayesian causal reasoning
+        
+        Harmonic Front 3: Enhanced to consume pdet_alignment scores for D4-Q5 and D5-Q4 integration
         """
         self.logger.info("Iniciando auditoría contrafactual Bayesiana...")
         
@@ -1532,7 +1896,7 @@ class OperationalizationAuditor:
         # Audit results by layers
         layer1_results = self._audit_direct_evidence(nodes, scm_dag, historical_data)
         layer2_results = self._audit_causal_implications(nodes, graph, layer1_results)
-        layer3_results = self._audit_systemic_risk(nodes, graph, layer1_results, layer2_results)
+        layer3_results = self._audit_systemic_risk(nodes, graph, layer1_results, layer2_results, pdet_alignment)
         
         # Generate optimal remediation recommendations
         recommendations = self._generate_optimal_remediations(
@@ -1600,12 +1964,49 @@ class OperationalizationAuditor:
     def _audit_direct_evidence(self, nodes: Dict[str, MetaNode],
                                scm_dag: nx.DiGraph,
                                historical_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-        """Layer 1: Audit direct evidence of required components"""
+        """Layer 1: Audit direct evidence of required components
+        
+        Enhanced with highly specific Bayesian priors for rare evidence items.
+        Example: D2-Q4 risk matrix, D5-Q5 unwanted effects are rare in poor PDMs.
+        """
         results = {}
+        
+        # Load highly specific priors for rare evidence types
+        # D2-Q4: Risk matrices are rare in poor PDMs (high probative value as Smoking Gun)
+        rare_evidence_priors = {
+            'risk_matrix': {
+                'prior_alpha': 1.5,  # Low alpha = rare occurrence
+                'prior_beta': 12.0,  # High beta = high failure rate when absent
+                'keywords': ['matriz de riesgo', 'análisis de riesgo', 'gestión de riesgo', 'riesgos identificados']
+            },
+            'unwanted_effects': {
+                'prior_alpha': 1.8,  # D5-Q5: Effects analysis is also rare
+                'prior_beta': 10.5,
+                'keywords': ['efectos no deseados', 'efectos adversos', 'impactos negativos', 'consecuencias no previstas']
+            },
+            'theory_of_change': {
+                'prior_alpha': 1.2,
+                'prior_beta': 15.0,
+                'keywords': ['teoría de cambio', 'teoría del cambio', 'cadena causal', 'modelo lógico']
+            }
+        }
         
         for node_id, node in nodes.items():
             omissions = []
             omission_probs = {}
+            rare_evidence_found = {}
+            
+            # Check for rare, high-value evidence in node text
+            node_text_lower = node.text.lower()
+            for evidence_type, prior_config in rare_evidence_priors.items():
+                if any(kw in node_text_lower for kw in prior_config['keywords']):
+                    # Rare evidence found! Strong Smoking Gun
+                    rare_evidence_found[evidence_type] = {
+                        'prior_alpha': prior_config['prior_alpha'],
+                        'prior_beta': prior_config['prior_beta'],
+                        'posterior_strength': prior_config['prior_alpha'] / (prior_config['prior_alpha'] + prior_config['prior_beta'])
+                    }
+                    self.logger.info(f"Rare evidence '{evidence_type}' found in {node_id} - Strong Smoking Gun!")
             
             # Check baseline
             if not node.baseline or str(node.baseline).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
@@ -1654,7 +2055,8 @@ class OperationalizationAuditor:
                 'omissions': omissions,
                 'omission_probabilities': omission_probs,
                 'omission_severity': severity,
-                'node_type': node.type
+                'node_type': node.type,
+                'rare_evidence_found': rare_evidence_found  # Add rare evidence to results
             }
         
         return results
@@ -1715,8 +2117,15 @@ class OperationalizationAuditor:
     def _audit_systemic_risk(self, nodes: Dict[str, MetaNode],
                             graph: nx.DiGraph,
                             direct_evidence: Dict[str, Dict[str, Any]],
-                            causal_implications: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
-        """Layer 3: Calculate systemic risk from accumulated omissions"""
+                            causal_implications: Dict[str, Dict[str, Any]],
+                            pdet_alignment: Optional[float] = None) -> Dict[str, Any]:
+        """Layer 3: Calculate systemic risk from accumulated omissions
+        
+        Harmonic Front 3 - Enhancement 1: Alignment and Systemic Risk Linkage
+        Incorporates Policy Alignment scores (PND, ODS, RRI) as variable in systemic risk.
+        For D5-Q4 (Riesgos Sistémicos) and D4-Q5 (Alineación): if pdet_alignment < 0.60,
+        applies 1.2× multiplier to risk_score. Excelente on D5-Q4 requires risk_score < 0.10.
+        """
         
         # Identify critical nodes (high centrality)
         if graph.number_of_nodes() > 0:
@@ -1749,6 +2158,16 @@ class OperationalizationAuditor:
         else:
             risk_score = 0.0
         
+        # HARMONIC FRONT 3 - Enhancement 1: Apply alignment penalty
+        # If pdet_alignment < 0.60, apply 1.2× multiplier to risk_score
+        # This enforces integration between D4-Q5 (Alineación) and D5-Q4 (Riesgos Sistémicos)
+        alignment_penalty_applied = False
+        if pdet_alignment is not None and pdet_alignment < 0.60:
+            risk_score = risk_score * 1.2
+            alignment_penalty_applied = True
+            self.logger.warning(f"Alignment penalty applied: pdet_alignment={pdet_alignment:.2f} < 0.60, "
+                              f"risk_score multiplied by 1.2")
+        
         # Calculate P(success | current_state)
         total_omissions = sum(len(e['omissions']) for e in direct_evidence.values())
         total_possible = len(nodes) * 5  # 5 key attributes per node
@@ -1758,12 +2177,25 @@ class OperationalizationAuditor:
         base_success_rate = 0.70
         success_probability = base_success_rate * completeness
         
+        # D5-Q4 quality criteria check
+        d5_q4_quality = 'insuficiente'
+        if risk_score < 0.10:
+            d5_q4_quality = 'excelente'
+        elif risk_score < 0.20:
+            d5_q4_quality = 'bueno'
+        elif risk_score < 0.35:
+            d5_q4_quality = 'aceptable'
+        
         return {
             'risk_score': min(1.0, risk_score),
             'success_probability': success_probability,
             'critical_omissions': critical_omissions,
             'completeness': completeness,
-            'total_omissions': total_omissions
+            'total_omissions': total_omissions,
+            'pdet_alignment': pdet_alignment,
+            'alignment_penalty_applied': alignment_penalty_applied,
+            'd5_q4_quality': d5_q4_quality,
+            'd4_q5_alignment_score': pdet_alignment
         }
     
     def _generate_optimal_remediations(self, 
@@ -2243,16 +2675,51 @@ class CausalInferenceSetup:
     
     def assign_probative_value(self, nodes: Dict[str, MetaNode]) -> None:
         """Assign probative test types to nodes"""
+        # Import INDICATOR_STRUCTURE from financiero_viabilidad_tablas
+        try:
+            from financiero_viabilidad_tablas import ColombianMunicipalContext
+            indicator_structure = ColombianMunicipalContext.INDICATOR_STRUCTURE
+        except ImportError:
+            indicator_structure = {
+                'resultado': ['línea_base', 'meta', 'año_base', 'año_meta', 'fuente', 'responsable'],
+                'producto': ['indicador', 'fórmula', 'unidad_medida', 'línea_base', 'meta', 'periodicidad'],
+                'gestión': ['eficacia', 'eficiencia', 'economía', 'costo_beneficio']
+            }
+        
         for node in nodes.values():
             text_lower = node.text.lower()
             
+            # Cross-reference with INDICATOR_STRUCTURE to classify critical requirements
+            # as Hoop Tests or Smoking Guns
+            required_fields = indicator_structure.get(node.type, [])
+            
+            # Check if node has all critical DNP requirements (D3-Q1 indicators)
+            has_linea_base = bool(node.baseline and str(node.baseline).upper() not in ['ND', 'POR DEFINIR', 'N/A', 'NONE'])
+            has_meta = bool(node.target and str(node.target).upper() not in ['ND', 'POR DEFINIR', 'N/A', 'NONE'])
+            has_fuente = 'fuente' in text_lower or 'fuente de información' in text_lower
+            
+            # Perfect Hoop Test: Missing any critical requirement = total hypothesis failure
+            # This applies to producto nodes with D3-Q1 indicators
+            if node.type == 'producto':
+                if has_linea_base and has_meta and has_fuente:
+                    # Perfect indicators trigger Hoop Test classification
+                    node.test_type = 'hoop_test'
+                    self.logger.debug(f"Meta {node.id} classified as hoop_test (perfect D3-Q1 compliance)")
+                elif not has_linea_base or not has_meta:
+                    # Missing critical requirements - still Hoop Test but will fail
+                    node.test_type = 'hoop_test'
+                    node.audit_flags.append('hoop_test_failure')
+                    self.logger.warning(f"Meta {node.id} FAILS hoop_test (missing D3-Q1 critical fields)")
+                else:
+                    node.test_type = 'straw_in_wind'
             # Check for administrative/regulatory nature (Hoop Test)
-            if any(keyword in text_lower for keyword in self.admin_keywords):
+            elif any(keyword in text_lower for keyword in self.admin_keywords):
                 node.test_type = 'hoop_test'
             # Check for highly specific outcomes (Smoking Gun)
             elif node.type == 'resultado' and node.target and node.baseline:
                 try:
                     float(str(node.target).replace(',', '').replace('%', ''))
+                    # Smoking Gun: rare, highly specific evidence with strong inferential power
                     node.test_type = 'smoking_gun'
                 except (ValueError, TypeError):
                     node.test_type = 'straw_in_wind'
@@ -2265,7 +2732,18 @@ class CausalInferenceSetup:
             self.logger.debug(f"Meta {node.id} asignada test type: {node.test_type}")
     
     def identify_failure_points(self, graph: nx.DiGraph, text: str) -> Set[str]:
-        """Identify single points of failure in causal chain"""
+        """Identify single points of failure in causal chain
+        
+        Harmonic Front 3 - Enhancement 2: Contextual Failure Point Detection
+        Expands risk_pattern to explicitly include localized contextual factors from rubrics:
+        - restricciones territoriales
+        - patrones culturales machistas
+        - limitación normativa
+        
+        For D6-Q5 (Enfoque Diferencial/Restricciones): Excelente requires ≥3 distinct
+        contextual factors correctly mapped to nodes, satisfying enfoque_diferencial
+        and analisis_contextual criteria.
+        """
         failure_points = set()
         
         # Find nodes with high out-degree (many dependencies)
@@ -2278,13 +2756,44 @@ class CausalInferenceSetup:
                 self.logger.warning(f"Punto único de falla identificado: {node_id} "
                                   f"(grado de salida: {out_degree})")
         
+        # HARMONIC FRONT 3 - Enhancement 2: Expand contextual factors
+        # Add specific rubric factors for D6-Q5 compliance
+        extended_contextual_factors = list(self.contextual_factors) + [
+            'restricciones territoriales',
+            'restricción territorial', 
+            'limitación territorial',
+            'patrones culturales machistas',
+            'machismo',
+            'inequidad de género',
+            'violencia de género',
+            'limitación normativa',
+            'limitación legal',
+            'restricción legal',
+            'barrera institucional',
+            'restricción presupuestal',
+            'ausencia de capacidad técnica',
+            'baja capacidad institucional',
+            'conflicto armado',
+            'desplazamiento forzado',
+            'población dispersa',
+            'ruralidad dispersa',
+            'acceso vial limitado',
+            'conectividad deficiente'
+        ]
+        
         # Extract contextual risks from text
-        risk_pattern = '|'.join(re.escape(factor) for factor in self.contextual_factors)
+        risk_pattern = '|'.join(re.escape(factor) for factor in extended_contextual_factors)
         risk_regex = re.compile(rf'\b({risk_pattern})\b', re.IGNORECASE)
+        
+        # Track distinct contextual factors for D6-Q5 quality criteria
+        contextual_factors_detected = set()
+        node_contextual_map = defaultdict(set)
         
         # Find risk mentions and associate with nodes
         for match in risk_regex.finditer(text):
             risk_text = match.group()
+            contextual_factors_detected.add(risk_text.lower())
+            
             context_start = max(0, match.start() - 200)
             context_end = min(len(text), match.end() + 200)
             context = text[context_start:context_end]
@@ -2296,8 +2805,27 @@ class CausalInferenceSetup:
                     if 'contextual_risks' not in graph.nodes[node_id]:
                         graph.nodes[node_id]['contextual_risks'] = []
                     graph.nodes[node_id]['contextual_risks'].append(risk_text)
+                    node_contextual_map[node_id].add(risk_text.lower())
+        
+        # D6-Q5 quality criteria assessment
+        distinct_factors_count = len(contextual_factors_detected)
+        d6_q5_quality = 'insuficiente'
+        if distinct_factors_count >= 3:
+            d6_q5_quality = 'excelente'
+        elif distinct_factors_count >= 2:
+            d6_q5_quality = 'bueno'
+        elif distinct_factors_count >= 1:
+            d6_q5_quality = 'aceptable'
+        
+        # Store D6-Q5 metrics in graph attributes
+        graph.graph['d6_q5_contextual_factors'] = list(contextual_factors_detected)
+        graph.graph['d6_q5_distinct_count'] = distinct_factors_count
+        graph.graph['d6_q5_quality'] = d6_q5_quality
+        graph.graph['d6_q5_node_mapping'] = dict(node_contextual_map)
         
         self.logger.info(f"Puntos de falla identificados: {len(failure_points)}")
+        self.logger.info(f"D6-Q5: {distinct_factors_count} factores contextuales distintos detectados - {d6_q5_quality}")
+        
         return failure_points
 
 
@@ -2674,7 +3202,7 @@ class CDAFFramework:
             
             # Step 4: Financial traceability
             self.logger.info("Auditando trazabilidad financiera...")
-            self.financial_auditor.trace_financial_allocation(tables, nodes)
+            self.financial_auditor.trace_financial_allocation(tables, nodes, graph)
             
             # Step 4.5: Bayesian Mechanism Inference (AGUJA II)
             self.logger.info("Infiriendo mecanismos causales con modelo Bayesiano...")
@@ -2686,8 +3214,10 @@ class CDAFFramework:
             sequence_warnings = self.op_auditor.audit_sequence_logic(graph)
             
             # Step 5.5: Bayesian Counterfactual Audit (AGUJA III)
+            # Note: pdet_alignment should be calculated separately if needed via financiero_viabilidad_tablas
+            # For now, using None as placeholder - can be enhanced by integrating PDETMunicipalPlanAnalyzer
             self.logger.info("Ejecutando auditoría contrafactual Bayesiana...")
-            counterfactual_audit = self.op_auditor.bayesian_counterfactual_audit(nodes, graph)
+            counterfactual_audit = self.op_auditor.bayesian_counterfactual_audit(nodes, graph, pdet_alignment=None)
             
             # Step 6: Causal inference setup
             self.logger.info("Preparando para inferencia causal...")

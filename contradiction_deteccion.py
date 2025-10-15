@@ -757,6 +757,12 @@ class PolicyContradictionDetectorV2:
         """
 Detección exhaustiva de contradicciones con análisis multi-modal
 
+Harmonic Front 3 - Enhancement 3: Regulatory Constraint Check
+Extracts regulatory references and verifies compliance with external mandates
+(e.g., Ley 152/1994, Ley 388). For D1-Q5 (Restricciones Legales/Competencias):
+Excelente requires PDM text explicitly mentions ≥3 types of constraints
+(Legal, Budgetary, Temporal/Competency) and is_consistent = True.
+
 Args:
 text: Texto completo del PDM
 plan_name: Identificador del plan
@@ -807,39 +813,43 @@ Análisis completo con contradicciones y métricas avanzadas
             contradictions, statements, text
         )
 
-        recommendations = self._generate_actionable_recommendations(contradictions)
-        
-        # HARMONIC FRONT 4: Include audit metrics for D6-Q3 quality criteria
-        causal_incoherence_count = sum(
-            1 for c in contradictions 
-            if c.contradiction_type == ContradictionType.CAUSAL_INCOHERENCE
-        )
-        
-        audit_summary = {
-            'total_contradictions': self._audit_metrics.get('total_contradictions', len(contradictions)),
-            'causal_incoherence_flags': causal_incoherence_count,
-            'structural_failures': self._audit_metrics.get('structural_failures', 0),
-            'quality_grade': 'Excelente' if self._audit_metrics.get('total_contradictions', 0) < 5 
-                            else 'Bueno' if self._audit_metrics.get('total_contradictions', 0) < 10 
-                            else 'Regular'
-        }
+       recommendations = self._generate_actionable_recommendations(contradictions)
 
-        return {
-            "plan_name": plan_name,
-            "dimension": dimension.value,
-            "analysis_timestamp": pd.Timestamp.now().isoformat(),
-            "total_statements": len(statements),
-            "contradictions": [self._serialize_contradiction(c) for c in contradictions],
-            "total_contradictions": len(contradictions),
-            "critical_severity_count": sum(1 for c in contradictions if c.severity > 0.85),
-            "high_severity_count": sum(1 for c in contradictions if 0.7 < c.severity <= 0.85),
-            "medium_severity_count": sum(1 for c in contradictions if 0.5 < c.severity <= 0.7),
-            "coherence_metrics": coherence_metrics,
-            "recommendations": recommendations,
-            "knowledge_graph_stats": self._get_advanced_graph_statistics(),
-            "causal_network_stats": self._get_causal_network_statistics(),
-            "harmonic_front_4_audit": audit_summary  # NEW: Audit metrics for quality criteria
-        }
+# HARMONIC FRONT 4: Include audit metrics for D6-Q3 quality criteria
+causal_incoherence_count = sum(
+    1 for c in contradictions
+    if c.contradiction_type == ContradictionType.CAUSAL_INCOHERENCE
+)
+
+audit_summary = {
+    "total_contradictions": self._audit_metrics.get("total_contradictions", len(contradictions)),
+    "causal_incoherence_flags": causal_incoherence_count,
+    "structural_failures": self._audit_metrics.get("structural_failures", 0),
+    "quality_grade": "Excelente" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 5
+                     else "Bueno" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 10
+                     else "Regular"
+}
+
+# HARMONIC FRONT 3 - Enhancement 3: Regulatory Constraint Assessment for D1-Q5
+regulatory_analysis = self._analyze_regulatory_constraints(statements, text, temporal_conflicts)
+
+return {
+    "plan_name": plan_name,
+    "dimension": dimension.value,
+    "analysis_timestamp": pd.Timestamp.now().isoformat(),
+    "total_statements": len(statements),
+    "contradictions": [self._serialize_contradiction(c) for c in contradictions],
+    "total_contradictions": len(contradictions),
+    "critical_severity_count": sum(1 for c in contradictions if c.severity > 0.85),
+    "high_severity_count": sum(1 for c in contradictions if 0.7 < c.severity <= 0.85),
+    "medium_severity_count": sum(1 for c in contradictions if 0.5 < c.severity <= 0.7),
+    "coherence_metrics": coherence_metrics,
+    "recommendations": recommendations,
+    "knowledge_graph_stats": self._get_advanced_graph_statistics(),
+    "causal_network_stats": self._get_causal_network_statistics(),
+    "d1_q5_regulatory_analysis": regulatory_analysis,
+    "harmonic_front_4_audit": audit_summary
+}
 
     def _extract_policy_statements(
             self,
@@ -1497,7 +1507,13 @@ Análisis completo con contradicciones y métricas avanzadas
         return None
 
     def _extract_structured_quantitative_claims(self, text: str) -> List[Dict[str, Any]]:
-        """Extracción estructurada de afirmaciones cuantitativas"""
+        """Extracción estructurada de afirmaciones cuantitativas
+        
+        Enhanced for D1-Q2 (Magnitud/Brecha/Limitaciones):
+        - Extracts relative metrics (ratios, gaps, deficits)
+        - Identifies quantified brechas (déficit de, porcentaje sin cubrir)
+        - Detects data limitation statements (dereck_beach patterns)
+        """
         claims = []
 
         patterns = [
@@ -1508,7 +1524,16 @@ Análisis completo con contradicciones y métricas avanzadas
             (r'(\d+(?:[.,]\d+)?)\s*(personas?|beneficiarios?|familias?|hogares?)', 'beneficiaries', 1.0),
             (r'(\d+(?:[.,]\d+)?)\s*(hectáreas?|has?|km2?|metros?\s*cuadrados?)', 'area', 1.0),
             (r'meta\s+(?:de\s+)?(\d+(?:[.,]\d+)?)', 'target', 1.0),
-            (r'indicador[:\s]+(\d+(?:[.,]\d+)?)', 'indicator', 1.0)
+            (r'indicador[:\s]+(\d+(?:[.,]\d+)?)', 'indicator', 1.0),
+            # D1-Q2: Gap/deficit patterns
+            (r'd[ée]ficit\s+de\s+(\d+(?:[.,]\d+)?)\s*(%|por\s*ciento|personas?|millones?)?', 'deficit', 1.0),
+            (r'brecha\s+de\s+(\d+(?:[.,]\d+)?)\s*(%|puntos?|millones?)?', 'gap', 1.0),
+            (r'falta(?:n)?\s+(\d+(?:[.,]\d+)?)\s*(personas?|millones?|%)?', 'shortage', 1.0),
+            (r'sin\s+(?:acceso|cobertura|atenci[óo]n)\s*[:\s]+(\d+(?:[.,]\d+)?)\s*(%|personas?)?', 'uncovered', 1.0),
+            (r'porcentaje\s+sin\s+(?:cubrir|atender|acceso)[:\s]*(\d+(?:[.,]\d+)?)\s*%?', 'uncovered_pct', 1.0),
+            # D1-Q2: Relative metrics (ratios)
+            (r'(\d+(?:[.,]\d+)?)\s*(?:de\s+cada|por\s+cada)\s+(\d+)', 'ratio', 1.0),
+            (r'tasa\s+de\s+[^:]+:\s*(\d+(?:[.,]\d+)?)\s*%?', 'rate', 1.0),
         ]
 
         for pattern, claim_type, multiplier in patterns:
@@ -1517,6 +1542,11 @@ Análisis completo con contradicciones y métricas avanzadas
                 value = self._parse_number_robust(value_str) * multiplier
 
                 unit = match.group(2) if match.lastindex >= 2 else None
+                
+                # For ratio type, capture both numerator and denominator
+                if claim_type == 'ratio' and match.lastindex >= 2:
+                    denominator = self._parse_number_robust(match.group(2))
+                    value = value / denominator if denominator > 0 else value
 
                 claims.append({
                     'type': claim_type,
@@ -1525,6 +1555,26 @@ Análisis completo con contradicciones y métricas avanzadas
                     'raw_text': match.group(0),
                     'position': match.span(),
                     'context': text[max(0, match.start()-30):min(len(text), match.end()+30)]
+                })
+        
+        # D1-Q2: Detect data limitation statements (dereck_beach patterns)
+        limitation_patterns = [
+            r'(?:no\s+se\s+cuenta\s+con|no\s+hay|falta(?:n)?)\s+(?:datos?|informaci[óo]n|estadísticas?)',
+            r'informaci[óo]n\s+(?:no\s+)?disponible',
+            r'(?:datos?|informaci[óo]n)\s+(?:insuficiente|limitada|incompleta)',
+            r'ausencia\s+de\s+(?:datos?|informaci[óo]n|registros?)',
+            r'sin\s+(?:registro|medici[óo]n|seguimiento)',
+        ]
+        
+        for pattern in limitation_patterns:
+            for match in re.finditer(pattern, text, re.IGNORECASE):
+                claims.append({
+                    'type': 'data_limitation',
+                    'value': None,
+                    'unit': None,
+                    'raw_text': match.group(0),
+                    'position': match.span(),
+                    'context': text[max(0, match.start()-50):min(len(text), match.end()+50)]
                 })
 
         return claims
@@ -1689,6 +1739,124 @@ Análisis completo con contradicciones y métricas avanzadas
             if config['pattern'].search(stmt.text):
                 return config['weight']
         return 1.0
+    
+    def _analyze_regulatory_constraints(self, statements: List[PolicyStatement], 
+                                       text: str, 
+                                       temporal_conflicts: List[ContradictionEvidence]) -> Dict[str, Any]:
+        """
+        Harmonic Front 3 - Enhancement 3: Regulatory Constraint Analysis for D1-Q5
+        
+        Analyzes regulatory references and verifies compliance with external mandates.
+        D1-Q5 (Restricciones Legales/Competencias) quality criteria:
+        - Excelente: PDM text explicitly mentions ≥3 types of constraints 
+          (Legal, Budgetary, Temporal/Competency) AND is_consistent = True
+        """
+        # Collect all regulatory references from statements
+        all_regulatory_refs = []
+        for stmt in statements:
+            all_regulatory_refs.extend(stmt.regulatory_references)
+        
+        # Also extract from full text
+        text_regulatory_refs = self._extract_regulatory_references(text)
+        all_regulatory_refs.extend(text_regulatory_refs)
+        
+        # Remove duplicates
+        all_regulatory_refs = list(set(all_regulatory_refs))
+        
+        # Classify constraint types mentioned in text
+        constraint_types = {
+            'Legal': [],
+            'Budgetary': [],
+            'Temporal': [],
+            'Competency': [],
+            'Institutional': [],
+            'Technical': []
+        }
+        
+        # Legal constraints patterns
+        legal_patterns = [
+            r'ley\s+152\s+de\s+1994',
+            r'ley\s+388\s+de\s+1997',
+            r'ley\s+715\s+de\s+2001',
+            r'ley\s+1551\s+de\s+2012',
+            r'competencia\s+municipal',
+            r'marco\s+normativo',
+            r'restricción\s+legal',
+            r'limitación\s+normativa'
+        ]
+        
+        # Budgetary constraints patterns
+        budgetary_patterns = [
+            r'restricción\s+presupuestal',
+            r'límite\s+fiscal',
+            r'capacidad\s+financiera',
+            r'disponibilidad\s+de\s+recursos',
+            r'SGP|SGR|recursos\s+propios',
+            r'déficit\s+fiscal',
+            r'sostenibilidad\s+financiera'
+        ]
+        
+        # Temporal/Competency constraints patterns
+        temporal_patterns = [
+            r'plazo\s+(?:legal|establecido|normativo)',
+            r'horizonte\s+temporal',
+            r'periodo\s+de\s+gobierno',
+            r'cuatrienio',
+            r'restricción\s+temporal',
+            r'capacidad\s+(?:técnica|institucional)',
+            r'competencia\s+(?:administrativa|territorial)'
+        ]
+        
+        text_lower = text.lower()
+        
+        # Check for Legal constraints
+        for pattern in legal_patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                constraint_types['Legal'].append(pattern)
+        
+        # Check for Budgetary constraints
+        for pattern in budgetary_patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                constraint_types['Budgetary'].append(pattern)
+        
+        # Check for Temporal/Competency constraints
+        for pattern in temporal_patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                constraint_types['Temporal'].append(pattern)
+        
+        # Count distinct constraint types mentioned
+        constraint_types_mentioned = sum(1 for types in constraint_types.values() if types)
+        
+        # Check temporal consistency (from _detect_temporal_conflicts_formal)
+        is_consistent = len(temporal_conflicts) == 0
+        
+        # D1-Q5 quality assessment
+        d1_q5_quality = 'insuficiente'
+        if constraint_types_mentioned >= 3 and is_consistent:
+            d1_q5_quality = 'excelente'
+        elif constraint_types_mentioned >= 3 or is_consistent:
+            d1_q5_quality = 'bueno'
+        elif constraint_types_mentioned >= 2:
+            d1_q5_quality = 'aceptable'
+        
+        logger.info(f"D1-Q5 Regulatory Analysis: {constraint_types_mentioned} constraint types, "
+                   f"is_consistent={is_consistent}, quality={d1_q5_quality}")
+        
+        return {
+            'regulatory_references': all_regulatory_refs,
+            'regulatory_references_count': len(all_regulatory_refs),
+            'constraint_types_detected': {k: len(v) for k, v in constraint_types.items()},
+            'constraint_types_mentioned': constraint_types_mentioned,
+            'is_consistent': is_consistent,
+            'd1_q5_quality': d1_q5_quality,
+            'd1_q5_criteria': {
+                'legal_constraints': len(constraint_types['Legal']) > 0,
+                'budgetary_constraints': len(constraint_types['Budgetary']) > 0,
+                'temporal_competency_constraints': len(constraint_types['Temporal']) > 0,
+                'minimum_constraint_types': constraint_types_mentioned >= 3,
+                'temporal_consistency': is_consistent
+            }
+        }
 
     def _calculate_comprehensive_severity(
             self,
