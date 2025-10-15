@@ -2,14 +2,14 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Instalar dependencias del sistema y compiladores
+# Instalar dependencias del sistema y compiladores, luego setuptools
 RUN apt-get update && apt-get install -y \
-    gcc g++ make \
+    g++ \
+    gcc \
     libopenblas-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# CRÍTICO: Instalar setuptools primero
-RUN pip install --no-cache-dir setuptools wheel
+    make \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir setuptools wheel
 
 # Copiar requirements
 COPY requirements.txt .

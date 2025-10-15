@@ -1,0 +1,408 @@
+{
+  "event_types": [
+    "test.event",
+    "graph.updated",
+    "graph.edge_added",
+    "evidence.extracted",
+    "contradiction.detected",
+    "graph.node_added",
+    "analysis.completed",
+    "validation.completed",
+    "posterior.updated"
+  ],
+  "event_flow_map": {
+    "graph.node_added": {
+      "publishers": [
+        {
+          "file": "example_integration_choreography.py",
+          "line": 118,
+          "context": "MockCausalGraph:.__init__.add_node",
+          "payload_keys": [
+            "node_id",
+            "node_type",
+            "total_nodes"
+          ]
+        }
+      ],
+      "subscribers": []
+    },
+    "graph.edge_added": {
+      "publishers": [
+        {
+          "file": "example_integration_choreography.py",
+          "line": 135,
+          "context": "MockCausalGraph:.__init__.add_node.add_edge",
+          "payload_keys": [
+            "edge_data",
+            "total_edges"
+          ]
+        },
+        {
+          "file": "test_choreography_standalone.py",
+          "line": 322,
+          "context": "handler.test_full_integration.handler",
+          "payload_keys": [
+            "source",
+            "target"
+          ]
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 553,
+          "context": "TestIntegration:.test_full_pipeline.track_events",
+          "payload_keys": [
+            "source",
+            "target"
+          ]
+        },
+        {
+          "file": "demo_choreography.py",
+          "line": 100,
+          "context": "on_contradiction",
+          "payload_keys": [
+            "source",
+            "target",
+            "relation"
+          ]
+        },
+        {
+          "file": "demo_choreography.py",
+          "line": 115,
+          "context": "on_contradiction",
+          "payload_keys": [
+            "source",
+            "target",
+            "relation"
+          ]
+        },
+        {
+          "file": "analyze_choreography_event_flows.py",
+          "line": 319,
+          "context": "ContradictionAnalyzer:.verify_event_subscription.count_contradictions",
+          "payload_keys": []
+        }
+      ],
+      "subscribers": [
+        {
+          "file": "example_integration_choreography.py",
+          "line": 66,
+          "handler": "on_graph_update",
+          "context": "MockContradictionDetector:.__init__"
+        },
+        {
+          "file": "choreography/event_bus.py",
+          "line": 292,
+          "handler": "on_edge_added",
+          "context": "ContradictionDetectorV2:.__init__"
+        }
+      ]
+    },
+    "contradiction.detected": {
+      "publishers": [
+        {
+          "file": "example_integration_choreography.py",
+          "line": 84,
+          "context": "MockContradictionDetector:.__init__.on_graph_update",
+          "payload_keys": []
+        },
+        {
+          "file": "choreography/event_bus.py",
+          "line": 323,
+          "context": "__init__.on_edge_added",
+          "payload_keys": []
+        }
+      ],
+      "subscribers": [
+        {
+          "file": "example_integration_choreography.py",
+          "line": 183,
+          "handler": "log_contradiction",
+          "context": "IntegratedPDMAnalyzer:.__init__._setup_monitoring.log_contradiction.log_posterior_update.log_analysis_milestone"
+        },
+        {
+          "file": "test_choreography_standalone.py",
+          "line": 172,
+          "handler": "handler",
+          "context": "test_event_bus_subscribe.handler.test_event_bus_publish.handler.test_contradiction_detector.handler"
+        },
+        {
+          "file": "test_choreography_standalone.py",
+          "line": 311,
+          "handler": "handler",
+          "context": "test_streaming_with_events.handler.test_full_integration.handler"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 264,
+          "handler": "contradiction_handler",
+          "context": "TestContradictionDetectorV2:.test_initialization.test_edge_added_no_contradiction.test_edge_added_self_loop.contradiction_handler"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 542,
+          "handler": "track_events",
+          "context": "TestIntegration:.test_full_pipeline.track_events"
+        },
+        {
+          "file": "demo_choreography.py",
+          "line": 96,
+          "handler": "on_contradiction",
+          "context": "on_contradiction"
+        },
+        {
+          "file": "analyze_choreography_event_flows.py",
+          "line": 309,
+          "handler": "count_contradictions",
+          "context": "ContradictionAnalyzer:.verify_event_subscription.count_contradictions"
+        }
+      ]
+    },
+    "graph.updated": {
+      "publishers": [
+        {
+          "file": "demo_choreography.py",
+          "line": 53,
+          "context": "main.on_graph_update.on_validation_result",
+          "payload_keys": [
+            "action"
+          ]
+        }
+      ],
+      "subscribers": [
+        {
+          "file": "demo_choreography.py",
+          "line": 46,
+          "handler": "on_graph_update",
+          "context": "main.on_graph_update.on_validation_result"
+        }
+      ]
+    },
+    "validation.completed": {
+      "publishers": [
+        {
+          "file": "demo_choreography.py",
+          "line": 61,
+          "context": "main.on_graph_update.on_validation_result",
+          "payload_keys": [
+            "status",
+            "validator"
+          ]
+        }
+      ],
+      "subscribers": [
+        {
+          "file": "demo_choreography.py",
+          "line": 47,
+          "handler": "on_validation_result",
+          "context": "main.on_graph_update.on_validation_result"
+        }
+      ]
+    },
+    "posterior.updated": {
+      "publishers": [
+        {
+          "file": "choreography/evidence_stream.py",
+          "line": 382,
+          "context": "module_level",
+          "payload_keys": [
+            "posterior",
+            "chunk_id",
+            "progress"
+          ]
+        }
+      ],
+      "subscribers": [
+        {
+          "file": "example_integration_choreography.py",
+          "line": 184,
+          "handler": "log_posterior_update",
+          "context": "IntegratedPDMAnalyzer:.__init__._setup_monitoring.log_contradiction.log_posterior_update.log_analysis_milestone"
+        },
+        {
+          "file": "test_choreography_standalone.py",
+          "line": 279,
+          "handler": "handler",
+          "context": "test_posterior_distribution.test_streaming_bayesian_updater.test_streaming_with_events.handler"
+        },
+        {
+          "file": "test_choreography_standalone.py",
+          "line": 310,
+          "handler": "handler",
+          "context": "test_streaming_with_events.handler.test_full_integration.handler"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 461,
+          "handler": "event_handler",
+          "context": "TestStreamingBayesianUpdater:.test_initialization.test_initialization_with_bus.test_update_from_stream.test_update_with_event_publishing.event_handler"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 541,
+          "handler": "track_events",
+          "context": "TestIntegration:.test_full_pipeline.track_events"
+        },
+        {
+          "file": "demo_choreography.py",
+          "line": 218,
+          "handler": "on_posterior_update",
+          "context": "on_posterior_update"
+        },
+        {
+          "file": "analyze_choreography_event_flows.py",
+          "line": 245,
+          "handler": "track_update",
+          "context": "StreamingAnalyzer:.test_incremental_updates.track_update"
+        }
+      ]
+    },
+    "evidence.extracted": {
+      "publishers": [],
+      "subscribers": [
+        {
+          "file": "example_integration_choreography.py",
+          "line": 67,
+          "handler": "on_evidence_extracted",
+          "context": "MockContradictionDetector:.__init__"
+        }
+      ]
+    },
+    "analysis.completed": {
+      "publishers": [],
+      "subscribers": [
+        {
+          "file": "example_integration_choreography.py",
+          "line": 185,
+          "handler": "log_analysis_milestone",
+          "context": "IntegratedPDMAnalyzer:.__init__._setup_monitoring.log_contradiction.log_posterior_update.log_analysis_milestone"
+        }
+      ]
+    },
+    "test.event": {
+      "publishers": [],
+      "subscribers": [
+        {
+          "file": "test_choreography_standalone.py",
+          "line": 137,
+          "handler": "handler",
+          "context": "create_sample_chunks.test_pdm_event_creation.test_event_bus_initialization.test_event_bus_subscribe.handler"
+        },
+        {
+          "file": "test_choreography_standalone.py",
+          "line": 151,
+          "handler": "handler",
+          "context": "test_pdm_event_creation.test_event_bus_initialization.test_event_bus_subscribe.handler.test_event_bus_publish.handler"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 104,
+          "handler": "handler",
+          "context": "TestEventBus:.test_initialization.test_subscribe.handler"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 115,
+          "handler": "handler",
+          "context": "TestEventBus:.test_initialization.test_subscribe.handler.test_unsubscribe.handler"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 139,
+          "handler": "handler",
+          "context": "test_initialization.test_subscribe.handler.test_unsubscribe.handler.test_publish_no_subscribers.test_publish_with_handler.handler"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 165,
+          "handler": "handler1",
+          "context": "test_publish_no_subscribers.test_publish_with_handler.handler.test_publish_multiple_handlers.handler1.handler2"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 166,
+          "handler": "handler2",
+          "context": "test_publish_no_subscribers.test_publish_with_handler.handler.test_publish_multiple_handlers.handler1.handler2"
+        },
+        {
+          "file": "test_choreography.py",
+          "line": 184,
+          "handler": "sync_handler",
+          "context": "handler.test_publish_multiple_handlers.handler1.handler2.test_publish_sync_handler.sync_handler"
+        }
+      ]
+    }
+  },
+  "statistics": {
+    "total_event_types": 9,
+    "total_publishes": 22,
+    "total_subscribes": 28,
+    "active_events": 5,
+    "orphaned_events": 1,
+    "unused_subscriptions": 3
+  },
+  "decoupling_coverage": {
+    "graph.node_added": {
+      "publishers": 1,
+      "subscribers": 0,
+      "orphaned": true,
+      "unused_subscription": false,
+      "active": false
+    },
+    "graph.edge_added": {
+      "publishers": 6,
+      "subscribers": 2,
+      "orphaned": false,
+      "unused_subscription": false,
+      "active": true
+    },
+    "contradiction.detected": {
+      "publishers": 2,
+      "subscribers": 7,
+      "orphaned": false,
+      "unused_subscription": false,
+      "active": true
+    },
+    "graph.updated": {
+      "publishers": 1,
+      "subscribers": 1,
+      "orphaned": false,
+      "unused_subscription": false,
+      "active": true
+    },
+    "validation.completed": {
+      "publishers": 1,
+      "subscribers": 1,
+      "orphaned": false,
+      "unused_subscription": false,
+      "active": true
+    },
+    "posterior.updated": {
+      "publishers": 1,
+      "subscribers": 7,
+      "orphaned": false,
+      "unused_subscription": false,
+      "active": true
+    },
+    "evidence.extracted": {
+      "publishers": 0,
+      "subscribers": 1,
+      "orphaned": false,
+      "unused_subscription": true,
+      "active": false
+    },
+    "analysis.completed": {
+      "publishers": 0,
+      "subscribers": 1,
+      "orphaned": false,
+      "unused_subscription": true,
+      "active": false
+    },
+    "test.event": {
+      "publishers": 0,
+      "subscribers": 8,
+      "orphaned": false,
+      "unused_subscription": true,
+      "active": false
+    }
+  }
+}

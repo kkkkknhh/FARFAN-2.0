@@ -1,0 +1,98 @@
+{
+  "run_id": "PDM_Demo_20251015_190329",
+  "created_at": "2025-10-15T19:03:29.125856",
+  "retention_years": 5,
+  "chain_valid": true,
+  "chain_errors": [],
+  "total_entries": 5,
+  "entries": [
+    {
+      "run_id": "PDM_Demo_20251015_190329",
+      "timestamp": "2025-10-15T19:03:29.125447",
+      "sha256_source": "5f91fab56b97fed7c909a7723ddea5ff4ed1d6bca526b5faeda19ac49c5eea7b",
+      "phase": "extract_statements",
+      "status": "success",
+      "metrics": {
+        "statements_count": 0,
+        "avg_statement_length": 0
+      },
+      "outputs": {
+        "statements": "[]"
+      },
+      "previous_hash": null,
+      "entry_hash": "b47fb86f480743d31ae3db9dbc9c16c76331fe330a5295d9b828113f2ff286e1",
+      "retention_until": "2030-10-14T19:03:29.125447"
+    },
+    {
+      "run_id": "PDM_Demo_20251015_190329",
+      "timestamp": "2025-10-15T19:03:29.125519",
+      "sha256_source": "5f91fab56b97fed7c909a7723ddea5ff4ed1d6bca526b5faeda19ac49c5eea7b",
+      "phase": "detect_contradictions",
+      "status": "success",
+      "metrics": {
+        "total_contradictions": 0,
+        "critical_severity_count": 0,
+        "high_severity_count": 0,
+        "medium_severity_count": 0
+      },
+      "outputs": {
+        "contradictions": "[]",
+        "temporal_conflicts": "[]"
+      },
+      "previous_hash": "b47fb86f480743d31ae3db9dbc9c16c76331fe330a5295d9b828113f2ff286e1",
+      "entry_hash": "503733c45dc54cb65b7eb059ca7e8bffbb46ae1cc74578129c4891c2e20a4a12",
+      "retention_until": "2030-10-14T19:03:29.125519"
+    },
+    {
+      "run_id": "PDM_Demo_20251015_190329",
+      "timestamp": "2025-10-15T19:03:29.125611",
+      "sha256_source": "5f91fab56b97fed7c909a7723ddea5ff4ed1d6bca526b5faeda19ac49c5eea7b",
+      "phase": "analyze_regulatory_constraints",
+      "status": "success",
+      "metrics": {
+        "regulatory_references": 0,
+        "constraint_types": 0
+      },
+      "outputs": {
+        "d1_q5_regulatory_analysis": "{'regulatory_references_count': 0, 'constraint_types_mentioned': 0, 'is_consistent': True, 'd1_q5_quality': 'insuficiente'}"
+      },
+      "previous_hash": "503733c45dc54cb65b7eb059ca7e8bffbb46ae1cc74578129c4891c2e20a4a12",
+      "entry_hash": "2b9392dbc43c9090ad96f0ecc5eef89ac86e997b6d11c99a84d3a11a46bc40a1",
+      "retention_until": "2030-10-14T19:03:29.125611"
+    },
+    {
+      "run_id": "PDM_Demo_20251015_190329",
+      "timestamp": "2025-10-15T19:03:29.125663",
+      "sha256_source": "5f91fab56b97fed7c909a7723ddea5ff4ed1d6bca526b5faeda19ac49c5eea7b",
+      "phase": "calculate_coherence_metrics",
+      "status": "success",
+      "metrics": {
+        "overall_score": 0.0,
+        "meets_threshold": false
+      },
+      "outputs": {
+        "coherence_metrics": "{'overall_coherence_score': 0.0, 'temporal_consistency': 0.0, 'causal_coherence': 0.0, 'quality_grade': 'insuficiente'}"
+      },
+      "previous_hash": "2b9392dbc43c9090ad96f0ecc5eef89ac86e997b6d11c99a84d3a11a46bc40a1",
+      "entry_hash": "33ad08092204c13e2e60afff3f52ab052ab9f2f3462f90a4b58ec03cf8b3269d",
+      "retention_until": "2030-10-14T19:03:29.125663"
+    },
+    {
+      "run_id": "PDM_Demo_20251015_190329",
+      "timestamp": "2025-10-15T19:03:29.125709",
+      "sha256_source": "5f91fab56b97fed7c909a7723ddea5ff4ed1d6bca526b5faeda19ac49c5eea7b",
+      "phase": "generate_audit_summary",
+      "status": "success",
+      "metrics": {
+        "quality_grade": "Excelente",
+        "causal_flags": 0
+      },
+      "outputs": {
+        "harmonic_front_4_audit": "{'total_contradictions': 0, 'causal_incoherence_flags': 0, 'structural_failures': 0, 'quality_grade': 'Excelente', 'meets_causal_limit': True}"
+      },
+      "previous_hash": "33ad08092204c13e2e60afff3f52ab052ab9f2f3462f90a4b58ec03cf8b3269d",
+      "entry_hash": "0b7af57ae8d28496bfb13325c9c232dd9988a5bff2dfa17c97cd7f210e8795ce",
+      "retention_until": "2030-10-14T19:03:29.125709"
+    }
+  ]
+}
