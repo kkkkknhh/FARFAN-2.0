@@ -1207,6 +1207,7 @@ class FinancialAuditor:
         self.unit_costs: Dict[str, float] = {}
         self.successful_parses = 0
         self.failed_parses = 0
+        self.d3_q3_analysis: Dict[str, Any] = {}  # Harmonic Front 3 - D3-Q3 metrics
     
     def trace_financial_allocation(self, tables: List[pd.DataFrame], 
                                   nodes: Dict[str, MetaNode],
@@ -2775,8 +2776,10 @@ class CDAFFramework:
             sequence_warnings = self.op_auditor.audit_sequence_logic(graph)
             
             # Step 5.5: Bayesian Counterfactual Audit (AGUJA III)
+            # Note: pdet_alignment should be calculated separately if needed via financiero_viabilidad_tablas
+            # For now, using None as placeholder - can be enhanced by integrating PDETMunicipalPlanAnalyzer
             self.logger.info("Ejecutando auditoría contrafactual Bayesiana...")
-            counterfactual_audit = self.op_auditor.bayesian_counterfactual_audit(nodes, graph)
+            counterfactual_audit = self.op_auditor.bayesian_counterfactual_audit(nodes, graph, pdet_alignment=None)
             
             # Step 6: Causal inference setup
             self.logger.info("Preparando para inferencia causal...")
