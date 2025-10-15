@@ -1,0 +1,409 @@
+{
+  "validation_summary": {
+    "total_examples": 8,
+    "validated_examples": 4,
+    "validation_rate": 0.5,
+    "average_score_difference": 0.1445036764705882,
+    "results": [
+      {
+        "scenario": "Proyecto con teoría de cambio clara y completa",
+        "expected_score": 0.85,
+        "actual_score": 1.0,
+        "score_difference": 0.15000000000000002,
+        "validated": false,
+        "qualitative_match": true
+      },
+      {
+        "scenario": "Proyecto con teoría de cambio incompleta",
+        "expected_score": 0.45,
+        "actual_score": 0.85,
+        "score_difference": 0.39999999999999997,
+        "validated": false,
+        "qualitative_match": false
+      },
+      {
+        "scenario": "Proyecto alineado con estándares DNP",
+        "expected_score": 0.9,
+        "actual_score": 1.0,
+        "score_difference": 0.09999999999999998,
+        "validated": true,
+        "qualitative_match": true
+      },
+      {
+        "scenario": "Proyecto con presupuesto trazable",
+        "expected_score": 0.88,
+        "actual_score": 0.9025,
+        "score_difference": 0.022499999999999964,
+        "validated": true,
+        "qualitative_match": false
+      },
+      {
+        "scenario": "Proyecto dentro de competencias municipales",
+        "expected_score": 1.0,
+        "actual_score": 1.0,
+        "score_difference": 0.0,
+        "validated": true,
+        "qualitative_match": true
+      },
+      {
+        "scenario": "Proyecto con indicadores MGA alineados",
+        "expected_score": 0.75,
+        "actual_score": 0.6,
+        "score_difference": 0.15000000000000002,
+        "validated": false,
+        "qualitative_match": false
+      },
+      {
+        "scenario": "Proyecto en municipio PDET alineado con lineamientos",
+        "expected_score": 0.82,
+        "actual_score": 0.5,
+        "score_difference": 0.31999999999999995,
+        "validated": false,
+        "qualitative_match": false
+      },
+      {
+        "scenario": "Score final amalgamado de múltiples módulos",
+        "expected_score": 0.86,
+        "actual_score": 0.8735294117647058,
+        "score_difference": 0.01352941176470579,
+        "validated": true,
+        "qualitative_match": true
+      }
+    ]
+  },
+  "examples": [
+    {
+      "scenario": "Proyecto con teoría de cambio clara y completa",
+      "inputs": [
+        {
+          "module": "dereck_beach",
+          "function": "CausalExtractor.extract_causal_hierarchy",
+          "input_data": {
+            "text": "Mejorar la seguridad alimentaria mediante la implementación de huertas comunitarias que incrementen el acceso a alimentos nutritivos",
+            "nodes_extracted": 5,
+            "causal_links": 4,
+            "hierarchy_levels": 4
+          }
+        }
+      ],
+      "expected_output": {
+        "quantitative_score": 0.85,
+        "qualitative_assessment": "Excelente - Teoría de cambio clara con cadena causal bien definida",
+        "justification": "El proyecto presenta una jerarquía causal completa desde insumos hasta impactos, con 5 nodos conectados lógicamente y 4 vínculos causales explícitos.",
+        "evidence": [
+          "5 nodos causales identificados",
+          "4 vínculos causales explícitos",
+          "Jerarquía de 4 niveles presente"
+        ],
+        "confidence": 0.9
+      },
+      "actual_output": {
+        "quantitative_score": 1.0,
+        "qualitative_assessment": "Excelente",
+        "justification": "Score calculado: 1.00",
+        "evidence": [
+          "text: Mejorar la seguridad alimentaria mediante la implementación de huertas comunitarias que incrementen el acceso a alimentos nutritivos",
+          "nodes_extracted: 5",
+          "causal_links: 4",
+          "hierarchy_levels: 4"
+        ],
+        "confidence": 0.85
+      },
+      "validated": false
+    },
+    {
+      "scenario": "Proyecto con teoría de cambio incompleta",
+      "inputs": [
+        {
+          "module": "dereck_beach",
+          "function": "CausalExtractor.extract_causal_hierarchy",
+          "input_data": {
+            "text": "Construir escuelas para mejorar la educación",
+            "nodes_extracted": 2,
+            "causal_links": 1,
+            "hierarchy_levels": 2
+          }
+        }
+      ],
+      "expected_output": {
+        "quantitative_score": 0.45,
+        "qualitative_assessment": "Insuficiente - Cadena causal incompleta, falta operacionalización",
+        "justification": "El proyecto solo identifica 2 nodos (producto e impacto) sin especificar mecanismos intermedios ni resultados medibles.",
+        "evidence": [
+          "Solo 2 nodos causales",
+          "1 vínculo causal",
+          "Faltan niveles intermedios"
+        ],
+        "confidence": 0.75
+      },
+      "actual_output": {
+        "quantitative_score": 0.85,
+        "qualitative_assessment": "Excelente",
+        "justification": "Score calculado: 0.85",
+        "evidence": [
+          "text: Construir escuelas para mejorar la educación",
+          "nodes_extracted: 2",
+          "causal_links: 1",
+          "hierarchy_levels: 2"
+        ],
+        "confidence": 0.85
+      },
+      "validated": false
+    },
+    {
+      "scenario": "Proyecto alineado con estándares DNP",
+      "inputs": [
+        {
+          "module": "dnp_integration",
+          "function": "ValidadorDNP.validar_proyecto_integral",
+          "input_data": {
+            "sector": "Educación",
+            "descripcion": "Programa de mejoramiento de infraestructura educativa",
+            "indicadores_propuestos": [
+              "Tasa de deserción",
+              "Puntaje SABER"
+            ],
+            "mga_aligned": true,
+            "competencia_valida": true
+          }
+        }
+      ],
+      "expected_output": {
+        "quantitative_score": 0.9,
+        "qualitative_assessment": "Excelente - Cumple estándares DNP y MGA",
+        "justification": "El proyecto está alineado con indicadores MGA del sector Educación, es competencia municipal válida y usa indicadores estándar del DNP.",
+        "evidence": [
+          "Alineado con MGA",
+          "Competencia municipal válida",
+          "Indicadores DNP presentes"
+        ],
+        "confidence": 0.95
+      },
+      "actual_output": {
+        "quantitative_score": 1.0,
+        "qualitative_assessment": "Excelente",
+        "justification": "Score calculado: 1.00",
+        "evidence": [
+          "sector: Educación",
+          "descripcion: Programa de mejoramiento de infraestructura educativa",
+          "indicadores_propuestos: ['Tasa de deserción', 'Puntaje SABER']",
+          "mga_aligned: True",
+          "competencia_valida: True"
+        ],
+        "confidence": 0.85
+      },
+      "validated": true
+    },
+    {
+      "scenario": "Proyecto con presupuesto trazable",
+      "inputs": [
+        {
+          "module": "dereck_beach",
+          "function": "FinancialAuditor.trace_financial_allocation",
+          "input_data": {
+            "total_budget": 1000000000,
+            "allocations_by_node": {
+              "P1": 300000000,
+              "P2": 400000000,
+              "P3": 300000000
+            },
+            "traceability_score": 0.95
+          }
+        }
+      ],
+      "expected_output": {
+        "quantitative_score": 0.88,
+        "qualitative_assessment": "Bueno - Presupuesto completamente trazable a nodos causales",
+        "justification": "El 100% del presupuesto está asignado a nodos específicos con trazabilidad clara. La distribución es coherente con la jerarquía causal.",
+        "evidence": [
+          "100% del presupuesto asignado",
+          "Trazabilidad: 0.95",
+          "3 nodos con asignación financiera"
+        ],
+        "confidence": 0.92
+      },
+      "actual_output": {
+        "quantitative_score": 0.9025,
+        "qualitative_assessment": "Excelente",
+        "justification": "Score calculado: 0.90",
+        "evidence": [
+          "total_budget: 1000000000",
+          "allocations_by_node: {'P1': 300000000, 'P2': 400000000, 'P3': 300000000}",
+          "traceability_score: 0.95"
+        ],
+        "confidence": 0.85
+      },
+      "validated": true
+    },
+    {
+      "scenario": "Proyecto dentro de competencias municipales",
+      "inputs": [
+        {
+          "module": "competencias_municipales",
+          "function": "CatalogoCompetenciasMunicipales.validar_competencia_municipal",
+          "input_data": {
+            "sector": "Salud",
+            "subsector": "Atención Primaria",
+            "nivel_gobierno": "Municipal",
+            "es_competencia_valida": true
+          }
+        }
+      ],
+      "expected_output": {
+        "quantitative_score": 1.0,
+        "qualitative_assessment": "Excelente - Competencia municipal válida",
+        "justification": "La atención primaria en salud es competencia directa del nivel municipal según la Ley 715 de 2001.",
+        "evidence": [
+          "Competencia municipal validada",
+          "Subsector: Atención Primaria",
+          "Base legal: Ley 715/2001"
+        ],
+        "confidence": 1.0
+      },
+      "actual_output": {
+        "quantitative_score": 1.0,
+        "qualitative_assessment": "Excelente",
+        "justification": "Score calculado: 1.00",
+        "evidence": [
+          "sector: Salud",
+          "subsector: Atención Primaria",
+          "nivel_gobierno: Municipal",
+          "es_competencia_valida: True"
+        ],
+        "confidence": 0.85
+      },
+      "validated": true
+    },
+    {
+      "scenario": "Proyecto con indicadores MGA alineados",
+      "inputs": [
+        {
+          "module": "mga_indicadores",
+          "function": "CatalogoIndicadoresMGA.buscar_por_sector",
+          "input_data": {
+            "sector": "Agua potable y saneamiento básico",
+            "indicadores_encontrados": 5,
+            "indicadores_proyecto": 3,
+            "match_percentage": 60
+          }
+        }
+      ],
+      "expected_output": {
+        "quantitative_score": 0.75,
+        "qualitative_assessment": "Bueno - 60% de alineación con indicadores MGA",
+        "justification": "El proyecto usa 3 de 5 indicadores MGA recomendados para el sector, mostrando buena alineación con estándares nacionales.",
+        "evidence": [
+          "5 indicadores MGA disponibles",
+          "3 indicadores usados",
+          "60% de alineación"
+        ],
+        "confidence": 0.85
+      },
+      "actual_output": {
+        "quantitative_score": 0.6,
+        "qualitative_assessment": "Aceptable",
+        "justification": "Score calculado: 0.60",
+        "evidence": [
+          "sector: Agua potable y saneamiento básico",
+          "indicadores_encontrados: 5",
+          "indicadores_proyecto: 3",
+          "match_percentage: 60"
+        ],
+        "confidence": 0.85
+      },
+      "validated": false
+    },
+    {
+      "scenario": "Proyecto en municipio PDET alineado con lineamientos",
+      "inputs": [
+        {
+          "module": "pdet_lineamientos",
+          "function": "LineamientosPDET.recomendar_lineamientos",
+          "input_data": {
+            "es_municipio_pdet": true,
+            "sector": "Rural",
+            "lineamientos_aplicables": 4,
+            "lineamientos_cumplidos": 3
+          }
+        }
+      ],
+      "expected_output": {
+        "quantitative_score": 0.82,
+        "qualitative_assessment": "Bueno - 75% de alineación con lineamientos PDET",
+        "justification": "El proyecto cumple 3 de 4 lineamientos PDET aplicables al sector rural, demostrando compromiso con los Programas de Desarrollo con Enfoque Territorial.",
+        "evidence": [
+          "4 lineamientos PDET aplicables",
+          "3 lineamientos cumplidos",
+          "Municipio PDET confirmado"
+        ],
+        "confidence": 0.88
+      },
+      "actual_output": {
+        "quantitative_score": 0.5,
+        "qualitative_assessment": "Insuficiente",
+        "justification": "Score calculado: 0.50",
+        "evidence": [
+          "es_municipio_pdet: True",
+          "sector: Rural",
+          "lineamientos_aplicables: 4",
+          "lineamientos_cumplidos: 3"
+        ],
+        "confidence": 0.85
+      },
+      "validated": false
+    },
+    {
+      "scenario": "Score final amalgamado de múltiples módulos",
+      "inputs": [
+        {
+          "module": "dereck_beach",
+          "function": "CausalExtractor.extract_causal_hierarchy",
+          "input_data": {
+            "score": 0.85
+          }
+        },
+        {
+          "module": "dnp_integration",
+          "function": "ValidadorDNP.validar_proyecto_integral",
+          "input_data": {
+            "score": 0.9
+          }
+        },
+        {
+          "module": "competencias_municipales",
+          "function": "CatalogoCompetenciasMunicipales.validar_competencia_municipal",
+          "input_data": {
+            "score": 1.0
+          }
+        },
+        {
+          "module": "mga_indicadores",
+          "function": "CatalogoIndicadoresMGA.buscar_por_sector",
+          "input_data": {
+            "score": 0.75
+          }
+        }
+      ],
+      "expected_output": {
+        "quantitative_score": 0.86,
+        "qualitative_assessment": "Excelente - Proyecto bien fundamentado en múltiples dimensiones",
+        "justification": "Score amalgamado: Causal (0.85×0.30) + DNP (0.90×0.25) + Competencias (1.0×0.15) + MGA (0.75×0.15) + PDET (0.80×0.15) = 0.86. El proyecto demuestra solidez técnica, cumplimiento normativo y alineación con estándares nacionales.",
+        "evidence": [
+          "Teoría de cambio clara (0.85)",
+          "Cumplimiento DNP alto (0.90)",
+          "Competencia válida (1.0)",
+          "Alineación MGA buena (0.75)"
+        ],
+        "confidence": 0.92
+      },
+      "actual_output": {
+        "quantitative_score": 0.8735294117647058,
+        "qualitative_assessment": "Excelente",
+        "justification": "Score calculado: 0.87",
+        "evidence": [],
+        "confidence": 0.85
+      },
+      "validated": true
+    }
+  ]
+}
