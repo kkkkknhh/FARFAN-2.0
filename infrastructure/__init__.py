@@ -9,19 +9,19 @@ for all CDAF components.
 """
 
 from .di_container import (
-    DIContainer,
     DeviceConfig,
-    configure_container,
-    IExtractor,
-    ICausalBuilder,
+    DIContainer,
     IBayesianEngine,
+    ICausalBuilder,
+    IExtractor,
+    configure_container,
 )
 
 __all__ = [
-    'DIContainer',
-    'DeviceConfig',
-    'configure_container',
-    'IExtractor',
-    'ICausalBuilder',
-    'IBayesianEngine',
+    "DIContainer",
+    "DeviceConfig",
+    "configure_container",
+    "IExtractor",
+    "ICausalBuilder",
+    "IBayesianEngine",
 ]
