@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Infrastructure module for FARFAN 2.0
-Provides observability, metrics, logging, and tracing capabilities.
+Infrastructure Module
+Provides resource management and computational infrastructure
 """
 
-from .observability import (
-    DistributedTracer,
-    MetricsCollector,
-    ObservabilityConfig,
-    ObservabilityStack,
-    StructuredLogger,
+from infrastructure.resource_pool import (
+    BayesianInferenceEngine,
+    ResourceConfig,
+    ResourcePool,
+    Worker,
+    WorkerMemoryError,
+    WorkerTimeoutError,
 )
 
 __all__ = [
-    "ObservabilityConfig",
-    "ObservabilityStack",
-    "MetricsCollector",
-    "StructuredLogger",
-    "DistributedTracer",
+    "ResourceConfig",
+    "Worker",
+    "ResourcePool",
+    "WorkerTimeoutError",
+    "WorkerMemoryError",
+    "BayesianInferenceEngine",
 ]
