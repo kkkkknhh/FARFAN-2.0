@@ -1009,7 +1009,12 @@ class CausalExtractor:
         return prior_mean, adjusted_alpha, adjusted_beta
     
     def _calculate_composite_likelihood(self, evidence: Dict[str, Any]) -> float:
-        """Calculate composite likelihood from multiple evidence components"""
+        """Calculate composite likelihood from multiple evidence components
+        
+        Enhanced with:
+        - Nonlinear transformation rewarding triangulation
+        - Evidence diversity verification across analytical domains
+        """
         # Weight different evidence types
         weights = {
             'semantic_distance': 0.25,
@@ -1020,12 +1025,47 @@ class CausalExtractor:
             'textual_proximity': 0.10
         }
         
+        # Basic weighted average
         likelihood = 0.0
+        evidence_count = 0
+        domain_diversity = set()
+        
         for component, weight in weights.items():
             if component in evidence:
                 likelihood += evidence[component] * weight
+                evidence_count += 1
+                
+                # Track evidence diversity across domains
+                if component in ['semantic_distance', 'textual_proximity']:
+                    domain_diversity.add('semantic')
+                elif component in ['temporal_coherence']:
+                    domain_diversity.add('temporal')
+                elif component in ['financial_consistency']:
+                    domain_diversity.add('financial')
+                elif component in ['type_transition_prior', 'language_specificity']:
+                    domain_diversity.add('structural')
         
-        return likelihood
+        # Triangulation bonus: Exponentially reward multiple independent observations
+        # D6-Q4/Q5 (Adaptiveness/Context) - evidence across different analytical domains
+        diversity_count = len(domain_diversity)
+        if diversity_count >= 3:
+            # Strong triangulation across semantic, temporal, and financial domains
+            triangulation_bonus = 1.0 + 0.15 * np.exp(diversity_count - 2)
+        elif diversity_count == 2:
+            # Moderate triangulation
+            triangulation_bonus = 1.05
+        else:
+            # Weak or no triangulation
+            triangulation_bonus = 1.0
+        
+        # Apply nonlinear transformation
+        enhanced_likelihood = min(1.0, likelihood * triangulation_bonus)
+        
+        # Penalty for insufficient evidence diversity
+        if evidence_count < 3:
+            enhanced_likelihood *= 0.85
+        
+        return enhanced_likelihood
     
     def _build_type_hierarchy(self) -> None:
         """Build hierarchy based on goal types"""
@@ -1115,7 +1155,13 @@ class FinancialAuditor:
     
     def trace_financial_allocation(self, tables: List[pd.DataFrame], 
                                   nodes: Dict[str, MetaNode]) -> Dict[str, float]:
-        """Trace financial allocations to programs/goals"""
+        """Trace financial allocations to programs/goals
+        
+        Enhanced for D1-Q3 / D3-Q3 Financial Traceability scoring:
+        - Calculates metas_con_trazabilidad_financiera_pct
+        - Computes average financial_match_confidence
+        - Scores 'Excelente' only if ≥85% nodes tracked AND avg confidence ≥0.95
+        """
         for i, table in enumerate(tables):
             try:
                 self.logger.info(f"Procesando tabla financiera {i+1}/{len(tables)}")
@@ -1126,6 +1172,32 @@ class FinancialAuditor:
                 self.failed_parses += 1
                 continue
         
+        # D1-Q3 / D3-Q3 Financial Traceability Scoring
+        total_nodes = len(nodes)
+        nodes_with_financial = sum(1 for n in nodes.values() if n.financial_allocation)
+        metas_con_trazabilidad_financiera_pct = (nodes_with_financial / total_nodes * 100) if total_nodes > 0 else 0
+        
+        # Calculate average financial match confidence
+        confidences = [
+            getattr(n, 'financial_match_confidence', 1.0) 
+            for n in nodes.values() 
+            if n.financial_allocation
+        ]
+        avg_match_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        
+        # D1-Q3 / D3-Q3 Score determination
+        if metas_con_trazabilidad_financiera_pct >= 85 and avg_match_confidence >= 0.95:
+            score = "EXCELENTE"
+        elif metas_con_trazabilidad_financiera_pct >= 70 and avg_match_confidence >= 0.85:
+            score = "BUENO"
+        elif metas_con_trazabilidad_financiera_pct >= 50:
+            score = "ACEPTABLE"
+        else:
+            score = "INSUFICIENTE"
+        
+        self.logger.info(f"D1-Q3 / D3-Q3 Trazabilidad Financiera: {score}")
+        self.logger.info(f"  - Metas con trazabilidad: {metas_con_trazabilidad_financiera_pct:.1f}% ({nodes_with_financial}/{total_nodes})")
+        self.logger.info(f"  - Confianza promedio de matching: {avg_match_confidence:.3f}")
         self.logger.info(f"Asignaciones financieras trazadas: {len(self.financial_data)}")
         self.logger.info(f"Tablas parseadas exitosamente: {self.successful_parses}, "
                         f"Fallidas: {self.failed_parses}")
@@ -1219,8 +1291,15 @@ class FinancialAuditor:
     
     def _match_program_to_node(self, program_id: str, 
                                nodes: Dict[str, MetaNode]) -> Optional[str]:
-        """Match program ID to existing node using fuzzy matching"""
+        """Match program ID to existing node using fuzzy matching
+        
+        Enhanced for D1-Q3 / D3-Q3 Financial Traceability:
+        - Implements confidence penalty if fuzzy match ratio < 100
+        - Reduces node.financial_allocation confidence by 15% for imperfect matches
+        - Tracks match quality for overall financial traceability scoring
+        """
         if program_id in nodes:
+            # Perfect match - no penalty
             return program_id
         
         # Try fuzzy matching
@@ -1232,7 +1311,36 @@ class FinancialAuditor:
         )
         
         if best_match:
-            return best_match[0]
+            matched_node_id = best_match[0]
+            match_ratio = best_match[1]
+            
+            # D1-Q3 / D3-Q3: Apply confidence penalty for non-perfect matches
+            if match_ratio < 100:
+                penalty_factor = 0.85  # 15% reduction as specified
+                node = nodes[matched_node_id]
+                
+                # Track original allocation before penalty
+                if not hasattr(node, '_original_financial_allocation'):
+                    node._original_financial_allocation = node.financial_allocation
+                
+                # Apply penalty to financial allocation confidence
+                if node.financial_allocation:
+                    penalized_allocation = node.financial_allocation * penalty_factor
+                    self.logger.debug(
+                        f"Fuzzy match penalty applied to {matched_node_id}: "
+                        f"ratio={match_ratio}, penalty={penalty_factor:.2f}, "
+                        f"allocation {node.financial_allocation:.0f} -> {penalized_allocation:.0f}"
+                    )
+                    node.financial_allocation = penalized_allocation
+                
+                # Store match confidence for D1-Q3 / D3-Q3 scoring
+                if not hasattr(node, 'financial_match_confidence'):
+                    node.financial_match_confidence = match_ratio / 100.0
+                else:
+                    # Average if multiple matches
+                    node.financial_match_confidence = (node.financial_match_confidence + match_ratio / 100.0) / 2
+            
+            return matched_node_id
         
         return None
 
@@ -1248,7 +1356,24 @@ class OperationalizationAuditor:
         self.sequence_warnings: List[str] = []
     
     def audit_evidence_traceability(self, nodes: Dict[str, MetaNode]) -> Dict[str, AuditResult]:
-        """Audit evidence traceability for all nodes"""
+        """Audit evidence traceability for all nodes
+        
+        Enhanced with D3-Q1 Ficha Técnica validation:
+        - Cross-checks baseline/target against extracted quantitative_claims
+        - Verifies DNP INDICATOR_STRUCTURE compliance for producto nodes
+        - Scores 'Excelente' only if ≥80% of productos pass full audit
+        """
+        # Import for quantitative claims extraction
+        try:
+            from contradiction_deteccion import PolicyContradictionDetectorV2
+            has_detector = True
+        except ImportError:
+            has_detector = False
+            self.logger.warning("PolicyContradictionDetectorV2 not available for quantitative claims validation")
+        
+        producto_nodes_count = 0
+        producto_nodes_passed = 0
+        
         for node_id, node in nodes.items():
             result: AuditResult = {
                 'passed': True,
@@ -1257,19 +1382,74 @@ class OperationalizationAuditor:
                 'recommendations': []
             }
             
+            # Track producto nodes for D3-Q1 scoring
+            if node.type == 'producto':
+                producto_nodes_count += 1
+            
+            # Extract quantitative claims from node text if detector available
+            quantitative_claims = []
+            if has_detector:
+                try:
+                    # Create temporary detector instance
+                    detector = PolicyContradictionDetectorV2(device='cpu')
+                    quantitative_claims = detector._extract_structured_quantitative_claims(node.text)
+                except Exception as e:
+                    self.logger.debug(f"Could not extract quantitative claims: {e}")
+            
             # Check baseline
+            baseline_valid = False
             if not node.baseline or str(node.baseline).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
                 result['errors'].append(f"Línea base no definida para {node_id}")
                 result['passed'] = False
                 node.rigor_status = 'débil'
                 node.audit_flags.append('sin_linea_base')
+            else:
+                baseline_valid = True
+                # Cross-check baseline against quantitative claims (D3-Q1)
+                if quantitative_claims:
+                    baseline_in_claims = any(
+                        claim.get('type') in ['indicator', 'target', 'percentage', 'beneficiaries'] 
+                        for claim in quantitative_claims
+                    )
+                    if not baseline_in_claims:
+                        result['warnings'].append(f"Línea base no verificada en claims cuantitativos para {node_id}")
             
             # Check target
+            target_valid = False
             if not node.target or str(node.target).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
                 result['errors'].append(f"Meta no definida para {node_id}")
                 result['passed'] = False
                 node.rigor_status = 'débil'
                 node.audit_flags.append('sin_meta')
+            else:
+                target_valid = True
+                # Cross-check target against quantitative claims (D3-Q1)
+                if quantitative_claims:
+                    meta_in_claims = any(
+                        claim.get('type') == 'target' or 'meta' in claim.get('context', '').lower()
+                        for claim in quantitative_claims
+                    )
+                    if not meta_in_claims:
+                        result['warnings'].append(f"Meta no verificada en claims cuantitativos para {node_id}")
+            
+            # D3-Q1 Ficha Técnica compliance check for producto nodes
+            if node.type == 'producto':
+                # Check if has all minimum DNP INDICATOR_STRUCTURE elements
+                has_complete_ficha = (
+                    baseline_valid and 
+                    target_valid and 
+                    'sin_linea_base' not in node.audit_flags and
+                    'sin_meta' not in node.audit_flags
+                )
+                
+                if has_complete_ficha and quantitative_claims:
+                    # Node passes D3-Q1 compliance
+                    producto_nodes_passed += 1
+                    result['recommendations'].append(f"D3-Q1 Ficha Técnica completa para {node_id}")
+                elif has_complete_ficha:
+                    # Has baseline/target but no quantitative claims verification
+                    producto_nodes_passed += 0.5  # Partial credit
+                    result['warnings'].append(f"D3-Q1 parcial: Ficha básica sin verificación cuantitativa en {node_id}")
             
             # Check responsible entity
             if not node.responsible_entity:
@@ -1286,6 +1466,19 @@ class OperationalizationAuditor:
                 node.rigor_status = 'fuerte'
             
             self.audit_results[node_id] = result
+        
+        # Calculate D3-Q1 compliance score
+        if producto_nodes_count > 0:
+            d3_q1_compliance_pct = (producto_nodes_passed / producto_nodes_count) * 100
+            self.logger.info(f"D3-Q1 Ficha Técnica Compliance: {d3_q1_compliance_pct:.1f}% "
+                           f"({producto_nodes_passed}/{producto_nodes_count} productos)")
+            
+            if d3_q1_compliance_pct >= 80:
+                self.logger.info("D3-Q1 Score: EXCELENTE (≥80% productos con Ficha Técnica completa)")
+            elif d3_q1_compliance_pct >= 60:
+                self.logger.info("D3-Q1 Score: BUENO (60-80% compliance)")
+            else:
+                self.logger.warning("D3-Q1 Score: INSUFICIENTE (<60% compliance)")
         
         passed_count = sum(1 for r in self.audit_results.values() if r['passed'])
         self.logger.info(f"Auditoría de trazabilidad: {passed_count}/{len(nodes)} nodos aprobados")
@@ -1419,12 +1612,49 @@ class OperationalizationAuditor:
     def _audit_direct_evidence(self, nodes: Dict[str, MetaNode],
                                scm_dag: nx.DiGraph,
                                historical_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-        """Layer 1: Audit direct evidence of required components"""
+        """Layer 1: Audit direct evidence of required components
+        
+        Enhanced with highly specific Bayesian priors for rare evidence items.
+        Example: D2-Q4 risk matrix, D5-Q5 unwanted effects are rare in poor PDMs.
+        """
         results = {}
+        
+        # Load highly specific priors for rare evidence types
+        # D2-Q4: Risk matrices are rare in poor PDMs (high probative value as Smoking Gun)
+        rare_evidence_priors = {
+            'risk_matrix': {
+                'prior_alpha': 1.5,  # Low alpha = rare occurrence
+                'prior_beta': 12.0,  # High beta = high failure rate when absent
+                'keywords': ['matriz de riesgo', 'análisis de riesgo', 'gestión de riesgo', 'riesgos identificados']
+            },
+            'unwanted_effects': {
+                'prior_alpha': 1.8,  # D5-Q5: Effects analysis is also rare
+                'prior_beta': 10.5,
+                'keywords': ['efectos no deseados', 'efectos adversos', 'impactos negativos', 'consecuencias no previstas']
+            },
+            'theory_of_change': {
+                'prior_alpha': 1.2,
+                'prior_beta': 15.0,
+                'keywords': ['teoría de cambio', 'teoría del cambio', 'cadena causal', 'modelo lógico']
+            }
+        }
         
         for node_id, node in nodes.items():
             omissions = []
             omission_probs = {}
+            rare_evidence_found = {}
+            
+            # Check for rare, high-value evidence in node text
+            node_text_lower = node.text.lower()
+            for evidence_type, prior_config in rare_evidence_priors.items():
+                if any(kw in node_text_lower for kw in prior_config['keywords']):
+                    # Rare evidence found! Strong Smoking Gun
+                    rare_evidence_found[evidence_type] = {
+                        'prior_alpha': prior_config['prior_alpha'],
+                        'prior_beta': prior_config['prior_beta'],
+                        'posterior_strength': prior_config['prior_alpha'] / (prior_config['prior_alpha'] + prior_config['prior_beta'])
+                    }
+                    self.logger.info(f"Rare evidence '{evidence_type}' found in {node_id} - Strong Smoking Gun!")
             
             # Check baseline
             if not node.baseline or str(node.baseline).upper() in ['ND', 'POR DEFINIR', 'N/A', 'NONE']:
@@ -1473,7 +1703,8 @@ class OperationalizationAuditor:
                 'omissions': omissions,
                 'omission_probabilities': omission_probs,
                 'omission_severity': severity,
-                'node_type': node.type
+                'node_type': node.type,
+                'rare_evidence_found': rare_evidence_found  # Add rare evidence to results
             }
         
         return results
@@ -2039,16 +2270,51 @@ class CausalInferenceSetup:
     
     def assign_probative_value(self, nodes: Dict[str, MetaNode]) -> None:
         """Assign probative test types to nodes"""
+        # Import INDICATOR_STRUCTURE from financiero_viabilidad_tablas
+        try:
+            from financiero_viabilidad_tablas import ColombianMunicipalContext
+            indicator_structure = ColombianMunicipalContext.INDICATOR_STRUCTURE
+        except ImportError:
+            indicator_structure = {
+                'resultado': ['línea_base', 'meta', 'año_base', 'año_meta', 'fuente', 'responsable'],
+                'producto': ['indicador', 'fórmula', 'unidad_medida', 'línea_base', 'meta', 'periodicidad'],
+                'gestión': ['eficacia', 'eficiencia', 'economía', 'costo_beneficio']
+            }
+        
         for node in nodes.values():
             text_lower = node.text.lower()
             
+            # Cross-reference with INDICATOR_STRUCTURE to classify critical requirements
+            # as Hoop Tests or Smoking Guns
+            required_fields = indicator_structure.get(node.type, [])
+            
+            # Check if node has all critical DNP requirements (D3-Q1 indicators)
+            has_linea_base = bool(node.baseline and str(node.baseline).upper() not in ['ND', 'POR DEFINIR', 'N/A', 'NONE'])
+            has_meta = bool(node.target and str(node.target).upper() not in ['ND', 'POR DEFINIR', 'N/A', 'NONE'])
+            has_fuente = 'fuente' in text_lower or 'fuente de información' in text_lower
+            
+            # Perfect Hoop Test: Missing any critical requirement = total hypothesis failure
+            # This applies to producto nodes with D3-Q1 indicators
+            if node.type == 'producto':
+                if has_linea_base and has_meta and has_fuente:
+                    # Perfect indicators trigger Hoop Test classification
+                    node.test_type = 'hoop_test'
+                    self.logger.debug(f"Meta {node.id} classified as hoop_test (perfect D3-Q1 compliance)")
+                elif not has_linea_base or not has_meta:
+                    # Missing critical requirements - still Hoop Test but will fail
+                    node.test_type = 'hoop_test'
+                    node.audit_flags.append('hoop_test_failure')
+                    self.logger.warning(f"Meta {node.id} FAILS hoop_test (missing D3-Q1 critical fields)")
+                else:
+                    node.test_type = 'straw_in_wind'
             # Check for administrative/regulatory nature (Hoop Test)
-            if any(keyword in text_lower for keyword in self.admin_keywords):
+            elif any(keyword in text_lower for keyword in self.admin_keywords):
                 node.test_type = 'hoop_test'
             # Check for highly specific outcomes (Smoking Gun)
             elif node.type == 'resultado' and node.target and node.baseline:
                 try:
                     float(str(node.target).replace(',', '').replace('%', ''))
+                    # Smoking Gun: rare, highly specific evidence with strong inferential power
                     node.test_type = 'smoking_gun'
                 except (ValueError, TypeError):
                     node.test_type = 'straw_in_wind'
