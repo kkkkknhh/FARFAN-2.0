@@ -402,13 +402,5 @@ def configure_container(config: Any = None) -> DIContainer:
     # Component Interfaces with Explicit Registrations
     # ========================================================================
 
-    # Note: Actual implementations would be registered here when available
-    # Example:
-    # from extraction import PDFProcessor
-    # container.register_transient(IExtractor, PDFProcessor)
-
-    # from inference.bayesian_engine import BayesianSamplingEngine
-    # container.register_singleton(IBayesianEngine, BayesianSamplingEngine)
-
     logger.info("DIContainer configured with graceful degradation")
     return container

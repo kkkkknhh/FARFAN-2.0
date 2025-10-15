@@ -71,9 +71,6 @@ class EnrichmentValidationWarning(CDAFValidationError):
 
 # ============================================================================
 # Data Structures
-# ============================================================================
-
-
 class ComponentType(str, Enum):
     """Type of validation component"""
 

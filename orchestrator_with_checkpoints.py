@@ -131,10 +131,10 @@ class CheckpointedOrchestrator:
         if resume_from:
             logger.info(f"Resuming from checkpoint: {resume_from}")
             ctx_dict = self.checkpoint.load(resume_from)
-            ctx = PipelineContext(**ctx_dict)
             # Determine which stage to resume from
             resume_stage = ctx_dict.get("_last_completed_stage", 0)
             logger.info(f"Resuming from stage {resume_stage + 1}")
+            ctx = PipelineContext(**ctx_dict)
         else:
             ctx = PipelineContext(
                 pdf_path=pdf_path, policy_code=policy_code, output_dir=self.output_dir
@@ -382,7 +382,7 @@ def main():
 
         # Show final statistics
         stats = orchestrator.get_statistics()
-        print(f"\nCheckpoint Statistics:")
+        print("\nCheckpoint Statistics:")
         print(f"  Total: {stats['total_checkpoints']} checkpoints")
         print(f"  Size: {stats['total_size_mb']} MB")
 

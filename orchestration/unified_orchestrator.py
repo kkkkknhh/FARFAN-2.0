@@ -446,9 +446,6 @@ class UnifiedOrchestrator:
         async with self._stage_context(PipelineStage.STAGE_3_BAYESIAN) as metric:
             self.logger.info("Stage 3: Running Bayesian inference with snapshot priors")
             
-            # Use streaming updater for incremental inference
-            updater = StreamingBayesianUpdater(event_bus=self.event_bus)
-            
             mechanisms = []
             posteriors = {}
             
@@ -670,8 +667,6 @@ class UnifiedOrchestrator:
             
             # Apply penalties to prior store for NEXT run
             if penalty_factors:
-                feedback_data = {'penalty_factors': penalty_factors}
-                
                 # Update priors via learning loop
                 from dataclasses import dataclass as dc
                 @dc

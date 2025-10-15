@@ -347,7 +347,7 @@ class PipelineCheckpoint:
                         f"Creating incremental checkpoint (delta size: {delta_size}, full size: {full_size})"
                     )
                 else:
-                    logger.info(f"Delta not beneficial, creating full checkpoint")
+                    logger.info("Delta not beneficial, creating full checkpoint")
             except Exception as e:
                 logger.warning(
                     f"Failed to create incremental checkpoint: {e}, creating full checkpoint"
