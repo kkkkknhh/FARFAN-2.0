@@ -22,6 +22,7 @@ index.html
 
 # Orchestrator logs (keep directory, ignore log files)
 logs/orchestrator/*.json
+logs/orchestrator/audit_store/*.json
 !logs/orchestrator/.gitkeep
 
 # Virtual environment

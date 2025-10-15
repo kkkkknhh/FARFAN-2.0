@@ -123,7 +123,12 @@ class AnalyticalOrchestrator:
                 "execution_end": None
             }
         }
-        
+
+        # Audit store configuration (for append_audit_record)
+        self._audit_store_dir = self.log_dir / "audit_store"
+        self._audit_store_dir.mkdir(parents=True, exist_ok=True)
+        self._retention_years = 7  # 7-year retention for compliance
+
         # Logger
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(
