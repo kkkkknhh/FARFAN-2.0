@@ -6,17 +6,17 @@ Part 2: Causal Mechanism Rigor (Analytical D3, D6 Audit)
 """
 
 from audits.causal_mechanism_auditor import (
+    ActivityLogicResult,
     CausalMechanismAuditor,
+    CausalProportionalityResult,
     MechanismNecessityResult,
     RootCauseMappingResult,
-    CausalProportionalityResult,
-    ActivityLogicResult
 )
 
 __all__ = [
-    'CausalMechanismAuditor',
-    'MechanismNecessityResult',
-    'RootCauseMappingResult',
-    'CausalProportionalityResult',
-    'ActivityLogicResult'
+    "CausalMechanismAuditor",
+    "MechanismNecessityResult",
+    "RootCauseMappingResult",
+    "CausalProportionalityResult",
+    "ActivityLogicResult",
 ]
