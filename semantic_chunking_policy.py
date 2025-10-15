@@ -38,7 +38,11 @@ RESULTADOS = "resultados" # Efectos mediano plazo
 IMPACTOS = "impactos" # Transformación estructural largo plazo
 SUPUESTOS = "supuestos" # Condiciones habilitantes
 class PDMSection(Enum):
-"""Estructura típica PDM colombiano (Ley 152/1994)"""
+"""
+Enumerates the typical sections of a Colombian Municipal Development Plan (PDM),
+as defined by Ley 152/1994. Each member represents a key structural component
+of the PDM document, facilitating semantic analysis and policy structure recognition.
+"""
 DIAGNOSTICO = "diagnostico"
 VISION_ESTRATEGICA = "vision_estrategica"
 PLAN_PLURIANUAL = "plan_plurianual"
