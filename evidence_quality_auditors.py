@@ -684,8 +684,7 @@ class QuantifiedGapAuditor:
             recommendations.append(
                 f"Cuantificar {total_gaps - quantified_gaps} brechas adicionales para calibración QCA (Ragin 2008)"
             )
-
-        if quantification_ratio >= 0.70:
+        elif quantification_ratio >= 0.70:
             recommendations.append(
                 "Brechas cuantificadas mejoran calibración QCA y robustez MMR"
             )
