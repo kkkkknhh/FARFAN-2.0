@@ -318,15 +318,15 @@ pos_weight = 1.0 - (meta["position"] / max(1, n)) * POSITION_WEIGHT_SCALE
 # Content type weight
 content_weight = 1.0
 if meta.get("has_table", False):
-content_weight *= 1.2
+content_weight *= TABLE_WEIGHT_FACTOR
 if meta.get("has_numerical", False):
-content_weight *= 1.15
+content_weight *= NUMERICAL_WEIGHT_FACTOR
 # Section type weight (plan sections > diagnostic)
 section_type = meta.get("section_type")
 if section_type in [PDMSection.PLAN_PLURIANUAL, PDMSection.PLAN_INVERSIONES]:
-content_weight *= 1.25
+content_weight *= PLAN_SECTION_WEIGHT_FACTOR
 elif section_type == PDMSection.DIAGNOSTICO:
-content_weight *= 0.9
+content_weight *= DIAGNOSTIC_SECTION_WEIGHT_FACTOR
 weights[i] = pos_weight * content_weight
 # Normalize to sum to n (preserve total evidence mass)
 return weights * (n / weights.sum())
