@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-
+Infrastructure Module
 Provides infrastructure components for resilient external service integration:
 - Circuit Breaker pattern for cascading failure prevention
 - Resilient DNP Validator with fail-open policy
 - Service health monitoring and metrics
+- Resource pool management and computational infrastructure
 
 Author: AI Systems Architect
 Version: 1.0.0
@@ -25,6 +26,14 @@ from infrastructure.resilient_dnp_validator import (
     ValidationResult,
     create_resilient_validator,
 )
+from infrastructure.resource_pool import (
+    BayesianInferenceEngine,
+    ResourceConfig,
+    ResourcePool,
+    Worker,
+    WorkerMemoryError,
+    WorkerTimeoutError,
+)
 
 __all__ = [
     # Circuit Breaker
@@ -39,23 +48,7 @@ __all__ = [
     "PDMData",
     "DNPAPIClient",
     "create_resilient_validator",
-]
-
-__version__ = "1.0.0"
-Infrastructure Module
-Provides resource management and computational infrastructure
-"""
-
-from infrastructure.resource_pool import (
-    BayesianInferenceEngine,
-    ResourceConfig,
-    ResourcePool,
-    Worker,
-    WorkerMemoryError,
-    WorkerTimeoutError,
-)
-
-__all__ = [
+    # Resource Pool
     "ResourceConfig",
     "Worker",
     "ResourcePool",
@@ -63,3 +56,5 @@ __all__ = [
     "WorkerMemoryError",
     "BayesianInferenceEngine",
 ]
+
+__version__ = "1.0.0"
