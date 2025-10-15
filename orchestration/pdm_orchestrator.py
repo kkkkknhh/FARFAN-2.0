@@ -3,10 +3,14 @@
 """
 PDM Orchestrator with Explicit State Machine
 Implements Phase 0-IV execution with observability, backpressure, and audit logging
+
+SIN_CARRETA Compliance:
+- Uses centralized calibration constants
+- Immutable audit logging with SHA-256 provenance
+- Deterministic state machine transitions
 """
 
 import asyncio
-import hashlib
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -16,6 +20,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import pandas as pd
+
+# SIN_CARRETA Compliance: Use centralized infrastructure
+from infrastructure.calibration_constants import CALIBRATION
+from infrastructure.metrics_collector import MetricsCollector
+from infrastructure.audit_logger import ImmutableAuditLogger
 
 
 class PDMAnalysisState(str, Enum):
@@ -121,73 +130,7 @@ class DataQualityError(Exception):
     pass
 
 
-class MetricsCollector:
-    """Collects and tracks metrics during pipeline execution"""
-
-    def __init__(self):
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.metrics: Dict[str, List[float]] = {}
-        self.counters: Dict[str, int] = {}
-        self.alerts: List[Dict[str, Any]] = []
-
-    def record(self, metric_name: str, value: float) -> None:
-        """Record a metric value"""
-        if metric_name not in self.metrics:
-            self.metrics[metric_name] = []
-        self.metrics[metric_name].append(value)
-        self.logger.debug(f"Metric recorded: {metric_name}={value}")
-
-    def increment(self, counter_name: str) -> None:
-        """Increment a counter"""
-        self.counters[counter_name] = self.counters.get(counter_name, 0) + 1
-        self.logger.debug(
-            f"Counter incremented: {counter_name}={self.counters[counter_name]}"
-        )
-
-    def alert(self, level: str, message: str) -> None:
-        """Record an alert"""
-        alert = {
-            "level": level,
-            "message": message,
-            "timestamp": pd.Timestamp.now().isoformat(),
-        }
-        self.alerts.append(alert)
-        self.logger.warning(f"Alert [{level}]: {message}")
-
-    def get_summary(self) -> Dict[str, Any]:
-        """Get summary of all metrics"""
-        return {
-            "metrics": {
-                k: {"count": len(v), "last": v[-1] if v else 0}
-                for k, v in self.metrics.items()
-            },
-            "counters": self.counters,
-            "alerts": self.alerts,
-        }
-
-
-class ImmutableAuditLogger:
-    """Immutable audit logger for governance compliance"""
-
-    def __init__(self, audit_store_path: Optional[Path] = None):
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.audit_store_path = audit_store_path or Path("audit_logs.jsonl")
-        self.records: List[Dict[str, Any]] = []
-
-    def append_record(self, **kwargs) -> None:
-        """Append an immutable audit record"""
-        record = {**kwargs, "audit_timestamp": pd.Timestamp.now().isoformat()}
-        self.records.append(record)
-
-        # Persist to disk
-        try:
-            import json
-
-            with open(self.audit_store_path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(record, ensure_ascii=False) + "\n")
-            self.logger.info(f"Audit record appended: run_id={kwargs.get('run_id')}")
-        except Exception as e:
-            self.logger.error(f"Failed to persist audit record: {e}")
+# MetricsCollector and ImmutableAuditLogger now imported from infrastructure
 
 
 class PDMOrchestrator:
@@ -233,18 +176,6 @@ class PDMOrchestrator:
         """Generate unique run ID"""
         timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
         return f"run_{timestamp}_{id(self) % 10000}"
-
-    def _hash_file(self, pdf_path: str) -> str:
-        """Generate SHA256 hash of file"""
-        try:
-            sha256_hash = hashlib.sha256()
-            with open(pdf_path, "rb") as f:
-                for byte_block in iter(lambda: f.read(4096), b""):
-                    sha256_hash.update(byte_block)
-            return sha256_hash.hexdigest()
-        except Exception as e:
-            self.logger.warning(f"Could not hash file {pdf_path}: {e}")
-            return "unknown"
 
     def _transition_state(self, new_state: PDMAnalysisState) -> None:
         """Transition to new state with logging"""
@@ -294,8 +225,9 @@ class PDMOrchestrator:
             # Immutable Audit Log (Governance Standard)
             self.audit_logger.append_record(
                 run_id=run_id,
-                timestamp=pd.Timestamp.now().isoformat(),
-                sha256_source=self._hash_file(pdf_path),
+                orchestrator="PDMOrchestrator",
+                sha256_source=ImmutableAuditLogger.hash_file(pdf_path),
+                event="analyze_plan_complete",
                 duration_seconds=duration,
                 final_state=self.state.value,
                 result_summary=result.to_audit_dict(),
@@ -312,8 +244,10 @@ class PDMOrchestrator:
         self.metrics.record("extraction.chunk_count", len(extraction.semantic_chunks))
         self.metrics.record("extraction.table_count", len(extraction.tables))
 
-        # Quality gate check
-        min_quality_threshold = getattr(self.config, "min_quality_threshold", 0.5)
+        # Quality gate check (SIN_CARRETA compliance)
+        min_quality_threshold = getattr(
+            self.config, "min_quality_threshold", CALIBRATION.MIN_QUALITY_THRESHOLD
+        )
         if extraction.extraction_quality.get("score", 1.0) < min_quality_threshold:
             raise DataQualityError(
                 f"Extraction quality too low: {extraction.extraction_quality}"
@@ -368,11 +302,11 @@ class PDMOrchestrator:
             extraction_quality=extraction.extraction_quality,
         )
 
-        # D6 dimension alert (Observability)
+        # D6 dimension alert (Observability) - SIN_CARRETA compliance
         d6_score = final_score.dimension_scores.get("D6", 0.7)
         self.metrics.record("dimension.avg_score_D6", d6_score)
-        if d6_score < 0.55:
-            self.metrics.alert("CRITICAL", "D6_SCORE_BELOW_THRESHOLD")
+        if d6_score < CALIBRATION.D6_ALERT_THRESHOLD:
+            self.metrics.alert("CRITICAL", f"D6_SCORE_BELOW_THRESHOLD: {d6_score} < {CALIBRATION.D6_ALERT_THRESHOLD}")
 
         self._transition_state(PDMAnalysisState.COMPLETED)
 
