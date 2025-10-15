@@ -991,6 +991,20 @@ class CausalExtractor:
             )
             posterior_std = np.sqrt(posterior_var)
             
+            # AUDIT POINT 2.1: Structural Veto (D6-Q2)
+            # TeoriaCambio validation - caps Bayesian posterior ≤0.6 for impermissible links
+            # Implements axiomatic-Bayesian fusion per Goertz & Mahoney 2012
+            structural_violation = self._check_structural_violation(source, target)
+            if structural_violation:
+                # Deterministic veto: cap posterior at 0.6 despite high semantic evidence
+                original_posterior = posterior_mean
+                posterior_mean = min(posterior_mean, 0.6)
+                self.logger.warning(
+                    f"STRUCTURAL VETO (D6-Q2): Link {source}→{target} violates causal hierarchy. "
+                    f"Posterior capped from {original_posterior:.3f} to {posterior_mean:.3f}. "
+                    f"Violation: {structural_violation}"
+                )
+            
             # Check convergence (require minimum evidence count)
             converged = (len(kl_divs) >= convergence_min_evidence and 
                         len(kl_divs) > 0 and kl_divs[-1] < kl_threshold)
@@ -1008,7 +1022,9 @@ class CausalExtractor:
                 posterior_beta=float(posterior_beta),
                 kl_divergence=float(final_kl),
                 converged=converged,
-                evidence_count=len(evidences)
+                evidence_count=len(evidences),
+                structural_violation=structural_violation,
+                veto_applied=structural_violation is not None
             )
             
             self.causal_chains.append({
@@ -1086,6 +1102,46 @@ class CausalExtractor:
             return transition_priors[reverse_key] * 0.3
         
         return transition_priors.get((source_type, target_type), 0.40)
+    
+    def _check_structural_violation(self, source: str, target: str) -> Optional[str]:
+        """
+        AUDIT POINT 2.1: Structural Veto (D6-Q2)
+        
+        Check if causal link violates structural hierarchy based on TeoriaCambio axioms.
+        Implements set-theoretic constraints per Goertz & Mahoney 2012.
+        
+        Returns:
+            None if link is valid, otherwise a string describing the violation
+        """
+        source_type = self.nodes[source].type
+        target_type = self.nodes[target].type
+        
+        # Define causal hierarchy levels (following TeoriaCambio axioms)
+        # Lower levels cannot causally influence higher levels
+        hierarchy_levels = {
+            'programa': 1,
+            'producto': 2,
+            'resultado': 3,
+            'impacto': 4
+        }
+        
+        source_level = hierarchy_levels.get(source_type, 0)
+        target_level = hierarchy_levels.get(target_type, 0)
+        
+        # Impermissible links: jumping more than 2 levels or reverse causation
+        if target_level < source_level:
+            # Reverse causation (e.g., Impacto → Producto)
+            return f"reverse_causation:{source_type}→{target_type}"
+        
+        if target_level - source_level > 2:
+            # Skipping levels (e.g., Programa → Impacto without intermediates)
+            return f"level_skip:{source_type}→{target_type} (skips {target_level - source_level - 1} levels)"
+        
+        # Special case: Producto → Impacto is impermissible (must go through Resultado)
+        if source_type == 'producto' and target_type == 'impacto':
+            return f"missing_intermediate:producto→impacto requires resultado"
+        
+        return None
     
     def _calculate_language_specificity(self, keyword: str, policy_area: Optional[str] = None, 
                                        context: Optional[str] = None) -> float:
@@ -2127,12 +2183,18 @@ class OperationalizationAuditor:
                             direct_evidence: Dict[str, Dict[str, Any]],
                             causal_implications: Dict[str, Dict[str, Any]],
                             pdet_alignment: Optional[float] = None) -> Dict[str, Any]:
-        """Layer 3: Calculate systemic risk from accumulated omissions
+        """
+        AUDIT POINT 2.3: Policy Alignment Dual Constraint
+        Layer 3: Calculate systemic risk from accumulated omissions
         
         Harmonic Front 3 - Enhancement 1: Alignment and Systemic Risk Linkage
         Incorporates Policy Alignment scores (PND, ODS, RRI) as variable in systemic risk.
-        For D5-Q4 (Riesgos Sistémicos) and D4-Q5 (Alineación): if pdet_alignment < 0.60,
-        applies 1.2× multiplier to risk_score. Excelente on D5-Q4 requires risk_score < 0.10.
+        
+        For D5-Q4 (Riesgos Sistémicos) and D4-Q5 (Alineación):
+        - If pdet_alignment ≤ 0.60, applies 1.2× multiplier to risk_score
+        - Excelente on D5-Q4 requires risk_score < 0.10
+        
+        Implements dual constraints integrating macro-micro causality per Lieberman 2015.
         """
         
         # Identify critical nodes (high centrality)
@@ -2166,15 +2228,22 @@ class OperationalizationAuditor:
         else:
             risk_score = 0.0
         
-        # HARMONIC FRONT 3 - Enhancement 1: Apply alignment penalty
-        # If pdet_alignment < 0.60, apply 1.2× multiplier to risk_score
+        # AUDIT POINT 2.3: Policy Alignment Dual Constraint
+        # If pdet_alignment ≤ 0.60, apply 1.2× multiplier to risk_score
         # This enforces integration between D4-Q5 (Alineación) and D5-Q4 (Riesgos Sistémicos)
         alignment_penalty_applied = False
-        if pdet_alignment is not None and pdet_alignment < 0.60:
-            risk_score = risk_score * 1.2
+        alignment_threshold = 0.60
+        alignment_multiplier = 1.2
+        
+        if pdet_alignment is not None and pdet_alignment <= alignment_threshold:
+            original_risk = risk_score
+            risk_score = risk_score * alignment_multiplier
             alignment_penalty_applied = True
-            self.logger.warning(f"Alignment penalty applied: pdet_alignment={pdet_alignment:.2f} < 0.60, "
-                              f"risk_score multiplied by 1.2")
+            self.logger.warning(
+                f"ALIGNMENT PENALTY (D5-Q4): pdet_alignment={pdet_alignment:.2f} ≤ {alignment_threshold}, "
+                f"risk_score escalated from {original_risk:.3f} to {risk_score:.3f} "
+                f"(multiplier: {alignment_multiplier}×). Dual constraint per Lieberman 2015."
+            )
         
         # Calculate P(success | current_state)
         total_omissions = sum(len(e['omissions']) for e in direct_evidence.values())
@@ -2185,14 +2254,26 @@ class OperationalizationAuditor:
         base_success_rate = 0.70
         success_probability = base_success_rate * completeness
         
-        # D5-Q4 quality criteria check
+        # D5-Q4 quality criteria check (AUDIT POINT 2.3)
+        # Excellent requires risk_score < 0.10 (matching ODS benchmarks per UN 2020)
         d5_q4_quality = 'insuficiente'
-        if risk_score < 0.10:
+        risk_threshold_excellent = 0.10
+        risk_threshold_good = 0.20
+        risk_threshold_acceptable = 0.35
+        
+        if risk_score < risk_threshold_excellent:
             d5_q4_quality = 'excelente'
-        elif risk_score < 0.20:
+        elif risk_score < risk_threshold_good:
             d5_q4_quality = 'bueno'
-        elif risk_score < 0.35:
+        elif risk_score < risk_threshold_acceptable:
             d5_q4_quality = 'aceptable'
+        
+        # Flag if alignment is causing quality failure
+        alignment_causing_failure = (
+            alignment_penalty_applied and 
+            original_risk < risk_threshold_excellent and 
+            risk_score >= risk_threshold_excellent
+        )
         
         return {
             'risk_score': min(1.0, risk_score),
@@ -2202,8 +2283,16 @@ class OperationalizationAuditor:
             'total_omissions': total_omissions,
             'pdet_alignment': pdet_alignment,
             'alignment_penalty_applied': alignment_penalty_applied,
+            'alignment_threshold': alignment_threshold,
+            'alignment_multiplier': alignment_multiplier,
+            'alignment_causing_failure': alignment_causing_failure,
             'd5_q4_quality': d5_q4_quality,
-            'd4_q5_alignment_score': pdet_alignment
+            'd4_q5_alignment_score': pdet_alignment,
+            'risk_thresholds': {
+                'excellent': risk_threshold_excellent,
+                'good': risk_threshold_good,
+                'acceptable': risk_threshold_acceptable
+            }
         }
     
     def _generate_optimal_remediations(self, 
@@ -2599,7 +2688,20 @@ class BayesianMechanismInference:
     
     def _test_necessity(self, node: MetaNode, 
                        observations: Dict[str, Any]) -> Dict[str, Any]:
-        """Test if mechanism is necessary or if alternatives exist"""
+        """
+        AUDIT POINT 2.2: Mechanism Necessity Hoop Test
+        
+        Test if mechanism is necessary by checking documented components:
+        - Entity (responsable)
+        - Activity (verb lemma sequence)
+        - Budget (presupuesto asignado)
+        
+        Implements Beach 2017 Hoop Tests for necessity verification.
+        Per Falleti & Lynch 2009, Bayesian-deterministic hybrid boosts mechanism depth.
+        
+        Returns:
+            Dict with 'is_necessary', 'missing_components', and remediation text
+        """
         # F1.2: Use refactored NecessitySufficiencyTester if available
         if self.bayesian_adapter and self.bayesian_adapter.necessity_tester:
             try:
@@ -2610,27 +2712,81 @@ class BayesianMechanismInference:
             except Exception as e:
                 self.logger.warning(f"Error en tester refactorizado: {e}, usando legacy")
         
-        # Legacy implementation
-        # Check uniqueness of entity
+        # AUDIT POINT 2.2: Enhanced necessity test with documented components
+        missing_components = []
+        
+        # 1. Check Entity documentation
         entities = observations.get('entities', [])
-        unique_entity = len(set(entities)) == 1 if entities else False
+        entity_activity = observations.get('entity_activity')
         
-        # Check specificity of activities
+        if not entity_activity or not entity_activity.get('entity'):
+            missing_components.append('entity')
+        else:
+            # Verify unique entity (not multiple conflicting entities)
+            unique_entity = len(set(entities)) == 1 if entities else False
+            if not unique_entity and len(entities) > 1:
+                missing_components.append('unique_entity')
+        
+        # 2. Check Activity documentation (verb lemma sequence)
         verbs = observations.get('verbs', [])
-        specific_verbs = len([v for v in verbs if v in [
-            'implementar', 'ejecutar', 'realizar', 'desarrollar'
-        ]]) > 0
+        if not verbs or len(verbs) < 1:
+            missing_components.append('activity')
+        else:
+            # Check for specific action verbs (not just generic ones)
+            specific_verbs = [v for v in verbs if v in [
+                'implementar', 'ejecutar', 'realizar', 'desarrollar',
+                'construir', 'diseñar', 'planificar', 'coordinar',
+                'gestionar', 'supervisar', 'controlar', 'auditar'
+            ]]
+            if not specific_verbs:
+                missing_components.append('specific_activity')
         
-        necessity_score = (
-            (0.5 if unique_entity else 0.3) +
-            (0.5 if specific_verbs else 0.3)
-        )
+        # 3. Check Budget documentation
+        budget = observations.get('budget')
+        if budget is None or budget <= 0:
+            missing_components.append('budget')
         
-        return {
+        # Calculate necessity score
+        # All three components must be present for necessity=True
+        is_necessary = len(missing_components) == 0
+        
+        # Calculate partial score for reporting
+        max_components = 3  # entity, activity, budget
+        present_components = max_components - len([c for c in missing_components if c in ['entity', 'activity', 'budget']])
+        necessity_score = present_components / max_components
+        
+        result = {
             'score': necessity_score,
-            'is_necessary': necessity_score >= 0.7,
-            'alternatives_likely': necessity_score < 0.5
+            'is_necessary': is_necessary,
+            'missing_components': missing_components,
+            'alternatives_likely': not is_necessary,
+            'hoop_test_passed': is_necessary
         }
+        
+        # Add remediation text if test fails
+        if not is_necessary:
+            result['remediation'] = self._generate_necessity_remediation(node.id, missing_components)
+        
+        return result
+    
+    def _generate_necessity_remediation(self, node_id: str, missing_components: List[str]) -> str:
+        """Generate remediation text for failed necessity test"""
+        component_descriptions = {
+            'entity': 'entidad responsable claramente identificada',
+            'unique_entity': 'una única entidad responsable (múltiples entidades detectadas)',
+            'activity': 'secuencia de actividades documentada',
+            'specific_activity': 'actividades específicas (no genéricas)',
+            'budget': 'presupuesto asignado y cuantificado'
+        }
+        
+        missing_desc = ', '.join([component_descriptions.get(c, c) for c in missing_components])
+        
+        return (
+            f"Mecanismo para {node_id} falla Hoop Test de necesidad (D6-Q2). "
+            f"Componentes faltantes: {missing_desc}. "
+            f"Se requiere documentar estos componentes necesarios para validar "
+            f"la cadena causal según Beach 2017."
+        )
     
     def _quantify_uncertainty(self, mechanism_type_posterior: Dict[str, float],
                              sequence_posterior: Dict[str, Any],
