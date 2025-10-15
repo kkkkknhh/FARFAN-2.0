@@ -18,6 +18,7 @@ Design Principles:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -124,6 +125,13 @@ class AnalyticalOrchestrator:
         
         # Audit log storage
         self._audit_log: List[PhaseResult] = []
+        
+        # Audit record storage (Audit Point 5.3: Immutable append-only store)
+        self._audit_store_dir = self.log_dir / "audit_store"
+        self._audit_store_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Retention configuration (7-year retention per SOTA governance)
+        self._retention_years = 7
         
         # Global report dictionary
         self._global_report: Dict[str, Any] = {
@@ -501,6 +509,152 @@ class AnalyticalOrchestrator:
             json.dump(audit_data, f, indent=2, ensure_ascii=False)
         
         self.logger.info(f"Audit log persisted to: {log_file}")
+    
+    def append_audit_record(
+        self,
+        run_id: str,
+        analysis_results: Dict[str, Any],
+        source_text: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Append analysis results to immutable audit store.
+        
+        AUDIT POINT 5.3: Immutable Audit Governance
+        - Append-only storage for longitudinal audits
+        - Mandatory fields: run_id, timestamp, sha256_source
+        - 7-year retention for compliance
+        - Hash verification for non-repudiability
+        
+        Args:
+            run_id: Unique identifier for this analysis run
+            analysis_results: Complete results from orchestration
+            source_text: Original source document text for hash generation
+            
+        Returns:
+            Record metadata including hash and storage location
+        """
+        timestamp = datetime.now().isoformat()
+        
+        # Calculate SHA256 hash of source text for traceability
+        sha256_source = hashlib.sha256(source_text.encode('utf-8')).hexdigest()
+        
+        # Build audit record with mandatory fields
+        audit_record = {
+            "run_id": run_id,
+            "timestamp": timestamp,
+            "sha256_source": sha256_source,
+            "retention_until": self._calculate_retention_date(timestamp),
+            "analysis_results": analysis_results,
+            "calibration": self.calibration,
+            "framework_version": "2.0.0"
+        }
+        
+        # Calculate record hash for immutability verification
+        record_hash = self._calculate_record_hash(audit_record)
+        audit_record["record_hash"] = record_hash
+        
+        # Write to append-only store
+        record_path = self._audit_store_dir / f"audit_{run_id}_{timestamp.replace(':', '-')}.json"
+        
+        with open(record_path, 'w', encoding='utf-8') as f:
+            json.dump(audit_record, f, indent=2, ensure_ascii=False)
+        
+        self.logger.info(
+            f"Audit record appended to immutable store: {record_path} "
+            f"(hash: {record_hash[:16]}...)"
+        )
+        
+        return {
+            "record_path": str(record_path),
+            "run_id": run_id,
+            "timestamp": timestamp,
+            "sha256_source": sha256_source,
+            "record_hash": record_hash,
+            "retention_until": audit_record["retention_until"]
+        }
+    
+    def verify_audit_record(self, record_path: Path) -> Dict[str, Any]:
+        """
+        Verify immutability of an audit record via hash verification.
+        
+        AUDIT POINT 5.3: Hash verification for non-repudiability
+        
+        Args:
+            record_path: Path to audit record file
+            
+        Returns:
+            Verification result with integrity status
+        """
+        try:
+            with open(record_path, 'r', encoding='utf-8') as f:
+                record = json.load(f)
+            
+            # Extract stored hash
+            stored_hash = record.pop("record_hash", None)
+            if not stored_hash:
+                return {
+                    "verified": False,
+                    "error": "No record_hash found in audit record"
+                }
+            
+            # Recalculate hash
+            recalculated_hash = self._calculate_record_hash(record)
+            
+            # Compare hashes
+            verified = stored_hash == recalculated_hash
+            
+            # Restore hash to record (don't modify file)
+            record["record_hash"] = stored_hash
+            
+            return {
+                "verified": verified,
+                "run_id": record.get("run_id"),
+                "timestamp": record.get("timestamp"),
+                "stored_hash": stored_hash,
+                "recalculated_hash": recalculated_hash,
+                "retention_until": record.get("retention_until")
+            }
+            
+        except Exception as e:
+            return {
+                "verified": False,
+                "error": str(e)
+            }
+    
+    def _calculate_retention_date(self, timestamp_iso: str) -> str:
+        """
+        Calculate retention expiration date (7 years from timestamp).
+        
+        Args:
+            timestamp_iso: ISO format timestamp
+            
+        Returns:
+            ISO format timestamp for retention expiration
+        """
+        from datetime import timedelta
+        
+        timestamp = datetime.fromisoformat(timestamp_iso)
+        retention_date = timestamp + timedelta(days=365 * self._retention_years)
+        return retention_date.isoformat()
+    
+    def _calculate_record_hash(self, record: Dict[str, Any]) -> str:
+        """
+        Calculate SHA256 hash of audit record for immutability verification.
+        
+        Args:
+            record: Audit record dictionary (without record_hash field)
+            
+        Returns:
+            SHA256 hex digest of record
+        """
+        # Create a copy without record_hash field
+        record_copy = {k: v for k, v in record.items() if k != "record_hash"}
+        
+        # Convert to deterministic JSON string
+        record_json = json.dumps(record_copy, sort_keys=True, ensure_ascii=False)
+        
+        # Calculate hash
+        return hashlib.sha256(record_json.encode('utf-8')).hexdigest()
     
     def _generate_error_report(self, error_message: str) -> Dict[str, Any]:
         """
