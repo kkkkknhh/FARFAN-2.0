@@ -22,6 +22,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import aiofiles
 import networkx as nx
 import pandas as pd
 
@@ -620,13 +621,13 @@ class UnifiedOrchestrator:
                 report_path = report_dir / f"report_{run_id}.json"
                 
                 import json
-                with open(report_path, 'w', encoding='utf-8') as f:
-                    json.dump({
+                async with aiofiles.open(report_path, 'w', encoding='utf-8') as f:
+                    await f.write(json.dumps({
                         'run_id': run_id,
                         'success': result.success,
                         'macro_score': result.macro_score,
                         'metrics': self.metrics.get_summary()
-                    }, f, indent=2)
+                    }, indent=2))
             
             metric.items_processed = 1
             
