@@ -441,6 +441,7 @@ class TestHumanInTheLoopGate(unittest.TestCase):
 # ============================================================================
 
 
+@unittest.skipUnless(BAYESIAN_AVAILABLE, "NumPy/SciPy not available")
 class TestCIContractEnforcement(unittest.TestCase):
     """
     Test suite for CI contract enforcement (Audit Point 5.5)
