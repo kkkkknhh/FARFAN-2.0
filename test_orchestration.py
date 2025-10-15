@@ -11,6 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import pytest
+
 from orchestration.learning_loop import (
     AdaptiveLearningLoop,
     Feedback,
@@ -121,8 +124,8 @@ def test_prior_store_operations():
 
     # Get default prior (should be fresh)
     prior = store.get_mechanism_prior("test_mechanism")
-    assert abs(prior.alpha - 2.0) < 1e-9
-    assert abs(prior.beta - 2.0) < 1e-9
+    assert prior.alpha == pytest.approx(2.0, rel=1e-6, abs=1e-9)
+    assert prior.beta == pytest.approx(2.0, rel=1e-6, abs=1e-9)
 
     # Update prior
     store.update_mechanism_prior(
@@ -130,7 +133,7 @@ def test_prior_store_operations():
     )
 
     updated_prior = store.get_mechanism_prior("test_mechanism")
-    assert abs(updated_prior.alpha - 1.8) < 1e-9
+    assert updated_prior.alpha == pytest.approx(1.8, rel=1e-6, abs=1e-9)
     assert updated_prior.update_count == 1
 
     # Save snapshot
@@ -188,7 +191,7 @@ def test_feedback_extraction():
 
     assert len(feedback.failed_mechanism_types) == 1
     assert len(feedback.passed_mechanism_types) == 1
-    assert abs(feedback.overall_quality - 0.7) < 1e-9
+    assert feedback.overall_quality == pytest.approx(0.7, rel=1e-6, abs=1e-9)
     assert "causal_link" in feedback.failed_mechanism_types
 
     print("✓ Feedback extraction working correctly")

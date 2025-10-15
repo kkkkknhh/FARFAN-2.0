@@ -8,6 +8,7 @@ import asyncio
 import tempfile
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 # Test the imports
@@ -43,7 +44,7 @@ def test_extracted_table_validation():
         row_count=2,
     )
     assert table.page_number == 1
-    assert table.confidence_score == pytest.approx(0.95)
+    assert table.confidence_score == pytest.approx(0.95, rel=1e-6, abs=1e-9)
 
     # Invalid: empty data
     with pytest.raises(ValueError):
@@ -98,7 +99,7 @@ def test_data_quality_metrics_validation():
         total_tables_extracted=3,
         total_chunks_created=10,
     )
-    assert metrics.completeness_score == pytest.approx(0.92)
+    assert metrics.completeness_score == pytest.approx(0.92, rel=1e-6, abs=1e-9)
     assert len(metrics.extraction_warnings) == 0
 
     # Invalid: quality score out of range
@@ -153,7 +154,9 @@ def test_extraction_result_structure():
     assert len(result.raw_text) == 20
     assert len(result.tables) == 1
     assert len(result.semantic_chunks) == 1
-    assert result.extraction_quality.completeness_score == pytest.approx(0.92)
+    assert result.extraction_quality.completeness_score == pytest.approx(
+        0.92, rel=1e-6, abs=1e-9
+    )
 
 
 def test_table_data_cleaner():

@@ -11,6 +11,9 @@ import json
 import tempfile
 from pathlib import Path
 
+import numpy as np
+import pytest
+
 from orchestrator import (
     COHERENCE_THRESHOLD,
     AnalyticalOrchestrator,
@@ -27,7 +30,9 @@ def test_orchestrator_creation():
 
     # Custom calibration
     orch2 = create_orchestrator(coherence_threshold=0.8)
-    assert abs(orch2.calibration["coherence_threshold"] - 0.8) < 1e-9
+    assert orch2.calibration["coherence_threshold"] == pytest.approx(
+        0.8, rel=1e-6, abs=1e-9
+    )
 
     print("✓ Test orchestrator creation PASSED")
 
@@ -150,7 +155,9 @@ def test_calibration_constants_usage():
     orch = create_orchestrator(coherence_threshold=0.85, causal_incoherence_limit=3)
 
     # Verify custom calibration is set
-    assert abs(orch.calibration["coherence_threshold"] - 0.85) < 1e-9
+    assert orch.calibration["coherence_threshold"] == pytest.approx(
+        0.85, rel=1e-6, abs=1e-9
+    )
     assert orch.calibration["causal_incoherence_limit"] == 3
 
     # Execute pipeline
@@ -159,13 +166,9 @@ def test_calibration_constants_usage():
     )
 
     # Verify calibration is in metadata
-    assert (
-        abs(
-            result["orchestration_metadata"]["calibration"]["coherence_threshold"]
-            - 0.85
-        )
-        < 1e-9
-    )
+    assert result["orchestration_metadata"]["calibration"][
+        "coherence_threshold"
+    ] == pytest.approx(0.85, rel=1e-6, abs=1e-9)
     assert (
         result["orchestration_metadata"]["calibration"]["causal_incoherence_limit"] == 3
     )
