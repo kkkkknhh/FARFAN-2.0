@@ -1904,8 +1904,8 @@ Análisis completo con contradicciones y métricas avanzadas
         weight_b = dimension_weight.get(stmt_b.dimension, 1.0)
         avg_weight = (weight_a + weight_b) / 2
 
-        entity_overlap = len(set(e['text'] for e in stmt_a.entities) & 
-                             set(e['text'] for e in stmt_b.entities))
+        entity_overlap = len({e['text'] for e in stmt_a.entities} & 
+                             {e['text'] for e in stmt_b.entities})
         overlap_factor = min(1.3, 1.0 + entity_overlap * 0.1)
 
         has_quantitative = bool(stmt_a.quantitative_claims and stmt_b.quantitative_claims)
@@ -2044,8 +2044,8 @@ Análisis completo con contradicciones y métricas avanzadas
             if any(dep in stmt_b.dependencies for dep in stmt_a.dependencies):
                 return 'hierarchical'
 
-        shared_entities = set(e['text'] for e in stmt_a.entities) & \
-            set(e['text'] for e in stmt_b.entities)
+        shared_entities = {e['text'] for e in stmt_a.entities} & \
+            {e['text'] for e in stmt_b.entities}
         if len(shared_entities) > 2:
             return 'strongly_related'
         elif len(shared_entities) > 0:
@@ -2280,10 +2280,11 @@ Análisis completo con contradicciones y métricas avanzadas
     ) -> Tuple[float, float]:
         """Intervalo de confianza mediante bootstrap"""
         bootstrap_scores = []
+        rng = np.random.default_rng()
 
         for _ in range(n_bootstrap):
             sample_size = max(1, int(n_observations * 0.8))
-            noise = np.random.normal(0, 0.05, sample_size)
+            noise = rng.normal(0, 0.05, sample_size)
             bootstrap_score = score + np.mean(noise)
             bootstrap_scores.append(np.clip(bootstrap_score, 0, 1))
 
@@ -2359,10 +2360,10 @@ Análisis completo con contradicciones y métricas avanzadas
                 'avg_confidence': float(avg_confidence),
                 'description': self._get_recommendation_description(cont_type),
                 'action_plan': conflicts[0].resolution_suggestions if conflicts else [],
-                'affected_sections': list(set(
+                'affected_sections': list({
                                               f"Dim: {c.statement_a.dimension.value}" 
                                               for c in conflicts
-                                          )),
+                                          }),
                 'estimated_effort': self._estimate_resolution_effort(cont_type, len(conflicts))
             }
             recommendations.append(recommendation)
