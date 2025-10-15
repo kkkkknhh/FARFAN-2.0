@@ -1,24 +1,137 @@
-            - name: ChartDB Database Sync
-  # You may pin to the exact commit or the version.
-  # uses: chartdb/chartdb-action@bf0d5213ffaae65d356cfb042b1b0b06e8581c12
-  uses: chartdb/chartdb-action@v1.0.0
-  with:
-    # Database host address
-    db-host: 
-    # Database port
-    db-port: # optional, default is 5432
-    # Database name
-    db-database: 
-    # Database username
-    db-username: 
-    # Database password (use secrets!)
-    db-password: # optional
-    # Database type (postgresql, mysql, mariadb, mssql)
-    db-type: 
-    # ChartDB API token (use secrets!)
-    chartdb-api-token: 
-    # ChartDB diagram ID to sync with
-    chartdb-diagram-id: 
-    # Docker network mode
-    network: # optional, default is host
-          
+name: FARFAN 2.0 CI - Contract Enforcement
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  contract-enforcement:
+    name: Contract & Review Enforcement
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git diff analysis
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install minimal dependencies for CI checks
+          pip install pydantic
+      
+      - name: Run Orchestrator Contract Checker
+        run: |
+          echo "::group::Orchestrator Contract Validation"
+          python ci_orchestrator_contract_checker.py
+          echo "::endgroup::"
+      
+      - name: Run Git Diff Contract Analyzer
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          echo "::group::Git Diff Contract Analysis"
+          python ci_git_diff_contract_analyzer.py
+          echo "::endgroup::"
+      
+      - name: Run Governance Standards Tests
+        run: |
+          echo "::group::Governance Standards Validation"
+          python ci_contract_enforcement.py
+          echo "::endgroup::"
+      
+      - name: Validate Cognitive Complexity
+        run: |
+          echo "::group::Cognitive Complexity Check"
+          python ci_cognitive_complexity_checker.py || echo "WARNING: Complexity checker not yet implemented"
+          echo "::endgroup::"
+        continue-on-error: true
+      
+      - name: Check for sin-carreta/approver label
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const hasApproverLabel = labels.some(label => 
+              label.name === 'sin-carreta/approver' || 
+              label.name === 'approved-by-sin-carreta'
+            );
+            
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const hasOrchestratorChanges = files.some(file => 
+              file.filename.includes('orchestrator') ||
+              file.filename.includes('infrastructure/')
+            );
+            
+            if (hasOrchestratorChanges && !hasApproverLabel) {
+              core.setFailed(
+                '⛔ MERGE BLOCKED: Orchestrator/infrastructure changes require ' +
+                'sin-carreta/approver label. See CONTRIBUTING.md for approval process.'
+              );
+            } else if (hasOrchestratorChanges) {
+              console.log('✓ sin-carreta/approver label found for orchestrator changes');
+            } else {
+              console.log('ℹ No orchestrator changes detected, approver label not required');
+            }
+      
+      - name: Comment PR with Violations
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## ⛔ Contract Enforcement Failure
+            
+            This PR has been automatically blocked due to contract violations.
+            
+            **Hard Refusal Clause**: The following violations were detected:
+            
+            - ❌ Missing assertions or contract checks in orchestrator phases
+            - ❌ Removal of telemetry/audit/contract code without SIN_CARRETA-RATIONALE
+            - ❌ Async/sync function changes without matching test updates
+            - ❌ Missing sin-carreta/approver label for orchestrator changes
+            
+            ### Required Actions
+            
+            1. **Review CI logs** for detailed violation reports
+            2. **Add explicit assertions** to all orchestrator phase methods
+            3. **Document removals** with SIN_CARRETA-RATIONALE in commit messages
+            4. **Update tests** for any async/sync function changes
+            5. **Request sin-carreta/approver label** if changing contract boundaries
+            
+            ### References
+            
+            - See \`CODE_FIX_REPORT.md\` for rationale documentation requirements
+            - See \`CONTRIBUTING.md\` for approval process
+            - See \`.github/copilot-instructions.md\` for orchestration principles
+            
+            ---
+            
+            *This is an automated enforcement gate. No shortcuts, simplifications, or ambiguity allowed.*
+            `;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
