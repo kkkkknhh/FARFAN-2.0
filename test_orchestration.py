@@ -105,9 +105,18 @@ def test_prior_store_operations():
     """Test PriorHistoryStore operations"""
     print("Testing PriorHistoryStore operations...")
     
-    store = PriorHistoryStore(Path("/tmp/test_priors.json"))
+    import os
+    import time
+    # Use unique filename to avoid collision with previous test runs
+    test_file = Path(f"/tmp/test_priors_{int(time.time() * 1000)}.json")
     
-    # Get default prior
+    # Ensure file doesn't exist
+    if test_file.exists():
+        test_file.unlink()
+    
+    store = PriorHistoryStore(test_file)
+    
+    # Get default prior (should be fresh)
     prior = store.get_mechanism_prior("test_mechanism")
     assert prior.alpha == 2.0
     assert prior.beta == 2.0
@@ -126,6 +135,10 @@ def test_prior_store_operations():
     # Save snapshot
     store.save_snapshot()
     assert len(store.snapshots) == 1
+    
+    # Clean up
+    if test_file.exists():
+        test_file.unlink()
     
     print("✓ PriorHistoryStore operations working correctly")
 
