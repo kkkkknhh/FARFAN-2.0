@@ -1,0 +1,1521 @@
+{
+  "metadata": {
+    "audit_version": "1.0",
+    "repository": "/home/runner/work/FARFAN-2.0/FARFAN-2.0",
+    "total_modules_analyzed": 14,
+    "canonical_flow_steps": 18
+  },
+  "flow_summary": [
+    {
+      "script": "dereck_beach",
+      "stage": "STAGE_1_2",
+      "function": "PDFProcessor.load_document",
+      "required_inputs": [
+        "pdf_path"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "dereck_beach",
+      "stage": "STAGE_1_2",
+      "function": "PDFProcessor.extract_text",
+      "required_inputs": [],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "dereck_beach",
+      "stage": "STAGE_1_2",
+      "function": "PDFProcessor.extract_tables",
+      "required_inputs": [],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "dereck_beach",
+      "stage": "STAGE_1_2",
+      "function": "PDFProcessor.extract_sections",
+      "required_inputs": [],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "initial_processor_causal_policy",
+      "stage": "STAGE_3",
+      "function": "PolicyDocumentAnalyzer.analyze_document",
+      "required_inputs": [
+        "text"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "dereck_beach",
+      "stage": "STAGE_4",
+      "function": "CausalExtractor.extract_causal_hierarchy",
+      "required_inputs": [
+        "text"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "dereck_beach",
+      "stage": "STAGE_4",
+      "function": "CausalExtractor.classify_goal",
+      "required_inputs": [
+        "text"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "dereck_beach",
+      "stage": "STAGE_5",
+      "function": "MechanismPartExtractor.extract_entity_activity",
+      "required_inputs": [
+        "text"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "dereck_beach",
+      "stage": "STAGE_5",
+      "function": "BayesianMechanismInference.infer_mechanism",
+      "required_inputs": [
+        "node",
+        "observations"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "dereck_beach",
+      "stage": "STAGE_6",
+      "function": "FinancialAuditor.trace_financial_allocation",
+      "required_inputs": [
+        "tables",
+        "nodes"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "dnp_integration",
+      "stage": "STAGE_7",
+      "function": "ValidadorDNP.validar_proyecto_integral",
+      "required_inputs": [
+        "sector",
+        "descripcion",
+        "indicadores_propuestos"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "competencias_municipales",
+      "stage": "STAGE_7",
+      "function": "CatalogoCompetenciasMunicipales.validar_competencia_municipal",
+      "required_inputs": [
+        "sector"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "mga_indicadores",
+      "stage": "STAGE_7",
+      "function": "CatalogoIndicadoresMGA.buscar_por_sector",
+      "required_inputs": [
+        "sector"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "pdet_lineamientos",
+      "stage": "STAGE_7",
+      "function": "LineamientosPDET.recomendar_lineamientos",
+      "required_inputs": [
+        "sector"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "question_answering_engine",
+      "stage": "STAGE_8",
+      "function": "QuestionAnsweringEngine.answer_all_questions",
+      "required_inputs": [
+        "pipeline_context"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "report_generator",
+      "stage": "STAGE_9",
+      "function": "ReportGenerator.generate_micro_report",
+      "required_inputs": [
+        "question_responses",
+        "policy_code"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "report_generator",
+      "stage": "STAGE_9",
+      "function": "ReportGenerator.generate_meso_report",
+      "required_inputs": [
+        "question_responses",
+        "policy_code"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    },
+    {
+      "script": "report_generator",
+      "stage": "STAGE_9",
+      "function": "ReportGenerator.generate_macro_report",
+      "required_inputs": [
+        "question_responses",
+        "compliance_score",
+        "policy_code"
+      ],
+      "transmits_to": "next_stage",
+      "data_format": "PipelineContext",
+      "resolution_mode": "pipeline"
+    }
+  ],
+  "coverage_evidence": {
+    "all_functions_used": false,
+    "unused_functions": [
+      {
+        "module": "orchestrator",
+        "function": "FARFANOrchestrator.process_plan",
+        "line": 317
+      },
+      {
+        "module": "orchestrator",
+        "function": "process_plan",
+        "line": 317
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ResponseAccumulator.add_contribution",
+        "line": 42
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ResponseAccumulator.synthesize",
+        "line": 56
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.register_module",
+        "line": 94
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.execute_module_stage",
+        "line": 99
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.accumulate_for_question",
+        "line": 163
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.synthesize_responses",
+        "line": 180
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.get_data_transfer_log",
+        "line": 195
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.get_module_usage_report",
+        "line": 221
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.verify_all_modules_used",
+        "line": 256
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.verify_all_functions_used",
+        "line": 278
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.generate_flow_diagram",
+        "line": 302
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.generate_mermaid_diagram",
+        "line": 332
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.compare_execution_trace",
+        "line": 368
+      },
+      {
+        "module": "module_choreographer",
+        "function": "ModuleChoreographer.export_execution_trace",
+        "line": 407
+      },
+      {
+        "module": "module_choreographer",
+        "function": "create_canonical_flow",
+        "line": 436
+      },
+      {
+        "module": "module_choreographer",
+        "function": "add_contribution",
+        "line": 42
+      },
+      {
+        "module": "module_choreographer",
+        "function": "synthesize",
+        "line": 56
+      },
+      {
+        "module": "module_choreographer",
+        "function": "register_module",
+        "line": 94
+      },
+      {
+        "module": "module_choreographer",
+        "function": "execute_module_stage",
+        "line": 99
+      },
+      {
+        "module": "module_choreographer",
+        "function": "accumulate_for_question",
+        "line": 163
+      },
+      {
+        "module": "module_choreographer",
+        "function": "synthesize_responses",
+        "line": 180
+      },
+      {
+        "module": "module_choreographer",
+        "function": "get_data_transfer_log",
+        "line": 195
+      },
+      {
+        "module": "module_choreographer",
+        "function": "get_module_usage_report",
+        "line": 221
+      },
+      {
+        "module": "module_choreographer",
+        "function": "verify_all_modules_used",
+        "line": 256
+      },
+      {
+        "module": "module_choreographer",
+        "function": "verify_all_functions_used",
+        "line": 278
+      },
+      {
+        "module": "module_choreographer",
+        "function": "generate_flow_diagram",
+        "line": 302
+      },
+      {
+        "module": "module_choreographer",
+        "function": "generate_mermaid_diagram",
+        "line": 332
+      },
+      {
+        "module": "module_choreographer",
+        "function": "compare_execution_trace",
+        "line": 368
+      },
+      {
+        "module": "module_choreographer",
+        "function": "export_execution_trace",
+        "line": 407
+      },
+      {
+        "module": "dereck_beach",
+        "function": "MechanismTypeConfig.check_sum_to_one",
+        "line": 162
+      },
+      {
+        "module": "dereck_beach",
+        "function": "ConfigLoader.get",
+        "line": 455
+      },
+      {
+        "module": "dereck_beach",
+        "function": "ConfigLoader.get_bayesian_threshold",
+        "line": 466
+      },
+      {
+        "module": "dereck_beach",
+        "function": "ConfigLoader.get_mechanism_prior",
+        "line": 472
+      },
+      {
+        "module": "dereck_beach",
+        "function": "ConfigLoader.get_performance_setting",
+        "line": 478
+      },
+      {
+        "module": "dereck_beach",
+        "function": "ConfigLoader.update_priors_from_feedback",
+        "line": 484
+      },
+      {
+        "module": "dereck_beach",
+        "function": "OperationalizationAuditor.audit_evidence_traceability",
+        "line": 1250
+      },
+      {
+        "module": "dereck_beach",
+        "function": "OperationalizationAuditor.audit_sequence_logic",
+        "line": 1295
+      },
+      {
+        "module": "dereck_beach",
+        "function": "OperationalizationAuditor.bayesian_counterfactual_audit",
+        "line": 1335
+      },
+      {
+        "module": "dereck_beach",
+        "function": "BayesianMechanismInference.infer_mechanisms",
+        "line": 1681
+      },
+      {
+        "module": "dereck_beach",
+        "function": "CausalInferenceSetup.classify_goal_dynamics",
+        "line": 2029
+      },
+      {
+        "module": "dereck_beach",
+        "function": "CausalInferenceSetup.assign_probative_value",
+        "line": 2040
+      },
+      {
+        "module": "dereck_beach",
+        "function": "CausalInferenceSetup.identify_failure_points",
+        "line": 2063
+      },
+      {
+        "module": "dereck_beach",
+        "function": "ReportingEngine.generate_causal_diagram",
+        "line": 2109
+      },
+      {
+        "module": "dereck_beach",
+        "function": "ReportingEngine.generate_accountability_matrix",
+        "line": 2196
+      },
+      {
+        "module": "dereck_beach",
+        "function": "ReportingEngine.generate_confidence_report",
+        "line": 2255
+      },
+      {
+        "module": "dereck_beach",
+        "function": "ReportingEngine.generate_causal_model_json",
+        "line": 2355
+      },
+      {
+        "module": "dereck_beach",
+        "function": "CDAFFramework.process_document",
+        "line": 2444
+      },
+      {
+        "module": "dereck_beach",
+        "function": "check_sum_to_one",
+        "line": 162
+      },
+      {
+        "module": "dereck_beach",
+        "function": "get",
+        "line": 455
+      },
+      {
+        "module": "dereck_beach",
+        "function": "get_bayesian_threshold",
+        "line": 466
+      },
+      {
+        "module": "dereck_beach",
+        "function": "get_mechanism_prior",
+        "line": 472
+      },
+      {
+        "module": "dereck_beach",
+        "function": "get_performance_setting",
+        "line": 478
+      },
+      {
+        "module": "dereck_beach",
+        "function": "update_priors_from_feedback",
+        "line": 484
+      },
+      {
+        "module": "dereck_beach",
+        "function": "audit_evidence_traceability",
+        "line": 1250
+      },
+      {
+        "module": "dereck_beach",
+        "function": "audit_sequence_logic",
+        "line": 1295
+      },
+      {
+        "module": "dereck_beach",
+        "function": "bayesian_counterfactual_audit",
+        "line": 1335
+      },
+      {
+        "module": "dereck_beach",
+        "function": "infer_mechanisms",
+        "line": 1681
+      },
+      {
+        "module": "dereck_beach",
+        "function": "classify_goal_dynamics",
+        "line": 2029
+      },
+      {
+        "module": "dereck_beach",
+        "function": "assign_probative_value",
+        "line": 2040
+      },
+      {
+        "module": "dereck_beach",
+        "function": "identify_failure_points",
+        "line": 2063
+      },
+      {
+        "module": "dereck_beach",
+        "function": "generate_causal_diagram",
+        "line": 2109
+      },
+      {
+        "module": "dereck_beach",
+        "function": "generate_accountability_matrix",
+        "line": 2196
+      },
+      {
+        "module": "dereck_beach",
+        "function": "generate_confidence_report",
+        "line": 2255
+      },
+      {
+        "module": "dereck_beach",
+        "function": "generate_causal_model_json",
+        "line": 2355
+      },
+      {
+        "module": "dereck_beach",
+        "function": "process_document",
+        "line": 2444
+      },
+      {
+        "module": "dnp_integration",
+        "function": "ValidadorDNP.generar_reporte_cumplimiento",
+        "line": 287
+      },
+      {
+        "module": "dnp_integration",
+        "function": "validar_plan_desarrollo_completo",
+        "line": 347
+      },
+      {
+        "module": "dnp_integration",
+        "function": "generar_reporte_cumplimiento",
+        "line": 287
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "CatalogoCompetenciasMunicipales.add_competencia",
+        "line": 284
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "CatalogoCompetenciasMunicipales.get_competencia",
+        "line": 289
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "CatalogoCompetenciasMunicipales.get_by_sector",
+        "line": 293
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "CatalogoCompetenciasMunicipales.get_by_tipo",
+        "line": 297
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "CatalogoCompetenciasMunicipales.get_pdet_prioritarias",
+        "line": 301
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "CatalogoCompetenciasMunicipales.generar_matriz_competencias",
+        "line": 336
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "add_competencia",
+        "line": 284
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "get_competencia",
+        "line": 289
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "get_by_sector",
+        "line": 293
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "get_by_tipo",
+        "line": 297
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "get_pdet_prioritarias",
+        "line": 301
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "generar_matriz_competencias",
+        "line": 336
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "CatalogoIndicadoresMGA.add_indicador",
+        "line": 838
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "CatalogoIndicadoresMGA.get_indicador",
+        "line": 843
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "CatalogoIndicadoresMGA.get_by_sector",
+        "line": 847
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "CatalogoIndicadoresMGA.get_by_tipo",
+        "line": 852
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "CatalogoIndicadoresMGA.get_indicadores_producto",
+        "line": 856
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "CatalogoIndicadoresMGA.get_indicadores_resultado",
+        "line": 860
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "CatalogoIndicadoresMGA.buscar_indicador_por_descripcion",
+        "line": 864
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "CatalogoIndicadoresMGA.generar_reporte_alineacion",
+        "line": 874
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "add_indicador",
+        "line": 838
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "get_indicador",
+        "line": 843
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "get_by_sector",
+        "line": 847
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "get_by_tipo",
+        "line": 852
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "get_indicadores_producto",
+        "line": 856
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "get_indicadores_resultado",
+        "line": 860
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "buscar_indicador_por_descripcion",
+        "line": 864
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "generar_reporte_alineacion",
+        "line": 874
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "LineamientosPDET.add_lineamiento",
+        "line": 468
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "LineamientosPDET.get_lineamiento",
+        "line": 473
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "LineamientosPDET.get_by_pilar",
+        "line": 477
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "LineamientosPDET.validar_cumplimiento_pdet",
+        "line": 481
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "LineamientosPDET.generar_matriz_priorizacion_pdet",
+        "line": 561
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "add_lineamiento",
+        "line": 468
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "get_lineamiento",
+        "line": 473
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "get_by_pilar",
+        "line": 477
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "validar_cumplimiento_pdet",
+        "line": 481
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "generar_matriz_priorizacion_pdet",
+        "line": 561
+      },
+      {
+        "module": "initial_processor_causal_policy",
+        "function": "SemanticProcessor.chunk_text",
+        "line": 124
+      },
+      {
+        "module": "initial_processor_causal_policy",
+        "function": "SemanticProcessor.embed_single",
+        "line": 254
+      },
+      {
+        "module": "initial_processor_causal_policy",
+        "function": "BayesianEvidenceIntegrator.integrate_evidence",
+        "line": 286
+      },
+      {
+        "module": "initial_processor_causal_policy",
+        "function": "BayesianEvidenceIntegrator.causal_strength",
+        "line": 404
+      },
+      {
+        "module": "initial_processor_causal_policy",
+        "function": "chunk_text",
+        "line": 124
+      },
+      {
+        "module": "initial_processor_causal_policy",
+        "function": "embed_single",
+        "line": 254
+      },
+      {
+        "module": "initial_processor_causal_policy",
+        "function": "integrate_evidence",
+        "line": 286
+      },
+      {
+        "module": "initial_processor_causal_policy",
+        "function": "causal_strength",
+        "line": 404
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "DocumentProcessingData.validate_text_not_empty",
+        "line": 22
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "SemanticAnalysisData.validate_scores_in_range",
+        "line": 34
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "CausalExtractionData.validate_nodes_not_empty",
+        "line": 48
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "FinancialAuditData.validate_allocations_positive",
+        "line": 67
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "DNPValidationData.validate_compliance_score_range",
+        "line": 80
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "QuestionAnsweringData.validate_question_count",
+        "line": 94
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "validate_stage_transition",
+        "line": 134
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "validate_text_not_empty",
+        "line": 22
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "validate_scores_in_range",
+        "line": 34
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "validate_nodes_not_empty",
+        "line": 48
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "validate_allocations_positive",
+        "line": 67
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "validate_compliance_score_range",
+        "line": 80
+      },
+      {
+        "module": "pipeline_validators",
+        "function": "validate_question_count",
+        "line": 94
+      },
+      {
+        "module": "resource_management",
+        "function": "get_memory_usage_mb",
+        "line": 20
+      },
+      {
+        "module": "resource_management",
+        "function": "memory_profiling_decorator",
+        "line": 27
+      },
+      {
+        "module": "resource_management",
+        "function": "managed_stage_execution",
+        "line": 57
+      },
+      {
+        "module": "resource_management",
+        "function": "heavy_document_loader",
+        "line": 89
+      },
+      {
+        "module": "resource_management",
+        "function": "cleanup_intermediate_data",
+        "line": 116
+      },
+      {
+        "module": "resource_management",
+        "function": "MemoryMonitor.check",
+        "line": 145
+      },
+      {
+        "module": "resource_management",
+        "function": "wrapper",
+        "line": 38
+      },
+      {
+        "module": "resource_management",
+        "function": "check",
+        "line": 145
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "Risk.risk_score",
+        "line": 85
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "RiskRegistry.register_risk",
+        "line": 136
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "RiskRegistry.get_risks_for_stage",
+        "line": 155
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "RiskRegistry.get_all_risks",
+        "line": 169
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "RiskRegistry.get_statistics",
+        "line": 173
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "RiskMitigationLayer.assess_stage_risks",
+        "line": 206
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "RiskMitigationLayer.execute_mitigation",
+        "line": 246
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "RiskMitigationLayer.wrap_stage_execution",
+        "line": 367
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "RiskMitigationLayer.get_mitigation_report",
+        "line": 487
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "create_default_risk_registry",
+        "line": 542
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "risk_score",
+        "line": 85
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "register_risk",
+        "line": 136
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "get_risks_for_stage",
+        "line": 155
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "get_all_risks",
+        "line": 169
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "get_statistics",
+        "line": 173
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "assess_stage_risks",
+        "line": 206
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "execute_mitigation",
+        "line": 246
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "wrap_stage_execution",
+        "line": 367
+      },
+      {
+        "module": "risk_mitigation_layer",
+        "function": "get_mitigation_report",
+        "line": 487
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "CircuitBreaker.detect_timeout",
+        "line": 312
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "CircuitBreaker.call",
+        "line": 339
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "CircuitBreaker.get_state",
+        "line": 437
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "CircuitBreaker.get_metrics",
+        "line": 450
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "CircuitBreaker.reset",
+        "line": 463
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "CircuitBreaker.force_open",
+        "line": 483
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "CircuitBreaker.force_close",
+        "line": 488
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "CircuitBreaker.get_window_stats",
+        "line": 493
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "detect_timeout",
+        "line": 312
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "call",
+        "line": 339
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "get_state",
+        "line": 437
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "get_metrics",
+        "line": 450
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "reset",
+        "line": 463
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "force_open",
+        "line": 483
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "force_close",
+        "line": 488
+      },
+      {
+        "module": "circuit_breaker",
+        "function": "get_window_stats",
+        "line": 493
+      }
+    ],
+    "coverage_percentage": 8.61,
+    "total_public_functions": 209,
+    "used_in_canonical_flow": 18
+  },
+  "scoring_audit": {
+    "verified": true,
+    "total_components": 8,
+    "components": [
+      {
+        "module": "dereck_beach",
+        "function": "CausalExtractor.extract_causal_hierarchy",
+        "contributes_to": [
+          "quantitative",
+          "qualitative",
+          "justification"
+        ],
+        "weight": 0.3
+      },
+      {
+        "module": "dereck_beach",
+        "function": "FinancialAuditor.trace_financial_allocation",
+        "contributes_to": [
+          "quantitative",
+          "qualitative",
+          "justification"
+        ],
+        "weight": 0.3
+      },
+      {
+        "module": "dereck_beach",
+        "function": "OperationalizationAuditor.audit_node_completeness",
+        "contributes_to": [
+          "quantitative",
+          "qualitative",
+          "justification"
+        ],
+        "weight": 0.3
+      },
+      {
+        "module": "dnp_integration",
+        "function": "ValidadorDNP.validar_proyecto_integral",
+        "contributes_to": [
+          "quantitative",
+          "compliance"
+        ],
+        "weight": 0.25
+      },
+      {
+        "module": "dnp_integration",
+        "function": "ValidadorDNP.validar_indicador_mga",
+        "contributes_to": [
+          "quantitative",
+          "compliance"
+        ],
+        "weight": 0.25
+      },
+      {
+        "module": "competencias_municipales",
+        "function": "CatalogoCompetenciasMunicipales.validar_competencia_municipal",
+        "contributes_to": [
+          "qualitative",
+          "compliance"
+        ],
+        "weight": 0.15
+      },
+      {
+        "module": "mga_indicadores",
+        "function": "CatalogoIndicadoresMGA.buscar_por_sector",
+        "contributes_to": [
+          "quantitative",
+          "justification"
+        ],
+        "weight": 0.15
+      },
+      {
+        "module": "pdet_lineamientos",
+        "function": "LineamientosPDET.recomendar_lineamientos",
+        "contributes_to": [
+          "qualitative",
+          "justification"
+        ],
+        "weight": 0.15
+      }
+    ],
+    "issues": []
+  },
+  "issues_detected": [
+    {
+      "description": "172 funciones públicas no utilizadas en el flujo canónico",
+      "severity": "medium",
+      "count": 172
+    }
+  ],
+  "module_statistics": {
+    "orchestrator": {
+      "total_functions": 29,
+      "public_functions": 3,
+      "classes": 3,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/orchestrator.py"
+    },
+    "module_choreographer": {
+      "total_functions": 31,
+      "public_functions": 29,
+      "classes": 3,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/module_choreographer.py"
+    },
+    "question_answering_engine": {
+      "total_functions": 24,
+      "public_functions": 2,
+      "classes": 5,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/question_answering_engine.py"
+    },
+    "report_generator": {
+      "total_functions": 54,
+      "public_functions": 6,
+      "classes": 2,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/report_generator.py"
+    },
+    "dereck_beach": {
+      "total_functions": 159,
+      "public_functions": 53,
+      "classes": 26,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/dereck_beach"
+    },
+    "dnp_integration": {
+      "total_functions": 15,
+      "public_functions": 5,
+      "classes": 3,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/dnp_integration.py"
+    },
+    "competencias_municipales": {
+      "total_functions": 18,
+      "public_functions": 14,
+      "classes": 4,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/competencias_municipales.py"
+    },
+    "mga_indicadores": {
+      "total_functions": 20,
+      "public_functions": 16,
+      "classes": 4,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/mga_indicadores.py"
+    },
+    "pdet_lineamientos": {
+      "total_functions": 16,
+      "public_functions": 12,
+      "classes": 6,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/pdet_lineamientos.py"
+    },
+    "initial_processor_causal_policy": {
+      "total_functions": 37,
+      "public_functions": 11,
+      "classes": 6,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/initial_processor_causal_policy"
+    },
+    "pipeline_validators": {
+      "total_functions": 13,
+      "public_functions": 13,
+      "classes": 9,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/pipeline_validators.py"
+    },
+    "resource_management": {
+      "total_functions": 12,
+      "public_functions": 10,
+      "classes": 1,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/resource_management.py"
+    },
+    "risk_mitigation_layer": {
+      "total_functions": 31,
+      "public_functions": 19,
+      "classes": 8,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/risk_mitigation_layer.py"
+    },
+    "circuit_breaker": {
+      "total_functions": 34,
+      "public_functions": 16,
+      "classes": 6,
+      "file_path": "/home/runner/work/FARFAN-2.0/FARFAN-2.0/circuit_breaker.py"
+    }
+  },
+  "data_flow_graph": {
+    "nodes": [
+      "dereck_beach",
+      "STAGE_5",
+      "STAGE_8",
+      "mga_indicadores",
+      "pdet_lineamientos",
+      "STAGE_4",
+      "initial_processor_causal_policy",
+      "question_answering_engine",
+      "STAGE_3",
+      "competencias_municipales",
+      "dnp_integration",
+      "STAGE_9",
+      "STAGE_7",
+      "STAGE_6",
+      "PipelineContext",
+      "report_generator",
+      "STAGE_1_2"
+    ],
+    "edges": [
+      {
+        "from": "STAGE_1_2",
+        "to": "PipelineContext",
+        "data": "raw_text",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_1_2"
+      },
+      {
+        "from": "STAGE_1_2",
+        "to": "PipelineContext",
+        "data": "sections",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_1_2"
+      },
+      {
+        "from": "STAGE_1_2",
+        "to": "PipelineContext",
+        "data": "tables",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_1_2"
+      },
+      {
+        "from": "STAGE_3",
+        "to": "PipelineContext",
+        "data": "semantic_chunks",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_3"
+      },
+      {
+        "from": "STAGE_3",
+        "to": "PipelineContext",
+        "data": "dimension_scores",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_3"
+      },
+      {
+        "from": "STAGE_4",
+        "to": "PipelineContext",
+        "data": "causal_graph",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_4"
+      },
+      {
+        "from": "STAGE_4",
+        "to": "PipelineContext",
+        "data": "nodes",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_4"
+      },
+      {
+        "from": "STAGE_4",
+        "to": "PipelineContext",
+        "data": "causal_chains",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_4"
+      },
+      {
+        "from": "STAGE_5",
+        "to": "PipelineContext",
+        "data": "mechanism_parts",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_5"
+      },
+      {
+        "from": "STAGE_5",
+        "to": "PipelineContext",
+        "data": "bayesian_inferences",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_5"
+      },
+      {
+        "from": "STAGE_6",
+        "to": "PipelineContext",
+        "data": "financial_allocations",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_6"
+      },
+      {
+        "from": "STAGE_6",
+        "to": "PipelineContext",
+        "data": "budget_traceability",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_6"
+      },
+      {
+        "from": "STAGE_7",
+        "to": "PipelineContext",
+        "data": "dnp_validation_results",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_7"
+      },
+      {
+        "from": "STAGE_7",
+        "to": "PipelineContext",
+        "data": "compliance_score",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_7"
+      },
+      {
+        "from": "STAGE_8",
+        "to": "PipelineContext",
+        "data": "question_responses",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_8"
+      },
+      {
+        "from": "STAGE_9",
+        "to": "PipelineContext",
+        "data": "micro_report",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_9"
+      },
+      {
+        "from": "STAGE_9",
+        "to": "PipelineContext",
+        "data": "meso_report",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_9"
+      },
+      {
+        "from": "STAGE_9",
+        "to": "PipelineContext",
+        "data": "macro_report",
+        "format": "Dict/List/Object",
+        "stage": "STAGE_9"
+      },
+      {
+        "from": "dereck_beach",
+        "to": "dereck_beach",
+        "data": "PDFProcessor.load_document → PDFProcessor.extract_text",
+        "format": "Function Output",
+        "stage": "STAGE_1_2"
+      },
+      {
+        "from": "dereck_beach",
+        "to": "dereck_beach",
+        "data": "PDFProcessor.extract_text → PDFProcessor.extract_tables",
+        "format": "Function Output",
+        "stage": "STAGE_1_2"
+      },
+      {
+        "from": "dereck_beach",
+        "to": "dereck_beach",
+        "data": "PDFProcessor.extract_tables → PDFProcessor.extract_sections",
+        "format": "Function Output",
+        "stage": "STAGE_1_2"
+      },
+      {
+        "from": "dereck_beach",
+        "to": "initial_processor_causal_policy",
+        "data": "PDFProcessor.extract_sections → PolicyDocumentAnalyzer.analyze_document",
+        "format": "Function Output",
+        "stage": "STAGE_3"
+      },
+      {
+        "from": "initial_processor_causal_policy",
+        "to": "dereck_beach",
+        "data": "PolicyDocumentAnalyzer.analyze_document → CausalExtractor.extract_causal_hierarchy",
+        "format": "Function Output",
+        "stage": "STAGE_4"
+      },
+      {
+        "from": "dereck_beach",
+        "to": "dereck_beach",
+        "data": "CausalExtractor.extract_causal_hierarchy → CausalExtractor.classify_goal",
+        "format": "Function Output",
+        "stage": "STAGE_4"
+      },
+      {
+        "from": "dereck_beach",
+        "to": "dereck_beach",
+        "data": "CausalExtractor.classify_goal → MechanismPartExtractor.extract_entity_activity",
+        "format": "Function Output",
+        "stage": "STAGE_5"
+      },
+      {
+        "from": "dereck_beach",
+        "to": "dereck_beach",
+        "data": "MechanismPartExtractor.extract_entity_activity → BayesianMechanismInference.infer_mechanism",
+        "format": "Function Output",
+        "stage": "STAGE_5"
+      },
+      {
+        "from": "dereck_beach",
+        "to": "dereck_beach",
+        "data": "BayesianMechanismInference.infer_mechanism → FinancialAuditor.trace_financial_allocation",
+        "format": "Function Output",
+        "stage": "STAGE_6"
+      },
+      {
+        "from": "dereck_beach",
+        "to": "dnp_integration",
+        "data": "FinancialAuditor.trace_financial_allocation → ValidadorDNP.validar_proyecto_integral",
+        "format": "Function Output",
+        "stage": "STAGE_7"
+      },
+      {
+        "from": "dnp_integration",
+        "to": "competencias_municipales",
+        "data": "ValidadorDNP.validar_proyecto_integral → CatalogoCompetenciasMunicipales.validar_competencia_municipal",
+        "format": "Function Output",
+        "stage": "STAGE_7"
+      },
+      {
+        "from": "competencias_municipales",
+        "to": "mga_indicadores",
+        "data": "CatalogoCompetenciasMunicipales.validar_competencia_municipal → CatalogoIndicadoresMGA.buscar_por_sector",
+        "format": "Function Output",
+        "stage": "STAGE_7"
+      },
+      {
+        "from": "mga_indicadores",
+        "to": "pdet_lineamientos",
+        "data": "CatalogoIndicadoresMGA.buscar_por_sector → LineamientosPDET.recomendar_lineamientos",
+        "format": "Function Output",
+        "stage": "STAGE_7"
+      },
+      {
+        "from": "pdet_lineamientos",
+        "to": "question_answering_engine",
+        "data": "LineamientosPDET.recomendar_lineamientos → QuestionAnsweringEngine.answer_all_questions",
+        "format": "Function Output",
+        "stage": "STAGE_8"
+      },
+      {
+        "from": "question_answering_engine",
+        "to": "report_generator",
+        "data": "QuestionAnsweringEngine.answer_all_questions → ReportGenerator.generate_micro_report",
+        "format": "Function Output",
+        "stage": "STAGE_9"
+      },
+      {
+        "from": "report_generator",
+        "to": "report_generator",
+        "data": "ReportGenerator.generate_micro_report → ReportGenerator.generate_meso_report",
+        "format": "Function Output",
+        "stage": "STAGE_9"
+      },
+      {
+        "from": "report_generator",
+        "to": "report_generator",
+        "data": "ReportGenerator.generate_meso_report → ReportGenerator.generate_macro_report",
+        "format": "Function Output",
+        "stage": "STAGE_9"
+      }
+    ]
+  }
+}

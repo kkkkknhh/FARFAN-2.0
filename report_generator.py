@@ -266,8 +266,6 @@ class ReportGenerator:
             "debilidades_criticas": self._identify_critical_weaknesses(question_responses)
         }
         
-<<<<<<< HEAD
-=======
         # Generate implementation roadmap if SMART recommendations available
         if SMART_AVAILABLE and recommendations and hasattr(recommendations[0], 'to_dict'):
             prioritizer = RecommendationPrioritizer()
@@ -284,7 +282,6 @@ class ReportGenerator:
                 logger.error(f"Error guardando roadmap: {e}")
                 # Continue execution - roadmap is optional
         
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         # Generate Markdown report
         self._generate_macro_markdown(macro_report, policy_code)
         
@@ -302,8 +299,6 @@ class ReportGenerator:
         
         return macro_report
     
-<<<<<<< HEAD
-=======
     def _validate_narrative_coherence(self, global_score: float, 
                                      responses: Dict) -> Dict[str, Any]:
         """
@@ -378,7 +373,6 @@ class ReportGenerator:
         
         return coherence
     
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
     def _get_cluster_name(self, cluster: ClusterMeso) -> str:
         """Retorna el nombre descriptivo del clúster"""
         names = {
@@ -507,14 +501,6 @@ sostenibles en el territorio.
         dim_scores = {}
         
         for cluster_data in clusters.values():
-<<<<<<< HEAD
-            for dim_id, dim_data in cluster_data["dimensiones"].items():
-                if dim_id not in dim_scores:
-                    dim_scores[dim_id] = []
-                dim_scores[dim_id].append(dim_data["score"])
-        
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
-=======
             if cluster_data.get("dimensiones"):
                 for dim_id, dim_data in cluster_data["dimensiones"].items():
                     if dim_id not in dim_scores:
@@ -531,31 +517,18 @@ sostenibles en el territorio.
         dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
         if not dim_averages:
             return "N/A"
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         best_dim = max(dim_averages.items(), key=lambda x: x[1])
         
         return f"{best_dim[0]} ({best_dim[1]:.2f})"
     
     def _find_weakest_dimension(self, clusters: Dict[str, Any]) -> str:
         """Encuentra la dimensión más débil globalmente"""
-<<<<<<< HEAD
-        dim_scores = {}
-        
-        for cluster_data in clusters.values():
-            for dim_id, dim_data in cluster_data["dimensiones"].items():
-                if dim_id not in dim_scores:
-                    dim_scores[dim_id] = []
-                dim_scores[dim_id].append(dim_data["score"])
-        
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
-=======
         dim_scores = self._extract_dimension_scores_from_clusters(clusters)
         if not dim_scores:
             return "N/A"
         dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
         if not dim_averages:
             return "N/A"
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         weak_dim = min(dim_averages.items(), key=lambda x: x[1])
         
         return f"{weak_dim[0]} ({weak_dim[1]:.2f})"
@@ -648,11 +621,6 @@ La implementación de estas mejoras debe priorizarse según:
 """
         return analysis.strip()
     
-<<<<<<< HEAD
-    def _generate_priority_recommendations(self, responses: Dict[str, Any],
-                                          compliance_score: float) -> List[str]:
-        """Genera recomendaciones prioritarias"""
-=======
     def _extract_dimension_scores_from_responses(self, responses: Dict) -> Dict[str, List[float]]:
         """Helper: extrae scores de dimensiones desde respuestas de preguntas"""
         dim_scores = {}
@@ -869,7 +837,6 @@ La implementación de estas mejoras debe priorizarse según:
     def _generate_simple_recommendations(self, responses: Dict, 
                                         compliance_score: float) -> List[str]:
         """Fallback method for simple text recommendations (when SMART module unavailable)"""
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         recommendations = []
         
         # Identify critical gaps
