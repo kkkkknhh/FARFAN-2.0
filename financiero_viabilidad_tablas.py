@@ -387,7 +387,7 @@ class PDETMunicipalPlanAnalyzer:
         print(f"✅ {len(unique_tables)} tablas únicas extraídas\n")
 
         # === RECONSTITUCIÓN DE TABLAS FRAGMENTADAS ===
-        reconstructed = await self._reconstruct_fragmented_tables(unique_tables)
+        reconstructed = self._reconstruct_fragmented_tables(unique_tables)
         print(f"🔗 {len(reconstructed)} tablas después de reconstitución\n")
 
         # === CLASIFICACIÓN POR TIPO ===
@@ -466,7 +466,7 @@ class PDETMunicipalPlanAnalyzer:
 
         return to_keep
 
-    async def _reconstruct_fragmented_tables(
+    def _reconstruct_fragmented_tables(
         self, tables: List[ExtractedTable]
     ) -> List[ExtractedTable]:
         """
@@ -504,7 +504,7 @@ class PDETMunicipalPlanAnalyzer:
             if cluster_id == -1:  # Noise
                 continue
 
-            cluster_indices = np.where(clustering.labels_ == cluster_id)[0]
+            cluster_indices = np.nonzero(clustering.labels_ == cluster_id)[0]
 
             if len(cluster_indices) > 1:
                 # Ordenar por página
@@ -1510,11 +1510,12 @@ class PDETMunicipalPlanAnalyzer:
     ) -> Tuple[float, float]:
         """Intervalo de confianza por bootstrap"""
 
+        rng = np.random.default_rng()
         bootstrap_scores = []
 
         for _ in range(n_bootstrap):
             # Resample con reemplazo
-            indices = np.random.choice(len(scores), size=len(scores), replace=True)
+            indices = rng.choice(len(scores), size=len(scores), replace=True)
             resampled = scores[indices]
 
             # Calcular score

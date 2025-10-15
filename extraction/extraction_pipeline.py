@@ -311,7 +311,7 @@ class ExtractionPipeline:
                 continue
         
         # Chunking con trazabilidad inmediata
-        semantic_chunks = await self._chunk_with_provenance(
+        semantic_chunks = self._chunk_with_provenance(
             raw_text, 
             doc_id=doc_id
         )
@@ -389,7 +389,7 @@ class ExtractionPipeline:
             self.logger.error(f"Table extraction failed: {e}")
             return []
     
-    async def _chunk_with_provenance(
+    def _chunk_with_provenance(
         self,
         text: str,
         doc_id: str

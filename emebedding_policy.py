@@ -427,6 +427,7 @@ class BayesianNumericalAnalyzer:
         """
         self.prior_strength = prior_strength
         self._logger = logging.getLogger(self.__class__.__name__)
+        self._rng = np.random.default_rng()
 
     def evaluate_policy_metric(
         self,
@@ -501,7 +502,7 @@ class BayesianNumericalAnalyzer:
         beta_post = beta_prior + (n_obs - sum_success)
 
         # Sample from posterior
-        posterior_samples = np.random.beta(alpha_post, beta_post, size=n_samples)
+        posterior_samples = self._rng.beta(alpha_post, beta_post, size=n_samples)
 
         return posterior_samples.astype(np.float32)
 
@@ -534,7 +535,7 @@ class BayesianNumericalAnalyzer:
         sigma_post = np.sqrt(1 / precision_post)
 
         # Sample from posterior
-        posterior_samples = np.random.normal(mu_post, sigma_post, size=n_samples)
+        posterior_samples = self._rng.normal(mu_post, sigma_post, size=n_samples)
 
         return posterior_samples.astype(np.float32)
 
