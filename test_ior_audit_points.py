@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
+
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -79,7 +81,9 @@ class TestAuditPoint21_StructuralVeto:
         else:
             capped_posterior = original_posterior
 
-        assert capped_posterior == 0.6, "Posterior should be capped at 0.6"
+        assert capped_posterior == pytest.approx(0.6, rel=1e-9, abs=1e-12), (
+            "Posterior should be capped at 0.6"
+        )  # replaced float equality with pytest.approx
         assert capped_posterior < original_posterior, "Capping should reduce posterior"
 
 
@@ -99,7 +103,9 @@ class TestAuditPoint22_NecessityHoopTest:
         assert result["is_necessary"], "Should pass with all components"
         assert result["hoop_test_passed"], "Hoop test should pass"
         assert len(result["missing_components"]) == 0, "No components should be missing"
-        assert result["score"] == 1.0, "Score should be 1.0"
+        assert result["score"] == pytest.approx(1.0, rel=1e-9, abs=1e-12), (
+            "Score should be 1.0"
+        )  # replaced float equality with pytest.approx
 
     def test_necessity_missing_entity(self):
         """Test that missing entity fails hoop test"""
