@@ -672,22 +672,24 @@ class PolicyCrossEncoderReranker:
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self.retry_handler = retry_handler
-        
+
         # Load model with retry logic if available
         if retry_handler:
             try:
                 from retry_handler import DependencyType
-                
+
                 @retry_handler.with_retry(
                     DependencyType.EMBEDDING_SERVICE,
                     operation_name="load_cross_encoder",
-                    exceptions=(OSError, IOError, ConnectionError, RuntimeError)
+                    exceptions=(OSError, IOError, ConnectionError, RuntimeError),
                 )
                 def load_model():
                     return CrossEncoder(model_name, max_length=max_length)
-                
+
                 self.model = load_model()
-                self._logger.info(f"Cross-encoder loaded with retry protection: {model_name}")
+                self._logger.info(
+                    f"Cross-encoder loaded with retry protection: {model_name}"
+                )
             except Exception as e:
                 self._logger.error(f"Failed to load cross-encoder: {e}")
                 raise
@@ -787,29 +789,33 @@ class PolicyAnalysisEmbedder:
         if retry_handler:
             try:
                 from retry_handler import DependencyType
-                
+
                 @retry_handler.with_retry(
                     DependencyType.EMBEDDING_SERVICE,
                     operation_name="load_sentence_transformer",
-                    exceptions=(OSError, IOError, ConnectionError, RuntimeError)
+                    exceptions=(OSError, IOError, ConnectionError, RuntimeError),
                 )
                 def load_embedding_model():
                     return SentenceTransformer(config.embedding_model)
-                
-                self._logger.info("Initializing embedding model with retry: %s", config.embedding_model)
+
+                self._logger.info(
+                    "Initializing embedding model with retry: %s",
+                    config.embedding_model,
+                )
                 self.embedding_model = load_embedding_model()
             except Exception as e:
                 self._logger.error(f"Failed to load embedding model: {e}")
                 raise
         else:
-            self._logger.info("Initializing embedding model: %s", config.embedding_model)
+            self._logger.info(
+                "Initializing embedding model: %s", config.embedding_model
+            )
             self.embedding_model = SentenceTransformer(config.embedding_model)
 
         # Initialize cross-encoder with retry logic
         self._logger.info("Initializing cross-encoder: %s", config.cross_encoder_model)
         self.cross_encoder = PolicyCrossEncoderReranker(
-            config.cross_encoder_model,
-            retry_handler=retry_handler
+            config.cross_encoder_model, retry_handler=retry_handler
         )
 
         self.chunker = AdvancedSemanticChunker(
@@ -1097,11 +1103,16 @@ class PolicyAnalysisEmbedder:
             if self.retry_handler:
                 try:
                     from retry_handler import DependencyType
-                    
+
                     @self.retry_handler.with_retry(
                         DependencyType.EMBEDDING_SERVICE,
                         operation_name="encode_texts",
-                        exceptions=(ConnectionError, TimeoutError, RuntimeError, OSError)
+                        exceptions=(
+                            ConnectionError,
+                            TimeoutError,
+                            RuntimeError,
+                            OSError,
+                        ),
                     )
                     def encode_with_retry():
                         return self.embedding_model.encode(
@@ -1111,7 +1122,7 @@ class PolicyAnalysisEmbedder:
                             show_progress_bar=False,
                             convert_to_numpy=True,
                         )
-                    
+
                     new_embeddings = encode_with_retry()
                 except Exception as e:
                     self._logger.error(f"Failed to encode texts with retry: {e}")
