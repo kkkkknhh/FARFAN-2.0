@@ -63,14 +63,27 @@ from infrastructure.resilient_dnp_validator import (
     ValidationResult,
     create_resilient_validator,
 )
-from infrastructure.resource_pool import (
-    BayesianInferenceEngine,
-    ResourceConfig,
-    ResourcePool,
-    Worker,
-    WorkerMemoryError,
-    WorkerTimeoutError,
-)
+
+# Resource pool imports are optional (requires psutil)
+try:
+    from infrastructure.resource_pool import (
+        BayesianInferenceEngine,
+        ResourceConfig,
+        ResourcePool,
+        Worker,
+        WorkerMemoryError,
+        WorkerTimeoutError,
+    )
+    RESOURCE_POOL_AVAILABLE = True
+except ImportError:
+    # Graceful degradation if psutil is not available
+    RESOURCE_POOL_AVAILABLE = False
+    BayesianInferenceEngine = None
+    ResourceConfig = None
+    ResourcePool = None
+    Worker = None
+    WorkerMemoryError = None
+    WorkerTimeoutError = None
 
 __all__ = [
     # Circuit Breaker
