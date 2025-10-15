@@ -446,7 +446,7 @@ class IndustrialPolicyProcessor:
         )
 
         # Load canonical questionnaire structure
-        self.questionnaire_path = questionnaire_path or self.QUESTIONNAIRE_PATH
+        self.questionnaire_file_path = questionnaire_path or self.QUESTIONNAIRE_PATH
         self.questionnaire_data = self._load_questionnaire()
 
         # Compile pattern taxonomy
@@ -462,7 +462,7 @@ class IndustrialPolicyProcessor:
     def _load_questionnaire(self) -> Dict[str, Any]:
         """Load and validate DECALOGO questionnaire structure."""
         try:
-            with open(self.questionnaire_path, "r", encoding="utf-8") as f:
+            with open(self.questionnaire_file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             logger.info(
@@ -471,7 +471,7 @@ class IndustrialPolicyProcessor:
             return data
         except Exception as e:
             logger.error(f"Failed to load questionnaire: {e}")
-            raise IOError(f"Questionnaire unavailable: {self.questionnaire_path}") from e
+            raise IOError(f"Questionnaire unavailable: {self.questionnaire_file_path}") from e
 
     def _compile_pattern_registry(self) -> Dict[CausalDimension, Dict[str, List[re.Pattern]]]:
         """Compile all causal patterns into efficient regex objects."""
