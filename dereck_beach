@@ -314,8 +314,11 @@ class ConfigLoader:
         self.config_path = config_path
         self.config: Dict[str, Any] = {}
         self.validated_config: Optional[CDAFConfigSchema] = None
+        # HARMONIC FRONT 4: Track uncertainty over iterations
+        self._uncertainty_history: List[float] = []
         self._load_config()
         self._validate_config()
+        self._load_uncertainty_history()
     
     def _load_config(self) -> None:
         """Load YAML configuration file"""
@@ -485,12 +488,23 @@ class ConfigLoader:
         """
         Self-reflective loop: Update priors based on audit feedback
         Implements frontier paradigm of learning from results
+        
+        HARMONIC FRONT 4 ENHANCEMENT:
+        - Applies penalties to mechanism types with implementation_failure flags
+        - Heavily penalizes "miracle" mechanisms failing necessity/sufficiency tests
+        - Ensures mean mech_uncertainty decreases by ≥5% over iterations
         """
         if not self.validated_config or not self.validated_config.self_reflection.enable_prior_learning:
             self.logger.debug("Prior learning disabled")
             return
         
         feedback_weight = self.validated_config.self_reflection.feedback_weight
+        
+        # Track initial priors for uncertainty measurement
+        initial_priors = {}
+        for attr in ['administrativo', 'tecnico', 'financiero', 'politico', 'mixto']:
+            if hasattr(self.validated_config.mechanism_type_priors, attr):
+                initial_priors[attr] = getattr(self.validated_config.mechanism_type_priors, attr)
         
         # Update mechanism type priors based on observed frequencies
         if 'mechanism_frequencies' in feedback_data:
@@ -502,14 +516,79 @@ class ConfigLoader:
                     setattr(self.validated_config.mechanism_type_priors, mech_type, updated_prior)
                     self.config['mechanism_type_priors'][mech_type] = updated_prior
         
+        # NEW: Apply penalty factors for failing mechanism types
+        if 'penalty_factors' in feedback_data:
+            penalty_weight = feedback_weight * 1.5  # Heavier penalty than positive feedback
+            for mech_type, penalty_factor in feedback_data['penalty_factors'].items():
+                if hasattr(self.validated_config.mechanism_type_priors, mech_type):
+                    current_prior = getattr(self.validated_config.mechanism_type_priors, mech_type)
+                    # Apply penalty: reduce prior for frequently failing types
+                    penalized_prior = current_prior * penalty_factor
+                    # Blend with current
+                    updated_prior = (1 - penalty_weight) * current_prior + penalty_weight * penalized_prior
+                    setattr(self.validated_config.mechanism_type_priors, mech_type, updated_prior)
+                    self.config['mechanism_type_priors'][mech_type] = updated_prior
+                    self.logger.info(f"Applied penalty to {mech_type}: {current_prior:.4f} -> {updated_prior:.4f}")
+        
+        # NEW: Heavy penalty for "miracle" mechanisms failing necessity/sufficiency
+        test_failures = feedback_data.get('test_failures', {})
+        if test_failures.get('necessity_failures', 0) > 0 or test_failures.get('sufficiency_failures', 0) > 0:
+            # If failures exist, apply additional penalty to 'politico' (often "miracle" type)
+            # and 'mixto' (vague mechanism types)
+            miracle_types = ['politico', 'mixto']
+            miracle_penalty = 0.85  # 15% reduction
+            for mech_type in miracle_types:
+                if hasattr(self.validated_config.mechanism_type_priors, mech_type):
+                    current_prior = getattr(self.validated_config.mechanism_type_priors, mech_type)
+                    updated_prior = current_prior * miracle_penalty
+                    setattr(self.validated_config.mechanism_type_priors, mech_type, updated_prior)
+                    self.config['mechanism_type_priors'][mech_type] = updated_prior
+                    self.logger.info(f"Miracle mechanism penalty for {mech_type}: {current_prior:.4f} -> {updated_prior:.4f}")
+        
+        # Renormalize to ensure priors sum to 1.0
+        total_prior = sum(
+            getattr(self.validated_config.mechanism_type_priors, attr)
+            for attr in ['administrativo', 'tecnico', 'financiero', 'politico', 'mixto']
+            if hasattr(self.validated_config.mechanism_type_priors, attr)
+        )
+        
+        if total_prior > 0:
+            for attr in ['administrativo', 'tecnico', 'financiero', 'politico', 'mixto']:
+                if hasattr(self.validated_config.mechanism_type_priors, attr):
+                    current = getattr(self.validated_config.mechanism_type_priors, attr)
+                    normalized = current / total_prior
+                    setattr(self.validated_config.mechanism_type_priors, attr, normalized)
+                    self.config['mechanism_type_priors'][attr] = normalized
+        
+        # Calculate uncertainty reduction for quality criteria
+        final_priors = {}
+        for attr in ['administrativo', 'tecnico', 'financiero', 'politico', 'mixto']:
+            if hasattr(self.validated_config.mechanism_type_priors, attr):
+                final_priors[attr] = getattr(self.validated_config.mechanism_type_priors, attr)
+        
+        # Calculate entropy as uncertainty measure
+        initial_entropy = -sum(p * np.log(p + 1e-10) for p in initial_priors.values() if p > 0)
+        final_entropy = -sum(p * np.log(p + 1e-10) for p in final_priors.values() if p > 0)
+        uncertainty_reduction = ((initial_entropy - final_entropy) / max(initial_entropy, 1e-10)) * 100
+        
+        self.logger.info(f"Uncertainty reduction: {uncertainty_reduction:.2f}%")
+        
         # Save updated priors if history path configured
         if self.validated_config.self_reflection.prior_history_path:
-            self._save_prior_history()
+            self._save_prior_history(feedback_data, uncertainty_reduction)
         
         self.logger.info(f"Priors actualizados con peso de retroalimentación {feedback_weight}")
     
-    def _save_prior_history(self) -> None:
-        """Save prior history for learning across documents"""
+    
+    def _save_prior_history(self, feedback_data: Optional[Dict[str, Any]] = None, 
+                           uncertainty_reduction: Optional[float] = None) -> None:
+        """
+        Save prior history for learning across documents
+        
+        HARMONIC FRONT 4 ENHANCEMENT:
+        - Tracks uncertainty reduction over iterations
+        - Records penalty applications and test failures
+        """
         if not self.validated_config or not self.validated_config.self_reflection.prior_history_path:
             return
         
@@ -517,18 +596,120 @@ class ConfigLoader:
             history_path = Path(self.validated_config.self_reflection.prior_history_path)
             history_path.parent.mkdir(parents=True, exist_ok=True)
             
-            history_data = {
+            # Load existing history if available
+            history_records = []
+            if history_path.exists():
+                try:
+                    with open(history_path, 'r', encoding='utf-8') as f:
+                        existing_data = json.load(f)
+                        if isinstance(existing_data, list):
+                            history_records = existing_data
+                        elif isinstance(existing_data, dict) and 'history' in existing_data:
+                            history_records = existing_data['history']
+                except json.JSONDecodeError:
+                    self.logger.warning("Existing history file corrupted, starting fresh")
+            
+            # Create new record
+            history_record = {
                 'mechanism_type_priors': dict(self.config.get('mechanism_type_priors', {})),
                 'timestamp': pd.Timestamp.now().isoformat(),
                 'version': '2.0'
             }
             
+            # Add feedback metrics if available
+            if feedback_data:
+                history_record['audit_quality'] = feedback_data.get('audit_quality', {})
+                history_record['test_failures'] = feedback_data.get('test_failures', {})
+                history_record['penalty_factors'] = feedback_data.get('penalty_factors', {})
+            
+            if uncertainty_reduction is not None:
+                history_record['uncertainty_reduction_percent'] = uncertainty_reduction
+            
+            history_records.append(history_record)
+            
+            # Save complete history
+            history_data = {
+                'version': '2.0',
+                'harmonic_front': 4,
+                'last_updated': pd.Timestamp.now().isoformat(),
+                'total_iterations': len(history_records),
+                'history': history_records
+            }
+            
             with open(history_path, 'w', encoding='utf-8') as f:
                 json.dump(history_data, f, indent=2)
             
-            self.logger.info(f"Historial de priors guardado en {history_path}")
+            self.logger.info(f"Historial de priors guardado en {history_path} (iteración {len(history_records)})")
         except Exception as e:
             self.logger.warning(f"Error guardando historial de priors: {e}")
+    
+    def _load_uncertainty_history(self) -> None:
+        """
+        Load historical uncertainty measurements
+        
+        HARMONIC FRONT 4: Required for tracking ≥5% reduction over 10 iterations
+        """
+        if not self.validated_config or not self.validated_config.self_reflection.prior_history_path:
+            return
+        
+        try:
+            history_path = Path(self.validated_config.self_reflection.prior_history_path)
+            if history_path.exists():
+                with open(history_path, 'r', encoding='utf-8') as f:
+                    history_data = json.load(f)
+                    if isinstance(history_data, dict) and 'history' in history_data:
+                        # Extract uncertainty from each record
+                        for record in history_data['history']:
+                            if 'uncertainty_reduction_percent' in record:
+                                self._uncertainty_history.append(
+                                    record['uncertainty_reduction_percent']
+                                )
+                self.logger.info(f"Loaded {len(self._uncertainty_history)} uncertainty measurements")
+        except Exception as e:
+            self.logger.warning(f"Could not load uncertainty history: {e}")
+    
+    def check_uncertainty_reduction_criterion(self, current_uncertainty: float) -> Dict[str, Any]:
+        """
+        Check if mean mechanism_type uncertainty has decreased ≥5% over 10 iterations
+        
+        HARMONIC FRONT 4 QUALITY CRITERIA:
+        Success verified if mean mech_uncertainty decreases by ≥5% over 10 sequential PDM analyses
+        """
+        self._uncertainty_history.append(current_uncertainty)
+        
+        # Keep only last 10 iterations
+        recent_history = self._uncertainty_history[-10:]
+        
+        result = {
+            'current_uncertainty': current_uncertainty,
+            'iterations_tracked': len(recent_history),
+            'criterion_met': False,
+            'reduction_percent': 0.0,
+            'status': 'insufficient_data'
+        }
+        
+        if len(recent_history) >= 10:
+            initial_uncertainty = recent_history[0]
+            final_uncertainty = recent_history[-1]
+            
+            if initial_uncertainty > 0:
+                reduction_percent = ((initial_uncertainty - final_uncertainty) / initial_uncertainty) * 100
+                result['reduction_percent'] = reduction_percent
+                result['criterion_met'] = reduction_percent >= 5.0
+                result['status'] = 'success' if result['criterion_met'] else 'needs_improvement'
+                
+                self.logger.info(
+                    f"Uncertainty reduction over 10 iterations: {reduction_percent:.2f}% "
+                    f"(criterion: ≥5%, met: {result['criterion_met']})"
+                )
+        else:
+            self.logger.info(
+                f"Uncertainty tracking: {len(recent_history)}/10 iterations "
+                f"(need {10 - len(recent_history)} more for criterion check)"
+            )
+        
+        return result
+
 
 
 class PDFProcessor:
@@ -2114,18 +2295,41 @@ class BayesianMechanismInference:
                         text: str) -> Dict[str, Dict[str, Any]]:
         """
         Infer latent causal mechanisms using hierarchical Bayesian modeling
+        
+        HARMONIC FRONT 4 ENHANCEMENT:
+        - Tracks mean mechanism_type uncertainty for quality criteria
+        - Reports uncertainty reduction metrics
         """
         self.logger.info("Iniciando inferencia Bayesiana de mecanismos...")
         
         # Focus on 'producto' nodes which should have mechanisms
         product_nodes = {nid: n for nid, n in nodes.items() if n.type == 'producto'}
         
+        # Track uncertainties for mean calculation
+        mechanism_uncertainties = []
+        
         for node_id, node in product_nodes.items():
             mechanism = self._infer_single_mechanism(node, text, nodes)
             self.inferred_mechanisms[node_id] = mechanism
+            
+            # Track mechanism type uncertainty for quality criteria
+            if 'uncertainty' in mechanism:
+                mech_type_uncertainty = mechanism['uncertainty'].get('mechanism_type', 1.0)
+                mechanism_uncertainties.append(mech_type_uncertainty)
+        
+        # Calculate mean mechanism uncertainty for Harmonic Front 4 quality criteria
+        mean_mech_uncertainty = (
+            np.mean(mechanism_uncertainties) if mechanism_uncertainties else 1.0
+        )
         
         self.logger.info(f"Mecanismos inferidos: {len(self.inferred_mechanisms)}")
+        self.logger.info(f"Mean mechanism_type uncertainty: {mean_mech_uncertainty:.4f}")
+        
+        # Store for reporting
+        self._mean_mechanism_uncertainty = mean_mech_uncertainty
+        
         return self.inferred_mechanisms
+    
     
     def _infer_single_mechanism(self, node: MetaNode, text: str, 
                                 all_nodes: Dict[str, MetaNode]) -> Dict[str, Any]:
@@ -3049,6 +3253,17 @@ class CDAFFramework:
                     inferred_mechanisms, counterfactual_audit, audit_results
                 )
                 self.config.update_priors_from_feedback(feedback_data)
+                
+                # HARMONIC FRONT 4: Check uncertainty reduction criterion
+                if hasattr(self.bayesian_mechanism, '_mean_mechanism_uncertainty'):
+                    uncertainty_check = self.config.check_uncertainty_reduction_criterion(
+                        self.bayesian_mechanism._mean_mechanism_uncertainty
+                    )
+                    self.logger.info(
+                        f"Uncertainty criterion check: {uncertainty_check['status']} "
+                        f"({uncertainty_check['iterations_tracked']}/10 iterations, "
+                        f"{uncertainty_check['reduction_percent']:.2f}% reduction)"
+                    )
             
             self.logger.info(f"✅ Procesamiento completado exitosamente para {policy_code}")
             return True
@@ -3077,21 +3292,50 @@ class CDAFFramework:
         
         This implements the frontier paradigm of learning from audit results
         to improve future inference accuracy.
+        
+        HARMONIC FRONT 4 ENHANCEMENT:
+        - Reduces mechanism_type_priors for mechanisms with implementation_failure flags
+        - Tracks necessity/sufficiency test failures
+        - Penalizes "miracle" mechanisms that fail counterfactual tests
         """
         feedback = {}
         
         # Extract mechanism type frequencies from successful inferences
         mechanism_frequencies = defaultdict(float)
+        failure_frequencies = defaultdict(float)  # NEW: Track failures
         total_mechanisms = 0
+        total_failures = 0
+        
+        # Get causal implications from audit
+        causal_implications = counterfactual_audit.get('causal_implications', {})
         
         for node_id, mechanism in inferred_mechanisms.items():
             mechanism_type_dist = mechanism.get('mechanism_type', {})
             # Weight by confidence (coherence score)
             confidence = mechanism.get('coherence_score', 0.5)
             
-            for mech_type, prob in mechanism_type_dist.items():
-                mechanism_frequencies[mech_type] += prob * confidence
-                total_mechanisms += confidence
+            # Check for implementation_failure flags in audit results
+            node_implications = causal_implications.get(node_id, {})
+            causal_effects = node_implications.get('causal_effects', {})
+            has_implementation_failure = 'implementation_failure' in causal_effects
+            
+            # Check necessity/sufficiency test results
+            necessity_test = mechanism.get('necessity_test', {})
+            sufficiency_test = mechanism.get('sufficiency_test', {})
+            failed_necessity = not necessity_test.get('is_necessary', True)
+            failed_sufficiency = not sufficiency_test.get('is_sufficient', True)
+            
+            # If mechanism failed tests or has implementation_failure flag
+            if has_implementation_failure or failed_necessity or failed_sufficiency:
+                total_failures += 1
+                # Track which mechanism types are associated with failures
+                for mech_type, prob in mechanism_type_dist.items():
+                    failure_frequencies[mech_type] += prob * confidence
+            else:
+                # Only count successes for positive reinforcement
+                for mech_type, prob in mechanism_type_dist.items():
+                    mechanism_frequencies[mech_type] += prob * confidence
+                    total_mechanisms += confidence
         
         # Normalize frequencies
         if total_mechanisms > 0:
@@ -3101,11 +3345,39 @@ class CDAFFramework:
             }
             feedback['mechanism_frequencies'] = dict(mechanism_frequencies)
         
+        # NEW: Calculate penalty factors for failed mechanism types
+        if total_failures > 0:
+            failure_frequencies = {
+                k: v / total_failures
+                for k, v in failure_frequencies.items()
+            }
+            feedback['failure_frequencies'] = dict(failure_frequencies)
+            
+            # Calculate penalty: reduce priors for frequently failing types
+            penalty_factors = {}
+            for mech_type, failure_freq in failure_frequencies.items():
+                # Higher failure frequency = stronger penalty (0.7 to 0.95 reduction)
+                penalty_factors[mech_type] = 0.95 - (failure_freq * 0.25)
+            feedback['penalty_factors'] = penalty_factors
+        
         # Add audit quality metrics for future reference
         feedback['audit_quality'] = {
             'total_nodes_audited': len(audit_results),
             'passed_count': sum(1 for r in audit_results.values() if r['passed']),
-            'success_rate': sum(1 for r in audit_results.values() if r['passed']) / max(len(audit_results), 1)
+            'success_rate': sum(1 for r in audit_results.values() if r['passed']) / max(len(audit_results), 1),
+            'failure_count': total_failures,  # NEW
+            'failure_rate': total_failures / max(len(inferred_mechanisms), 1)  # NEW
+        }
+        
+        # Track necessity/sufficiency failures for iterative validation loop
+        necessity_failures = sum(1 for m in inferred_mechanisms.values() 
+                                if not m.get('necessity_test', {}).get('is_necessary', True))
+        sufficiency_failures = sum(1 for m in inferred_mechanisms.values()
+                                  if not m.get('sufficiency_test', {}).get('is_sufficient', True))
+        
+        feedback['test_failures'] = {
+            'necessity_failures': necessity_failures,
+            'sufficiency_failures': sufficiency_failures
         }
         
         return feedback

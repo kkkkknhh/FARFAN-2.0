@@ -690,6 +690,13 @@ class PolicyContradictionDetectorV2:
         self.statistical_tester = AdvancedStatisticalTesting()
 
         self.knowledge_graph = nx.DiGraph()
+        
+        # HARMONIC FRONT 4: Initialize audit metrics tracking
+        self._audit_metrics = {
+            'total_contradictions': 0,
+            'causal_incoherence_flags': 0,
+            'structural_failures': 0
+        }
 
         self._initialize_pdm_ontology()
 
@@ -806,27 +813,43 @@ Análisis completo con contradicciones y métricas avanzadas
             contradictions, statements, text
         )
 
-        recommendations = self._generate_actionable_recommendations(contradictions)
-        
-        # HARMONIC FRONT 3 - Enhancement 3: Regulatory Constraint Assessment for D1-Q5
-        regulatory_analysis = self._analyze_regulatory_constraints(statements, text, temporal_conflicts)
+       recommendations = self._generate_actionable_recommendations(contradictions)
 
-        return {
-            "plan_name": plan_name,
-            "dimension": dimension.value,
-            "analysis_timestamp": pd.Timestamp.now().isoformat(),
-            "total_statements": len(statements),
-            "contradictions": [self._serialize_contradiction(c) for c in contradictions],
-            "total_contradictions": len(contradictions),
-            "critical_severity_count": sum(1 for c in contradictions if c.severity > 0.85),
-            "high_severity_count": sum(1 for c in contradictions if 0.7 < c.severity <= 0.85),
-            "medium_severity_count": sum(1 for c in contradictions if 0.5 < c.severity <= 0.7),
-            "coherence_metrics": coherence_metrics,
-            "recommendations": recommendations,
-            "knowledge_graph_stats": self._get_advanced_graph_statistics(),
-            "causal_network_stats": self._get_causal_network_statistics(),
-            "d1_q5_regulatory_analysis": regulatory_analysis
-        }
+# HARMONIC FRONT 4: Include audit metrics for D6-Q3 quality criteria
+causal_incoherence_count = sum(
+    1 for c in contradictions
+    if c.contradiction_type == ContradictionType.CAUSAL_INCOHERENCE
+)
+
+audit_summary = {
+    "total_contradictions": self._audit_metrics.get("total_contradictions", len(contradictions)),
+    "causal_incoherence_flags": causal_incoherence_count,
+    "structural_failures": self._audit_metrics.get("structural_failures", 0),
+    "quality_grade": "Excelente" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 5
+                     else "Bueno" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 10
+                     else "Regular"
+}
+
+# HARMONIC FRONT 3 - Enhancement 3: Regulatory Constraint Assessment for D1-Q5
+regulatory_analysis = self._analyze_regulatory_constraints(statements, text, temporal_conflicts)
+
+return {
+    "plan_name": plan_name,
+    "dimension": dimension.value,
+    "analysis_timestamp": pd.Timestamp.now().isoformat(),
+    "total_statements": len(statements),
+    "contradictions": [self._serialize_contradiction(c) for c in contradictions],
+    "total_contradictions": len(contradictions),
+    "critical_severity_count": sum(1 for c in contradictions if c.severity > 0.85),
+    "high_severity_count": sum(1 for c in contradictions if 0.7 < c.severity <= 0.85),
+    "medium_severity_count": sum(1 for c in contradictions if 0.5 < c.severity <= 0.7),
+    "coherence_metrics": coherence_metrics,
+    "recommendations": recommendations,
+    "knowledge_graph_stats": self._get_advanced_graph_statistics(),
+    "causal_network_stats": self._get_causal_network_statistics(),
+    "d1_q5_regulatory_analysis": regulatory_analysis,
+    "harmonic_front_4_audit": audit_summary
+}
 
     def _extract_policy_statements(
             self,
@@ -1134,11 +1157,22 @@ Análisis completo con contradicciones y métricas avanzadas
             self,
             statements: List[PolicyStatement]
     ) -> List[ContradictionEvidence]:
-        """Detección de inconsistencias causales usando red bayesiana"""
+        """
+        Detección de inconsistencias causales usando red bayesiana
+        
+        HARMONIC FRONT 4 ENHANCEMENT:
+        - Detects circular causal conflicts (A → B and B → A)
+        - Identifies structural incoherence from GNN implicit contradictions
+        - Flags all inconsistencies for D6-Q3 (Inconsistencias/Pilotos)
+        """
         contradictions = []
 
         causal_network = self.bayesian_engine.causal_network
+        
+        # Track total contradictions for audit criteria
+        total_contradictions = 0
 
+        # 1. Detect circular causal conflicts (A → B and B → A)
         for i, stmt_a in enumerate(statements):
             for j, stmt_b in enumerate(statements[i+1:], start=i+1):
                 node_a = f"stmt_{i}"
@@ -1150,7 +1184,14 @@ Análisis completo con contradicciones y métricas avanzadas
                     weight_ab = causal_network[node_a][node_b]['weight']
                     weight_ba = causal_network[node_b][node_a]['weight']
 
+                    # Enhanced circular conflict detection
                     if abs(weight_ab - weight_ba) < 0.3:
+                        total_contradictions += 1
+                        
+                        # Calculate severity based on circular strength
+                        circular_strength = (weight_ab + weight_ba) / 2.0
+                        severity = min(0.95, 0.65 + circular_strength * 0.3)
+                        
                         confidence, _ = self.bayesian_engine.calculate_posterior(
                             evidence_strength=min(weight_ab, weight_ba),
                             observations=2,
@@ -1163,20 +1204,89 @@ Análisis completo con contradicciones y métricas avanzadas
                             statement_b=stmt_b,
                             contradiction_type=ContradictionType.CAUSAL_INCOHERENCE,
                             confidence=confidence,
-                            severity=0.75,
+                            severity=severity,
                             semantic_similarity=self._calculate_contextual_similarity(stmt_a, stmt_b),
-                            logical_conflict_score=0.8,
+                            logical_conflict_score=circular_strength,
                             temporal_consistency=True,
                             numerical_divergence=None,
                             affected_dimensions=[stmt_a.dimension],
                             resolution_suggestions=self._generate_resolution_strategies(
                                 ContradictionType.CAUSAL_INCOHERENCE,
                                 stmt_a,
-                                stmt_b
+                                stmt_b,
+                                context={'conflict_type': 'circular_causality', 
+                                        'weight_ab': weight_ab, 
+                                        'weight_ba': weight_ba}
                             ),
                             causal_conflict=True
                         )
                         contradictions.append(evidence)
+        
+        # 2. Detect structural incoherence from non-explicit conflicts
+        # GNN/Bayesian cross-validation: Integrate GNN implicit contradictions
+        # into causal network inference for structural validity detection
+        if hasattr(self, 'gnn_reasoner') and hasattr(self, 'knowledge_graph'):
+            gnn_implicit = self.gnn_reasoner.detect_implicit_contradictions(
+                statements,
+                self.knowledge_graph
+            )
+            
+            for stmt_a, stmt_b, gnn_score, attention_weights in gnn_implicit:
+                # Check if this represents a causal structural issue
+                # by examining causal network connections
+                i = statements.index(stmt_a)
+                j = statements.index(stmt_b)
+                node_a = f"stmt_{i}"
+                node_b = f"stmt_{j}"
+                
+                # If GNN detects conflict but Bayesian network shows weak/missing link,
+                # this indicates structural incoherence
+                has_weak_causal_link = False
+                if causal_network.has_edge(node_a, node_b):
+                    weight = causal_network[node_a][node_b]['weight']
+                    if weight < 0.4:  # Weak causal link
+                        has_weak_causal_link = True
+                elif not causal_network.has_edge(node_a, node_b):
+                    has_weak_causal_link = True  # Missing link
+                
+                if has_weak_causal_link and gnn_score > 0.65:
+                    total_contradictions += 1
+                    
+                    confidence, _ = self.bayesian_engine.calculate_posterior(
+                        evidence_strength=gnn_score,
+                        observations=len(attention_weights) if attention_weights else 1,
+                        domain_weight=1.3,
+                        prior_knowledge=0.5
+                    )
+                    
+                    evidence = ContradictionEvidence(
+                        statement_a=stmt_a,
+                        statement_b=stmt_b,
+                        contradiction_type=ContradictionType.CAUSAL_INCOHERENCE,
+                        confidence=confidence,
+                        severity=gnn_score * 0.85,
+                        semantic_similarity=self._calculate_contextual_similarity(stmt_a, stmt_b),
+                        logical_conflict_score=gnn_score,
+                        temporal_consistency=True,
+                        numerical_divergence=None,
+                        affected_dimensions=[stmt_a.dimension, stmt_b.dimension],
+                        resolution_suggestions=self._generate_resolution_strategies(
+                            ContradictionType.CAUSAL_INCOHERENCE,
+                            stmt_a,
+                            stmt_b,
+                            context={'conflict_type': 'structural_incoherence_gnn',
+                                    'gnn_score': gnn_score}
+                        ),
+                        causal_conflict=True,
+                        attention_weights=attention_weights
+                    )
+                    contradictions.append(evidence)
+        
+        # Store total contradictions for quality audit
+        if hasattr(self, '_audit_metrics'):
+            self._audit_metrics['total_contradictions'] = total_contradictions
+        else:
+            self._audit_metrics = {'total_contradictions': total_contradictions}
 
         return contradictions
 
@@ -2176,29 +2286,48 @@ Análisis completo con contradicciones y métricas avanzadas
             self,
             contradictions: List[ContradictionEvidence]
     ) -> List[Dict[str, Any]]:
-        """Genera recomendaciones priorizadas y accionables"""
+        """
+        Genera recomendaciones priorizadas y accionables
+        
+        HARMONIC FRONT 4 ENHANCEMENT:
+        - Prioritizes CAUSAL_INCOHERENCE and TEMPORAL_CONFLICT as high/critical
+        - Aligns priority with measured omission_severity
+        - Ensures structural failures get immediate system adaptation
+        """
         recommendations = []
 
         by_type = defaultdict(list)
         for c in contradictions:
             by_type[c.contradiction_type].append(c)
 
+        # UPDATED: Prioritize structural failures (CAUSAL_INCOHERENCE, TEMPORAL_CONFLICT)
         priority_map = {
+            ContradictionType.CAUSAL_INCOHERENCE: 'crítica',  # UPGRADED from 'media'
+            ContradictionType.TEMPORAL_CONFLICT: 'crítica',   # UPGRADED from 'alta'
             ContradictionType.RESOURCE_ALLOCATION_MISMATCH: 'crítica',
             ContradictionType.NUMERICAL_INCONSISTENCY: 'alta',
-            ContradictionType.TEMPORAL_CONFLICT: 'alta',
             ContradictionType.SEMANTIC_OPPOSITION: 'media',
-            ContradictionType.LOGICAL_INCOMPATIBILITY: 'alta',
-            ContradictionType.CAUSAL_INCOHERENCE: 'media'
+            ContradictionType.LOGICAL_INCOMPATIBILITY: 'alta'
         }
 
         for cont_type, conflicts in by_type.items():
             avg_severity = np.mean([c.severity for c in conflicts])
             avg_confidence = np.mean([c.confidence for c in conflicts])
+            
+            # Calculate priority score aligning with measured severity
+            base_priority = priority_map.get(cont_type, 'media')
+            priority_score = avg_severity * avg_confidence
+            
+            # Adjust priority based on measured omission_severity alignment
+            if priority_score > 0.75 and base_priority != 'crítica':
+                base_priority = 'crítica'
+            elif priority_score > 0.60 and base_priority not in ['crítica', 'alta']:
+                base_priority = 'alta'
 
             recommendation = {
                 'contradiction_type': cont_type.name,
-                'priority': priority_map.get(cont_type, 'media'),
+                'priority': base_priority,
+                'priority_score': float(priority_score),  # NEW: Explicit priority score
                 'count': len(conflicts),
                 'avg_severity': float(avg_severity),
                 'avg_confidence': float(avg_confidence),
@@ -2212,9 +2341,10 @@ Análisis completo con contradicciones y métricas avanzadas
             }
             recommendations.append(recommendation)
 
+        # Sort by priority (structural failures first) and severity
         priority_order = {'crítica': 0, 'alta': 1, 'media': 2, 'baja': 3}
         recommendations.sort(
-            key=lambda x: (priority_order.get(x['priority'], 4), -x['avg_severity'])
+            key=lambda x: (priority_order.get(x['priority'], 4), -x['priority_score'], -x['avg_severity'])
         )
 
         return recommendations
