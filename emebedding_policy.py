@@ -32,6 +32,13 @@ from sentence_transformers import CrossEncoder, SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ============================================================================
+# DESIGN CONSTANTS - Model Configuration
+# ============================================================================
+
+# Cross-encoder model for semantic reranking
+DEFAULT_CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+# ============================================================================
 # TYPE SYSTEM - Python 3.10+ Type Safety
 # ============================================================================
 
@@ -123,7 +130,7 @@ class ChunkingConfig:
 class AdvancedSemanticChunker:
     """
     State-of-the-art semantic chunking for Colombian policy documents.
-    
+
     Implements:
     - Recursive character splitting with semantic boundary preservation
     - Table structure detection and preservation
@@ -137,9 +144,7 @@ class AdvancedSemanticChunker:
         r"^(?:CAPÍTULO|SECCIÓN|ARTÍCULO|PROGRAMA|PROYECTO|EJE)\s+[IVX\d]+",
         re.MULTILINE | re.IGNORECASE,
     )
-    TABLE_MARKERS = re.compile(
-        r"(?:Tabla|Cuadro|Figura)\s+\d+", re.IGNORECASE
-    )
+    TABLE_MARKERS = re.compile(r"(?:Tabla|Cuadro|Figura)\s+\d+", re.IGNORECASE)
     LIST_MARKERS = re.compile(r"^[\s]*[•\-\*\d]+[\.\)]\s+", re.MULTILINE)
     NUMERIC_INDICATORS = re.compile(
         r"\b\d+(?:[.,]\d+)?(?:\s*%|millones?|mil|billones?)?\b", re.IGNORECASE
@@ -154,7 +159,7 @@ class AdvancedSemanticChunker:
     ) -> list[SemanticChunk]:
         """
         Chunk document with advanced semantic awareness.
-        
+
         Returns chunks with preserved structure and P-D-Q context.
         """
         # Preprocess: normalize whitespace, preserve structure
@@ -183,7 +188,9 @@ class AdvancedSemanticChunker:
 
             # Count tokens (approximation: Spanish has ~1.3 chars/token)
             AVG_CHARS_PER_TOKEN = 1.3  # Source: Spanish language statistics
-            token_count = int(len(chunk_text) / AVG_CHARS_PER_TOKEN)  # Approximate token count
+            token_count = int(
+                len(chunk_text) / AVG_CHARS_PER_TOKEN
+            )  # Approximate token count
 
             # Create structured chunk
             chunk_id = hashlib.sha256(
@@ -224,12 +231,10 @@ class AdvancedSemanticChunker:
         text = re.sub(r"\n{3,}", "\n\n", text)
         return text.strip()
 
-    def _recursive_split(
-        self, text: str, target_size: int, overlap: int
-    ) -> list[str]:
+    def _recursive_split(self, text: str, target_size: int, overlap: int) -> list[str]:
         """
         Recursive character splitting with semantic boundary respect.
-        
+
         Priority: Paragraph > Sentence > Word > Character
         """
         if len(text) <= target_size:
@@ -268,9 +273,7 @@ class AdvancedSemanticChunker:
 
         return chunks
 
-    def _find_sentence_boundary(
-        self, text: str, start: int, end: int
-    ) -> int | None:
+    def _find_sentence_boundary(self, text: str, start: int, end: int) -> int | None:
         """Find sentence boundary using Spanish punctuation rules."""
         # Spanish sentence endings: . ! ? ; followed by space or newline
         sentence_pattern = re.compile(r"[.!?;]\s+")
@@ -326,7 +329,7 @@ class AdvancedSemanticChunker:
     ) -> PDQIdentifier | None:
         """
         Infer P-D-Q context from chunk content and structure.
-        
+
         Uses heuristics based on Colombian policy vocabulary.
         """
         # Policy-specific keywords (simplified for example)
@@ -354,16 +357,12 @@ class AdvancedSemanticChunker:
 
         # Score policies and dimensions
         policy_scores = {
-            policy: sum(
-                1 for kw in keywords if kw.lower() in chunk_text.lower()
-            )
+            policy: sum(1 for kw in keywords if kw.lower() in chunk_text.lower())
             for policy, keywords in policy_keywords.items()
         }
 
         dimension_scores = {
-            dim: sum(
-                1 for kw in keywords if kw.lower() in chunk_text.lower()
-            )
+            dim: sum(1 for kw in keywords if kw.lower() in chunk_text.lower())
             for dim, keywords in dimension_keywords.items()
         }
 
@@ -394,9 +393,7 @@ class AdvancedSemanticChunker:
             for table in tables
         )
 
-    def _contains_list(
-        self, chunk_text: str, lists: list[dict[str, Any]]
-    ) -> bool:
+    def _contains_list(self, chunk_text: str, lists: list[dict[str, Any]]) -> bool:
         """Check if chunk contains list structures."""
         return bool(self.LIST_MARKERS.search(chunk_text))
 
@@ -419,7 +416,7 @@ class AdvancedSemanticChunker:
 class BayesianNumericalAnalyzer:
     """
     Bayesian framework for uncertainty-aware numerical policy analysis.
-    
+
     Implements:
     - Beta-Binomial conjugate prior for proportions
     - Normal-Normal conjugate prior for continuous metrics
@@ -431,12 +428,13 @@ class BayesianNumericalAnalyzer:
     def __init__(self, prior_strength: float = 1.0):
         """
         Initialize Bayesian analyzer.
-        
+
         Args:
             prior_strength: Prior belief strength (1.0 = weak, 10.0 = strong)
         """
         self.prior_strength = prior_strength
         self._logger = logging.getLogger(self.__class__.__name__)
+        self._rng = np.random.default_rng()
 
     def evaluate_policy_metric(
         self,
@@ -446,7 +444,7 @@ class BayesianNumericalAnalyzer:
     ) -> BayesianEvaluation:
         """
         Bayesian evaluation of policy metric with uncertainty quantification.
-        
+
         Returns posterior distribution, credible intervals, and evidence strength.
         """
         if not observed_values:
@@ -468,8 +466,9 @@ class BayesianNumericalAnalyzer:
 
         # Compute statistics
         point_estimate = float(np.median(posterior_samples))
-        ci_lower, ci_upper = float(np.percentile(posterior_samples, 2.5)), float(
-            np.percentile(posterior_samples, 97.5)
+        ci_lower, ci_upper = (
+            float(np.percentile(posterior_samples, 2.5)),
+            float(np.percentile(posterior_samples, 97.5)),
         )
 
         # Quantify evidence strength using posterior width
@@ -492,7 +491,7 @@ class BayesianNumericalAnalyzer:
     ) -> NDArray[np.float32]:
         """
         Beta-Binomial conjugate posterior for proportion metrics.
-        
+
         Prior: Beta(α, β)
         Likelihood: Binomial
         Posterior: Beta(α + successes, β + failures)
@@ -510,7 +509,7 @@ class BayesianNumericalAnalyzer:
         beta_post = beta_prior + (n_obs - sum_success)
 
         # Sample from posterior
-        posterior_samples = np.random.beta(alpha_post, beta_post, size=n_samples)
+        posterior_samples = self._rng.beta(alpha_post, beta_post, size=n_samples)
 
         return posterior_samples.astype(np.float32)
 
@@ -519,7 +518,7 @@ class BayesianNumericalAnalyzer:
     ) -> NDArray[np.float32]:
         """
         Normal-Normal conjugate posterior for continuous metrics.
-        
+
         Prior: Normal(μ₀, σ₀²)
         Likelihood: Normal(μ, σ²)
         Posterior: Normal(μ_post, σ_post²)
@@ -543,7 +542,7 @@ class BayesianNumericalAnalyzer:
         sigma_post = np.sqrt(1 / precision_post)
 
         # Sample from posterior
-        posterior_samples = np.random.normal(mu_post, sigma_post, size=n_samples)
+        posterior_samples = self._rng.normal(mu_post, sigma_post, size=n_samples)
 
         return posterior_samples.astype(np.float32)
 
@@ -563,7 +562,7 @@ class BayesianNumericalAnalyzer:
     def _compute_coherence(self, observations: NDArray[np.float32]) -> float:
         """
         Compute numerical coherence (consistency) score.
-        
+
         Uses coefficient of variation and statistical tests.
         """
         if len(observations) < 2:
@@ -600,7 +599,7 @@ class BayesianNumericalAnalyzer:
     ) -> dict[str, Any]:
         """
         Bayesian comparison of two policy metrics.
-        
+
         Returns probability that A > B and Bayes factor.
         """
         if not policy_a_values or not policy_b_values:
@@ -652,19 +651,19 @@ class BayesianNumericalAnalyzer:
 class PolicyCrossEncoderReranker:
     """
     Cross-encoder reranking optimized for Spanish policy documents.
-    
+
     Uses transformer-based cross-attention for precise relevance scoring.
     Superior to bi-encoder + cosine similarity for final ranking.
     """
 
     def __init__(
         self,
-        model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        model_name: str = DEFAULT_CROSS_ENCODER_MODEL,
         max_length: int = 512,
     ):
         """
         Initialize cross-encoder reranker.
-        
+
         Args:
             model_name: HuggingFace model name (multilingual preferred)
             max_length: Maximum sequence length for cross-encoder
@@ -681,7 +680,7 @@ class PolicyCrossEncoderReranker:
     ) -> list[tuple[SemanticChunk, float]]:
         """
         Rerank candidates using cross-encoder attention.
-        
+
         Returns top-k chunks with relevance scores.
         """
         if not candidates:
@@ -694,15 +693,11 @@ class PolicyCrossEncoderReranker:
         scores = self.model.predict(pairs, show_progress_bar=False)
 
         # Combine chunks with scores and sort
-        ranked = sorted(
-            zip(candidates, scores), key=lambda x: x[1], reverse=True
-        )
+        ranked = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=True)
 
         # Filter by minimum score and limit to top_k
         filtered = [
-            (chunk, float(score))
-            for chunk, score in ranked
-            if score >= min_score
+            (chunk, float(score)) for chunk, score in ranked if score >= min_score
         ][:top_k]
 
         self._logger.info(
@@ -726,7 +721,7 @@ class PolicyEmbeddingConfig:
 
     # Model selection
     embedding_model: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
-    cross_encoder_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    cross_encoder_model: str = DEFAULT_CROSS_ENCODER_MODEL
 
     # Chunking parameters
     chunk_size: int = 512
@@ -748,14 +743,14 @@ class PolicyEmbeddingConfig:
 class PolicyAnalysisEmbedder:
     """
     Production-ready embedding system for Colombian PDM analysis.
-    
+
     Implements complete pipeline:
     1. Advanced semantic chunking with P-D-Q awareness
     2. Multilingual embedding (Spanish-optimized)
     3. Bi-encoder retrieval + cross-encoder reranking
     4. Bayesian numerical analysis with uncertainty quantification
     5. MMR-based diversification
-    
+
     Thread-safe, production-grade, fully typed.
     """
 
@@ -792,11 +787,11 @@ class PolicyAnalysisEmbedder:
     ) -> list[SemanticChunk]:
         """
         Process complete PDM document into semantic chunks with embeddings.
-        
+
         Args:
             document_text: Full document text
             document_metadata: Metadata including doc_id, municipality, year
-            
+
         Returns:
             List of semantic chunks with embeddings and P-D-Q context
         """
@@ -805,7 +800,9 @@ class PolicyAnalysisEmbedder:
 
         # Check cache
         if doc_id in self._chunk_cache:
-            self._logger.info("Retrieved %d chunks from cache", len(self._chunk_cache[doc_id]))
+            self._logger.info(
+                "Retrieved %d chunks from cache", len(self._chunk_cache[doc_id])
+            )
             return self._chunk_cache[doc_id]
 
         # Chunk document with semantic awareness
@@ -841,20 +838,20 @@ class PolicyAnalysisEmbedder:
     ) -> list[tuple[SemanticChunk, float]]:
         """
         Advanced semantic search with P-D-Q filtering and reranking.
-        
+
         Pipeline:
         1. Bi-encoder retrieval (fast, approximate)
         2. P-D-Q filtering (if specified)
         3. Cross-encoder reranking (precise)
         4. MMR diversification (if enabled)
-        
+
         Args:
             query: Search query
             document_chunks: Pool of chunks to search
             pdq_filter: Optional P-D-Q context filter
             use_reranking: Enable cross-encoder reranking
             use_mmr: Enable MMR diversification
-            
+
         Returns:
             Ranked list of (chunk, score) tuples
         """
@@ -912,14 +909,14 @@ class PolicyAnalysisEmbedder:
     ) -> BayesianEvaluation:
         """
         Bayesian evaluation of numerical consistency for policy metric.
-        
+
         Extracts numerical values from chunks matching P-D-Q context,
         performs rigorous statistical analysis with uncertainty quantification.
-        
+
         Args:
             chunks: Document chunks to analyze
             pdq_context: P-D-Q context to filter relevant chunks
-            
+
         Returns:
             Bayesian evaluation with credible intervals and evidence strength
         """
@@ -928,7 +925,8 @@ class PolicyAnalysisEmbedder:
 
         if not relevant_chunks:
             self._logger.warning(
-                "No chunks found for P-D-Q context: %s", pdq_context["question_unique_id"]
+                "No chunks found for P-D-Q context: %s",
+                pdq_context["question_unique_id"],
             )
             return self.bayesian_analyzer._null_evaluation()
 
@@ -964,7 +962,7 @@ class PolicyAnalysisEmbedder:
     ) -> dict[str, Any]:
         """
         Bayesian comparison of two policy interventions.
-        
+
         Returns probability and evidence for superiority.
         """
         values_a = self._extract_numerical_values(
@@ -983,7 +981,7 @@ class PolicyAnalysisEmbedder:
     ) -> dict[str, Any]:
         """
         Generate comprehensive analytical report for P-D-Q question.
-        
+
         Combines semantic search, numerical analysis, and evidence synthesis.
         """
         # Semantic search for relevant content
@@ -1083,7 +1081,7 @@ class PolicyAnalysisEmbedder:
     ) -> list[tuple[SemanticChunk, float]]:
         """
         Apply Maximal Marginal Relevance for diversification.
-        
+
         Balances relevance with diversity to avoid redundant results.
         """
         if len(ranked_results) <= 1:
@@ -1131,12 +1129,10 @@ class PolicyAnalysisEmbedder:
         # Reorder by MMR selection
         return [(chunks[i], scores[i]) for i in selected_indices]
 
-    def _extract_numerical_values(
-        self, chunks: list[SemanticChunk]
-    ) -> list[float]:
+    def _extract_numerical_values(self, chunks: list[SemanticChunk]) -> list[float]:
         """
         Extract numerical values from chunks using advanced patterns.
-        
+
         Focuses on policy-relevant metrics: percentages, amounts, counts.
         """
         numerical_values = []
@@ -1145,8 +1141,10 @@ class PolicyAnalysisEmbedder:
         patterns = [
             r"(\d+(?:[.,]\d+)?)\s*%",  # Percentages
             r"\$\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)",  # Currency
-            r"(\d{1,3}(?:[.,]\d{3})*)\s*(?:millones?|mil\s+millones?)",  # Millions
-            r"(\d+(?:[.,]\d+)?)\s*(?:personas|beneficiarios|habitantes)",  # People count
+            # Millions
+            r"(\d{1,3}(?:[.,]\d{3})*)\s*(?:millones?|mil\s+millones?)",
+            # People count
+            r"(\d+(?:[.,]\d+)?)\s*(?:personas|beneficiarios|habitantes)",
         ]
 
         for chunk in chunks:
@@ -1201,7 +1199,7 @@ class PolicyAnalysisEmbedder:
     ) -> float:
         """
         Compute overall confidence score combining semantic and numerical evidence.
-        
+
         Considers:
         - Number of relevant chunks
         - Semantic relevance scores
@@ -1213,7 +1211,9 @@ class PolicyAnalysisEmbedder:
 
         # Semantic confidence: average of top scores
         semantic_scores = [score for _, score in relevant_chunks[:5]]
-        semantic_confidence = float(np.mean(semantic_scores)) if semantic_scores else 0.0
+        semantic_confidence = (
+            float(np.mean(semantic_scores)) if semantic_scores else 0.0
+        )
 
         # Numerical confidence: based on evidence strength and coherence
         evidence_strength_map = {
@@ -1233,11 +1233,10 @@ class PolicyAnalysisEmbedder:
         return float(np.clip(overall_confidence, 0.0, 1.0))
 
     @lru_cache(maxsize=1024)
-    def _cached_similarity(
-        self, text_hash1: str, text_hash2: str
-    ) -> float:
+    def _cached_similarity(self, text_hash1: str, text_hash2: str) -> float:
         """Cached similarity computation for performance.
-        Assumes embeddings are cached in self._embedding_cache using text_hash as key."""
+        Assumes embeddings are cached in self._embedding_cache using text_hash as key.
+        """
         emb1 = self._embedding_cache[text_hash1]
         emb2 = self._embedding_cache[text_hash2]
         return float(cosine_similarity(emb1.reshape(1, -1), emb2.reshape(1, -1))[0, 0])
@@ -1273,7 +1272,7 @@ def create_policy_embedder(
 ) -> PolicyAnalysisEmbedder:
     """
     Factory function for creating production-ready policy embedder.
-    
+
     Args:
         model_tier: Performance/accuracy trade-off
             - "fast": Lightweight, low latency
@@ -1281,14 +1280,14 @@ def create_policy_embedder(
             - "accurate": Maximum accuracy, higher latency
         enable_cross_encoder: Enable precise reranking
         enable_mmr: Enable diversity-based reranking
-        
+
     Returns:
         Configured PolicyAnalysisEmbedder instance
     """
     model_configs = {
         "fast": PolicyEmbeddingConfig(
             embedding_model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-            cross_encoder_model="cross-encoder/ms-marco-MiniLM-L-6-v2",
+            cross_encoder_model=DEFAULT_CROSS_ENCODER_MODEL,
             chunk_size=256,
             chunk_overlap=64,
             top_k_candidates=30,
@@ -1297,7 +1296,7 @@ def create_policy_embedder(
         ),
         "balanced": PolicyEmbeddingConfig(
             embedding_model="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
-            cross_encoder_model="cross-encoder/ms-marco-MiniLM-L-6-v2",
+            cross_encoder_model=DEFAULT_CROSS_ENCODER_MODEL,
             chunk_size=512,
             chunk_overlap=128,
             top_k_candidates=50,
@@ -1373,10 +1372,10 @@ def example_pdm_analysis():
     }
 
     # Create embedder
-    print("="*80)
+    print("=" * 80)
     print("POLICY ANALYSIS EMBEDDER - PRODUCTION EXAMPLE")
-    print("="*80)
-    
+    print("=" * 80)
+
     embedder = create_policy_embedder(model_tier="balanced")
 
     # Process document
@@ -1400,18 +1399,26 @@ def example_pdm_analysis():
     # Generate comprehensive report
     report = embedder.generate_pdq_report(chunks, pdq_query)
 
-    print(f"\n3. ANALYSIS RESULTS")
+    print("\n3. ANALYSIS RESULTS")
     print(f"   Evidence chunks found: {report['evidence_count']}")
     print(f"   Overall confidence: {report['confidence']:.3f}")
-    print(f"\n   Numerical Evaluation:")
-    print(f"   - Point estimate: {report['numerical_evaluation']['point_estimate']:.3f}")
-    print(f"   - 95% CI: [{report['numerical_evaluation']['credible_interval_95'][0]:.3f}, "
-          f"{report['numerical_evaluation']['credible_interval_95'][1]:.3f}]")
-    print(f"   - Evidence strength: {report['numerical_evaluation']['evidence_strength']}")
-    print(f"   - Numerical coherence: {report['numerical_evaluation']['numerical_coherence']:.3f}")
+    print("\n   Numerical Evaluation:")
+    print(
+        f"   - Point estimate: {report['numerical_evaluation']['point_estimate']:.3f}"
+    )
+    print(
+        f"   - 95% CI: [{report['numerical_evaluation']['credible_interval_95'][0]:.3f}, "
+        f"{report['numerical_evaluation']['credible_interval_95'][1]:.3f}]"
+    )
+    print(
+        f"   - Evidence strength: {report['numerical_evaluation']['evidence_strength']}"
+    )
+    print(
+        f"   - Numerical coherence: {report['numerical_evaluation']['numerical_coherence']:.3f}"
+    )
 
     print(f"\n4. TOP EVIDENCE PASSAGES:")
-    for i, passage in enumerate(report['evidence_passages'], 1):
+    for i, passage in enumerate(report["evidence_passages"], 1):
         print(f"\n   [{i}] Relevance: {passage['relevance_score']:.3f}")
         print(f"       {passage['content'][:200]}...")
 
@@ -1422,9 +1429,9 @@ def example_pdm_analysis():
     print(f"   Cache efficiency: {diag['embedding_cache_size']} embeddings cached")
     print(f"   Total chunks processed: {diag['total_chunks_processed']}")
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("ANALYSIS COMPLETE")
-    print("="*80)
+    print("=" * 80)
 
 
 if __name__ == "__main__":
