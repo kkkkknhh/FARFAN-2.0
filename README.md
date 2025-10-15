@@ -1,9 +1,33 @@
 # FARFAN-2.0
-Framework Avanzado de Reconstrucción y Análisis de Formulaciones de Acción Nacional 2.0
 
-## Descripción
+**Framework Avanzado de Reconstrucción y Análisis de Formulaciones de Acción Nacional 2.0**
 
-FARFAN-2.0 es un framework de grado industrial para la deconstrucción y auditoría causal de Planes de Desarrollo Territorial en Colombia, con énfasis en cumplimiento riguroso de estándares del DNP (Departamento Nacional de Planeación).
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+## 📋 Tabla de Contenidos
+
+- [Descripción](#descripción)
+- [Características Principales](#características-principales)
+- [Arquitectura de Resiliencia](#arquitectura-de-resiliencia)
+- [Instalación](#instalación)
+- [Inicio Rápido](#inicio-rápido)
+- [Módulos del Sistema](#módulos-del-sistema)
+- [Documentación](#documentación)
+- [Contribuciones](#contribuciones)
+- [Licencia](#licencia)
+
+## 📖 Descripción
+
+FARFAN-2.0 es un **framework de grado industrial** para la deconstrucción y auditoría causal de Planes de Desarrollo Territorial en Colombia, con énfasis en cumplimiento riguroso de estándares del **DNP (Departamento Nacional de Planeación)**.
+
+### Capacidades Principales
+
+- ✅ **Análisis Causal Automatizado**: Extracción y validación de cadenas causales desde documentos PDF
+- ✅ **Evaluación de 300 Preguntas**: Sistema completo de evaluación mediante 30 preguntas base × 10 áreas de política
+- ✅ **Cumplimiento DNP**: Validación automática de competencias municipales, indicadores MGA y lineamientos PDET
+- ✅ **Resiliencia Distribuida**: Circuit breakers, retry handlers, y recovery checkpoints
+- ✅ **Auditoría Completa**: Trazabilidad financiera y generación de reportes multinivel (micro, meso, macro)
 
 ## Arquitectura de Resiliencia (Risk-Driven Resilience System)
 
@@ -454,78 +478,57 @@ El orquestador implementa un sistema completo de evaluación mediante **300 preg
 - Requisitos de inversión rural (>60%)
 - Alineación con PATR subregionales
 
-## Instalación Paso a Paso
+## 🚀 Instalación
 
 ### Requisitos Previos
 
-- **Python**: 3.11 o superior
-- **Sistema Operativo**: Linux, macOS, o Windows 10+
-- **Memoria RAM**: 4GB mínimo (8GB recomendado para procesamiento de documentos grandes)
-- **Espacio en Disco**: 2GB para dependencias y modelos NLP
-- **Herramientas adicionales**: 
-  - Git
-  - Graphviz (para generación de diagramas causales)
+| Requisito | Versión Mínima | Recomendado |
+|-----------|----------------|-------------|
+| **Python** | 3.11 | 3.12+ |
+| **RAM** | 4GB | 8GB+ |
+| **Espacio en Disco** | 2GB | 5GB+ |
+| **Sistema Operativo** | Linux, macOS, Windows 10+ | Ubuntu 22.04+ |
 
-### Paso 1: Clonar el Repositorio
+**Herramientas adicionales:**
+- Git (para clonar el repositorio)
+- Graphviz (para generación de diagramas causales)
+
+### Instalación Rápida (3 Pasos)
+
+#### 1. Clonar el Repositorio
 
 ```bash
 git clone https://github.com/kkkkknhh/FARFAN-2.0.git
 cd FARFAN-2.0
 ```
 
-### Paso 2: Crear Entorno Virtual (Recomendado)
+#### 2. Instalar Dependencias
 
 ```bash
-# Crear entorno virtual
+# Crear y activar entorno virtual (recomendado)
 python3 -m venv farfan_env
+source farfan_env/bin/activate  # En Linux/macOS
+# farfan_env\Scripts\activate   # En Windows
 
-# Activar entorno virtual
-# En Linux/macOS:
-source farfan_env/bin/activate
-
-# En Windows:
-farfan_env\Scripts\activate
-```
-
-### Paso 3: Instalar Dependencias Core
-
-```bash
-# Instalar todas las dependencias desde requirements.txt
+# Actualizar pip e instalar dependencias
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-**Dependencias principales instaladas:**
-- `pymupdf` - Extracción de texto y tablas desde PDFs
-- `networkx` - Construcción y análisis de grafos causales
-- `pandas` - Manejo de datos estructurados
-- `spacy` - Procesamiento de lenguaje natural
-- `pyyaml` - Configuración y metadatos
-- `fuzzywuzzy` - Matching difuso de texto
-- `python-Levenshtein` - Cálculo de distancias de edición
-- `pydot` - Generación de diagramas con Graphviz
-- `scipy` - Análisis estadístico
-- `numpy` - Operaciones numéricas
-
-### Paso 4: Descargar Modelo spaCy en Español
+#### 3. Descargar Modelo de Lenguaje Español
 
 ```bash
 # Descargar modelo large de español (es_core_news_lg)
 python -m spacy download es_core_news_lg
 ```
 
-Este modelo incluye:
-- Vectores de palabras entrenados (word embeddings)
-- Reconocimiento de entidades nombradas (NER)
-- Análisis sintáctico (dependency parsing)
-- Lematización y POS tagging
+### Instalación de Dependencias Opcionales
 
-### Paso 5: Instalar Graphviz (Opcional pero Recomendado)
+#### Graphviz (para diagramas)
 
 **Ubuntu/Debian:**
 ```bash
-sudo apt-get update
-sudo apt-get install graphviz
+sudo apt-get update && sudo apt-get install graphviz
 ```
 
 **macOS (con Homebrew):**
@@ -534,73 +537,115 @@ brew install graphviz
 ```
 
 **Windows:**
-- Descargar desde https://graphviz.org/download/
+- Descargar desde [graphviz.org/download](https://graphviz.org/download/)
 - Agregar al PATH del sistema
 
-### Paso 6: Verificar Instalación
+#### OpenCV (para procesamiento avanzado de tablas)
+
+Si usa `camelot-py` con backend CV:
+```bash
+# Ubuntu/Debian
+sudo apt-get install python3-opencv
+
+# macOS
+brew install opencv
+
+# Verificar instalación
+python -c "import cv2; print('OpenCV OK')"
+```
+
+### Verificación de Instalación
 
 ```bash
 # Verificar versión de Python
-python --version
+python --version  # Debe ser 3.11+
 
-# Verificar instalación de dependencias
-python -c "import pymupdf, networkx, pandas, spacy; print('Core dependencies OK')"
+# Verificar dependencias core
+python -c "import numpy, pandas, networkx, spacy; print('✓ Core dependencies OK')"
 
 # Verificar modelo spaCy
-python -c "import spacy; nlp = spacy.load('es_core_news_lg'); print('spaCy model OK')"
+python -c "import spacy; nlp = spacy.load('es_core_news_lg'); print('✓ spaCy model OK')"
 
-# Verificar Graphviz
-python -c "import pydot; print('Graphviz OK')"
+# Verificar Graphviz (opcional)
+python -c "import pydot; print('✓ Graphviz OK')"
+
+# Ejecutar tests básicos
+python -m pytest test_orchestrator.py -v
 ```
 
-### Paso 7: Ejecutar Tests de Validación
+### Solución de Problemas Comunes
+
+<details>
+<summary><b>Error: "No module named 'torch_geometric'"</b></summary>
+
+Para instalar `torch_geometric`, primero asegúrese de tener PyTorch instalado, luego:
 
 ```bash
-# Test de notación canónica
-python -m unittest test_canonical_notation.py
-
-# Test de circuit breaker
-python -m unittest test_circuit_breaker.py
-
-# Test de capa de mitigación de riesgos
-python test_risk_mitigation.py
+pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+pip install torch-geometric
 ```
+</details>
 
-Todos los tests deben pasar sin errores.
-
-### Paso 8: Configuración Opcional - Redis (Para Sistemas Distribuidos)
-
-Si planea usar el Circuit Breaker con sincronización distribuida:
+<details>
+<summary><b>Error: "spaCy model 'es_core_news_lg' not found"</b></summary>
 
 ```bash
-# Instalar Redis
-sudo apt-get install redis-server
+# Descargar e instalar el modelo manualmente
+python -m spacy download es_core_news_lg
 
-# Instalar cliente Python
-pip install redis
-
-# Iniciar servicio Redis
-sudo systemctl start redis
+# O instalar desde URL directa
+pip install https://github.com/explosion/spacy-models/releases/download/es_core_news_lg-3.5.0/es_core_news_lg-3.5.0-py3-none-any.whl
 ```
+</details>
 
-## Implementación del Sistema Completo
+<details>
+<summary><b>Error: "camelot-py installation fails"</b></summary>
 
-### Uso Básico: Procesamiento de un Plan de Desarrollo
+`camelot-py` requiere dependencias del sistema. Intente:
 
 ```bash
-# Procesar un PDM con todas las etapas del pipeline
+# Ubuntu/Debian
+sudo apt-get install python3-tk ghostscript
+
+# Luego reinstale
+pip install "camelot-py[cv]"
+```
+</details>
+
+<details>
+<summary><b>Problemas de memoria (RAM insuficiente)</b></summary>
+
+Para documentos grandes con RAM limitada:
+
+```python
+# Usar configuración de bajo consumo
+from orchestrator import create_orchestrator
+
+orchestrator = create_orchestrator(
+    enable_streaming=True,  # Procesar en streaming
+    batch_size=10           # Reducir tamaño de batch
+)
+```
+</details>
+
+## 💼 Uso Avanzado y Configuración
+
+### Procesamiento de PDM con Todas las Etapas
+
+```bash
+# Procesar PDM estándar
 python orchestrator.py plan_desarrollo_municipal.pdf \
     --policy-code PDM2024-ANT-MED \
     --output-dir ./resultados_evaluacion
 
-# Para municipio PDET (con lineamientos especiales)
+# Procesar PDM para municipio PDET (con lineamientos especiales)
 python orchestrator.py plan_desarrollo_pdet.pdf \
     --policy-code PDM2024-CAU-PAT \
     --output-dir ./resultados_pdet \
     --pdet
 ```
 
-### Uso Avanzado: Configuración Personalizada
+### Configuración Personalizada
 
 ```bash
 # Con logging detallado
@@ -616,39 +661,7 @@ python dereck_beach documento.pdf \
     --pdet
 ```
 
-### Demostración Interactiva
-
-```bash
-# Ejecutar demo simplificado del sistema de orquestación
-python demo_orchestrator.py --simple
-
-# Ejecutar ejemplos de validación DNP
-python ejemplo_dnp_completo.py
-```
-
-### Validación DNP Programática
-
-```python
-from dnp_integration import ValidadorDNP
-
-# Inicializar validador para municipio PDET
-validador = ValidadorDNP(es_municipio_pdet=True)
-
-# Validar proyecto integral
-resultado = validador.validar_proyecto_integral(
-    sector="educacion",
-    descripcion="Construcción de 5 sedes educativas rurales",
-    indicadores_propuestos=["EDU-020", "EDU-021"],
-    presupuesto=2_000_000_000,
-    es_rural=True,
-    poblacion_victimas=True
-)
-
-# Generar reporte de cumplimiento
-print(validador.generar_reporte_cumplimiento(resultado))
-```
-
-### Estructura de Salida
+### Estructura de Salida Completa
 
 Después de la ejecución, el directorio de salida contendrá:
 
@@ -665,139 +678,426 @@ resultados_evaluacion/
 └── PDM2024-ANT-MED_dnp_compliance_report.txt # Cumplimiento DNP
 ```
 
-## Uso Rápido
+### Configuración Avanzada del Sistema de Resiliencia
 
-### Sistema de Orquestación Completo (NUEVO)
+```python
+from circuit_breaker import CircuitBreaker
+from risk_registry import RiskRegistry
+from pipeline_checkpoint import CheckpointManager
 
-El orquestador integra **todos los módulos** para evaluar planes mediante **300 preguntas**:
+# 1. Configurar Circuit Breaker
+circuit_breaker = CircuitBreaker(
+    failure_threshold=0.5,          # 50% failure rate para abrir circuito
+    window_size_seconds=60,         # Ventana deslizante de 60 segundos
+    timeout_duration=30,            # 30s en OPEN antes de HALF_OPEN
+    half_open_max_requests=3,       # 3 requests de prueba en HALF_OPEN
+    operation_timeout=10.0,         # 10s timeout por operación
+    peak_hours=[8,9,10,11,12,13,14,15,16,17,18],  # Horas pico
+    peak_multiplier=1.5,            # Mayor tolerancia en horas pico
+    off_peak_multiplier=0.8         # Menor tolerancia en horas valle
+)
 
-```bash
-# Procesar un plan de desarrollo
-python orchestrator.py plan_desarrollo.pdf \
-    --policy-code PDM2024-ANT-MED \
-    --output-dir ./resultados \
-    --pdet
+# 2. Configurar Checkpoints
+checkpoint_mgr = CheckpointManager(
+    checkpoint_dir="./checkpoints",
+    enable_compression=True,
+    retention_policy="keep_last_5"
+)
 
-# Demostración del sistema
-python demo_orchestrator.py --simple
+# 3. Ejecutar con configuración personalizada
+from orchestrator import create_orchestrator
+
+orchestrator = create_orchestrator(
+    circuit_breaker=circuit_breaker,
+    checkpoint_manager=checkpoint_mgr,
+    coherence_threshold=0.75,
+    enable_retry=True,
+    max_retries=3
+)
 ```
 
-**Salida generada**:
-- `micro_report_{code}.json` - 300 respuestas individuales
-- `meso_report_{code}.json` - 4 clústeres × 6 dimensiones
-- `macro_report_{code}.json/md` - Evaluación global
+## ⚡ Inicio Rápido
 
-Ver [ORCHESTRATION_README.md](ORCHESTRATION_README.md) para documentación completa.
+### Ejemplo 1: Análisis Completo de un PDM
 
-### Validación DNP Standalone
+```bash
+# Procesar un Plan de Desarrollo Municipal
+python orchestrator.py plan_desarrollo.pdf \
+    --policy-code PDM2024-ANT-MED \
+    --output-dir ./resultados
+```
+
+**Salidas generadas:**
+```
+resultados/
+├── micro_report_PDM2024-ANT-MED.json       # 300 respuestas individuales
+├── meso_report_PDM2024-ANT-MED.json        # 4 clústeres × 6 dimensiones  
+├── macro_report_PDM2024-ANT-MED.json       # Evaluación global
+├── macro_report_PDM2024-ANT-MED.md         # Reporte en Markdown
+├── PDM2024-ANT-MED_causal_diagram.png      # Diagrama causal
+├── PDM2024-ANT-MED_accountability_matrix.md # Matriz de responsabilidades
+└── PDM2024-ANT-MED_dnp_compliance_report.txt # Cumplimiento DNP
+```
+
+### Ejemplo 2: Validación DNP Programática
 
 ```python
 from dnp_integration import ValidadorDNP
 
+# Inicializar validador para municipio PDET
 validador = ValidadorDNP(es_municipio_pdet=True)
 
+# Validar proyecto
 resultado = validador.validar_proyecto_integral(
     sector="educacion",
-    descripcion="Construcción de 5 sedes educativas en zona rural",
-    indicadores_propuestos=["EDU-020", "EDU-021", "EDU-002"],
+    descripcion="Construcción de 5 sedes educativas rurales",
+    indicadores_propuestos=["EDU-020", "EDU-021"],
     presupuesto=2_000_000_000,
     es_rural=True,
     poblacion_victimas=True
 )
 
+# Generar reporte
 print(validador.generar_reporte_cumplimiento(resultado))
 ```
 
-### Framework Completo CDAF
+**Salida esperada:**
+```
+========================================
+REPORTE DE CUMPLIMIENTO DNP
+========================================
 
-```bash
-# Procesamiento estándar
-python dereck_beach documento.pdf --output-dir resultados/ --policy-code PDM2024
+✓ Competencia Municipal: VÁLIDA (educacion)
+✓ Indicadores MGA: 2/2 válidos
+✓ Requisitos PDET: CUMPLE
+  - Inversión rural: SÍ
+  - Población víctimas: SÍ
 
-# Procesamiento para municipio PDET
-python dereck_beach documento.pdf --output-dir resultados/ --policy-code PDM2024 --pdet
+Puntaje Total: 95/100 - EXCELENTE
 ```
 
-### Ejemplos Interactivos
+### Ejemplo 3: Detección de Contradicciones
+
+```python
+from contradiction_deteccion import PolicyContradictionDetectorV2
+
+# Inicializar detector
+detector = PolicyContradictionDetectorV2()
+
+# Detectar contradicciones en un documento
+resultado = detector.detect(
+    texto_completo=open("plan.txt").read(),
+    plan_name="PDM_2024",
+    dimension="estratégico"
+)
+
+# Mostrar contradicciones encontradas
+print(f"Total contradicciones: {len(resultado['contradictions'])}")
+for c in resultado['contradictions'][:3]:
+    print(f"- {c['type']}: {c['description']}")
+```
+
+### Ejemplo 4: Pipeline Completo con Resiliencia
+
+```python
+from orchestrator import create_orchestrator
+
+# Crear orquestador con calibración personalizada
+orchestrator = create_orchestrator(
+    coherence_threshold=0.75,        # Umbral de coherencia
+    causal_incoherence_limit=3,      # Límite de incoherencias
+    enable_checkpoints=True,         # Activar checkpoints
+    enable_circuit_breaker=True      # Activar circuit breaker
+)
+
+# Ejecutar análisis
+result = orchestrator.orchestrate_analysis(
+    text=open("plan.txt").read(),
+    plan_name="PDM_Municipio_2024",
+    dimension="estratégico"
+)
+
+# Acceder a resultados
+print(f"Contradicciones: {result['total_contradictions']}")
+print(f"Coherencia: {result['coherence_metrics']['overall_score']:.2f}")
+print(f"Calificación: {result['audit_summary']['quality_grade']}")
+```
+
+### Ejemplo 5: Demostración Interactiva
 
 ```bash
-# Ejecutar ejemplos completos
+# Ejecutar demo completo del sistema
+python demo_orchestration_complete.py --simple
+
+# Ejecutar demo de validación DNP
 python ejemplo_dnp_completo.py
+
+# Ejecutar demo de detección de contradicciones
+python demo_choreography.py
 ```
 
-## Módulos
+## 📦 Módulos del Sistema
 
-### **NUEVO: Sistema de Orquestación Integral**
-- `orchestrator.py` - Orquestador principal con flujo canónico de 9 etapas
-- `question_answering_engine.py` - Motor de respuesta a 300 preguntas
-- `report_generator.py` - Generador de reportes micro, meso y macro
-- `module_choreographer.py` - Coreógrafo de módulos y acumulador de respuestas
+### 🎯 Módulos Core de Orquestación
 
-### Módulos DNP (Nuevos)
-- `competencias_municipales.py` - Catálogo de competencias municipales
-- `mga_indicadores.py` - Catálogo de indicadores MGA
-- `pdet_lineamientos.py` - Lineamientos PDET
-- `dnp_integration.py` - Integración y validación DNP
-- `canonical_notation.py` - **NUEVO:** Sistema canónico de notación (P#-D#-Q#)
-- `ejemplo_dnp_completo.py` - Ejemplos de uso
+| Módulo | Descripción | Archivo |
+|--------|-------------|---------|
+| **Orchestrator** | Orquestador principal con flujo canónico de 9 etapas | `orchestrator.py` |
+| **Pipeline Checkpoint** | Sistema de checkpoints incrementales para recuperación | `pipeline_checkpoint.py` |
+| **Circuit Breaker** | Protección contra fallos en cascada con ventanas deslizantes | `circuit_breaker.py` |
+| **Retry Handler** | Manejo de reintentos con backoff exponencial | `retry_handler.py` |
 
-### Módulos Framework Principal
-- `dereck_beach` - Framework CDAF principal
-- `initial_processor_causal_policy` - Procesador de políticas causales
-- `teoria_cambio_validacion_monte_carlo` - Validación de teoría de cambio
-- `guia_cuestionario` - Cuestionario de validación causal
+### 🔍 Módulos de Análisis
 
-## Salidas Generadas
+| Módulo | Descripción | Archivo |
+|--------|-------------|---------|
+| **Contradiction Detection** | Detección de contradicciones usando NLP y redes neuronales | `contradiction_deteccion.py` |
+| **Canonical Notation** | Sistema canónico de notación (P#-D#-Q#) | `canonical_notation.py` |
+| **Report Generator** | Generación de reportes multinivel (micro, meso, macro) | `report_generator.py` |
+| **Policy Processor** | Procesador de políticas causales | `policy_processor.py` |
 
-El framework genera automáticamente:
+### 🏛️ Módulos de Cumplimiento DNP
 
-1. **{policy_code}_causal_diagram.png** - Diagrama causal visual
-2. **{policy_code}_accountability_matrix.md** - Matriz de responsabilidades
-3. **{policy_code}_confidence_report.json** - Reporte de confianza
-4. **{policy_code}_causal_model.json** - Modelo causal estructurado
-5. **{policy_code}_dnp_compliance_report.txt** - **NUEVO:** Reporte de cumplimiento DNP
+| Módulo | Descripción | Archivo |
+|--------|-------------|---------|
+| **DNP Integration** | Integración y validación completa de estándares DNP | `dnp_integration.py` |
+| **MGA Indicators** | Catálogo de 51 indicadores MGA oficiales | `mga_indicadores.py` |
+| **PDET Guidelines** | 17 lineamientos para municipios PDET | `pdet_lineamientos.py` |
+| **Governance Standards** | Estándares de gobernanza y cumplimiento | `governance_standards.py` |
 
-## Documentación
+### 🔬 Módulos de Inferencia y Validación
 
-- [DNP Integration Documentation](DNP_INTEGRATION_DOCS.md) - Guía completa de validación DNP
-- [Canonical Notation Documentation](CANONICAL_NOTATION_DOCS.md) - **NUEVO:** Sistema canónico de notación
-- Ver ejemplos en `ejemplo_dnp_completo.py`
+| Módulo | Descripción | Ubicación |
+|--------|-------------|-----------|
+| **Bayesian Engine** | Motor de inferencia bayesiana para mecanismos causales | `inference/bayesian_engine.py` |
+| **Axiomatic Validator** | Validación axiomática de estructuras causales | `validators/axiomatic_validator.py` |
+| **D6 Audit** | Auditoría de Dimensión 6 (Teoría de Cambio) | `validators/d6_audit.py` |
+| **Evidence Quality Auditors** | Auditoría de calidad de evidencia | `evidence_quality_auditors.py` |
 
-## Estándares y Normativa
+### 🏗️ Módulos de Infraestructura
 
-### Competencias Municipales
-- Constitución Política de Colombia (1991)
-- Ley 136 de 1994 - Organización Municipal
-- Ley 715 de 2001 - Sistema General de Participaciones
-- Ley 1551 de 2012 - Modernización Municipal
+| Módulo | Descripción | Ubicación |
+|--------|-------------|-----------|
+| **DI Container** | Contenedor de inyección de dependencias | `infrastructure/di_container.py` |
+| **Observability** | Sistema de observabilidad y métricas | `infrastructure/observability.py` |
+| **Resource Pool** | Pool de recursos para optimización de memoria | `infrastructure/resource_pool.py` |
+| **Async Orchestrator** | Orquestador asíncrono para pipelines distribuidos | `infrastructure/async_orchestrator.py` |
 
-### Indicadores MGA
-- DNP - Metodología General Ajustada (MGA)
-- Sistema de Seguimiento a Proyectos de Inversión (SPI)
+### 📄 Módulos de Procesamiento de Documentos
 
-### PDET
-- Decreto 893 de 2017 - Creación de PDET
-- Acuerdo Final para la Terminación del Conflicto (2016)
-- Agencia de Renovación del Territorio (ART)
+| Módulo | Descripción | Ubicación |
+|--------|-------------|-----------|
+| **Extraction Pipeline** | Pipeline de extracción de texto y tablas | `extraction/extraction_pipeline.py` |
+| **Semantic Chunking** | Segmentación semántica de documentos | `semantic_chunking_policy.py` |
+| **Embedding Policy** | Generación de embeddings para búsqueda semántica | `emebedding_policy.py` |
 
-## Niveles de Cumplimiento DNP
+### 🎭 Módulos de Coreografía
 
-- **EXCELENTE**: >90% - Cumplimiento sobresaliente
-- **BUENO**: 75-90% - Cumplimiento adecuado
-- **ACEPTABLE**: 60-75% - Cumplimiento mínimo
-- **INSUFICIENTE**: <60% - Requiere mejoras
+| Módulo | Descripción | Ubicación |
+|--------|-------------|-----------|
+| **Event Bus** | Bus de eventos para comunicación entre módulos | `choreography/event_bus.py` |
+| **Evidence Stream** | Stream de evidencia para procesamiento continuo | `choreography/evidence_stream.py` |
 
-## Contribuciones
+### 🧪 Tests y Validación
 
-Este proyecto implementa estándares oficiales del DNP y el Acuerdo de Paz de Colombia. Las contribuciones deben mantener estricta adherencia a la normativa colombiana vigente.
+```bash
+# Ejecutar todos los tests
+python -m pytest
 
-## Licencia
+# Tests específicos
+python -m pytest test_orchestrator.py -v
+python -m pytest test_contradiction_deteccion.py -v
+python -m pytest test_dnp_integration.py -v
+python -m pytest test_circuit_breaker.py -v
+```
 
-Ver archivo LICENSE
+## 📚 Documentación
 
-## Contacto
+### Documentación Principal
 
-Para soporte sobre estándares DNP:
-- DNP: https://www.dnp.gov.co
-- ART: https://www.renovacionterritorio.gov.co
+| Documento | Descripción |
+|-----------|-------------|
+| [ORCHESTRATOR_README.md](ORCHESTRATOR_README.md) | Guía completa del orquestador analítico |
+| [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) | Guía de integración de módulos |
+| [OBSERVABILITY_README.md](OBSERVABILITY_README.md) | Sistema de observabilidad y métricas |
+| [CONVERGENCE_README.md](CONVERGENCE_README.md) | Algoritmos de convergencia |
+
+### Documentación de Implementación
+
+| Documento | Descripción |
+|-----------|-------------|
+| [F4.3_IMPLEMENTATION_SUMMARY.md](F4.3_IMPLEMENTATION_SUMMARY.md) | Resumen de implementación F4.3 |
+| [F4.4_IMPLEMENTATION_SUMMARY.md](F4.4_IMPLEMENTATION_SUMMARY.md) | Resumen de implementación F4.4 |
+| [HARMONIC_FRONT_4_IMPLEMENTATION.md](HARMONIC_FRONT_4_IMPLEMENTATION.md) | Implementación Harmonic Front 4 |
+| [BAYESIAN_INFERENCE_IMPLEMENTATION.md](BAYESIAN_INFERENCE_IMPLEMENTATION.md) | Implementación de inferencia bayesiana |
+
+### Quick Reference Guides
+
+| Documento | Descripción |
+|-----------|-------------|
+| [HARMONIC_FRONT_4_QUICKREF.md](HARMONIC_FRONT_4_QUICKREF.md) | Referencia rápida Harmonic Front 4 |
+| [EXTRACTION_PIPELINE_QUICKREF.md](EXTRACTION_PIPELINE_QUICKREF.md) | Referencia rápida pipeline de extracción |
+| [BAYESIAN_QUICK_REFERENCE.md](BAYESIAN_QUICK_REFERENCE.md) | Referencia rápida bayesiana |
+| [GOVERNANCE_QUICKREF.md](GOVERNANCE_QUICKREF.md) | Referencia rápida de gobernanza |
+
+### Arquitectura y Diseño
+
+- **Arquitectura de Resiliencia**: Ver sección [Arquitectura de Resiliencia](#arquitectura-de-resiliencia) arriba
+- **Patrones de Diseño**: Circuit Breaker, Retry Handler, Checkpoint Recovery
+- **Flujo de Datos**: Ver diagramas en [ORCHESTRATOR_README.md](ORCHESTRATOR_README.md)
+
+## 🎯 Características Principales
+
+### 1. Sistema de Evaluación de 300 Preguntas
+
+El orquestador implementa un sistema completo de evaluación mediante **300 preguntas causales**:
+
+- **30 Preguntas Base**: Organizadas en 6 dimensiones del Marco Lógico
+  - D1: Insumos (Diagnóstico y Líneas Base)
+  - D2: Actividades (Formalizadas)
+  - D3: Productos (Verificables)
+  - D4: Resultados (Medibles)
+  - D5: Impactos (Largo Plazo)
+  - D6: Causalidad (Teoría de Cambio)
+
+- **10 Áreas de Política** (Decálogo):
+  - P1: Derechos de las mujeres e igualdad de género
+  - P2: Prevención de la violencia y protección frente al conflicto
+  - P3: Ambiente sano, cambio climático, prevención y atención a desastres
+  - P4: Derechos económicos, sociales y culturales
+  - P5: Derechos de las víctimas y construcción de paz
+  - P6: Derecho al buen futuro de la niñez, adolescencia, juventud
+  - P7: Tierras y territorios
+  - P8: Líderes y defensores de derechos humanos
+  - P9: Crisis de derechos de personas privadas de la libertad
+  - P10: Migración transfronteriza
+
+**Cada respuesta incluye**:
+- Texto de respuesta directa
+- Argumento de nivel doctoral (2+ párrafos)
+- Nota cuantitativa (0.0-1.0)
+- Evidencia del documento
+- Módulos que contribuyeron
+
+**Reportes a 3 Niveles**:
+1. **MICRO**: 300 respuestas individuales
+2. **MESO**: 4 clústeres × 6 dimensiones
+3. **MACRO**: Alineación global + análisis retrospectivo/prospectivo
+
+### 2. Framework CDAF (Causal Deconstruction and Audit Framework)
+
+- Extracción automática de jerarquías causales desde PDFs
+- Análisis de mecanismos causales (Entidad-Actividad)
+- Trazabilidad financiera
+- Auditoría de operacionalización
+- Generación de diagramas causales y matrices de responsabilidad
+
+### 3. Cumplimiento Integral de Estándares DNP
+
+#### Competencias Municipales
+- **17 competencias** catalogadas según normativa colombiana
+- Validación automática de competencias propias y concurrentes
+- Base legal completa (Ley 136/1994, Ley 715/2001, Ley 1551/2012)
+- 14 sectores de intervención cubiertos
+
+#### Indicadores MGA
+- **51 indicadores** del catálogo oficial MGA
+  - 28 indicadores de producto
+  - 23 indicadores de resultado
+- Fórmulas de cálculo oficiales
+- Fuentes de información verificadas
+- Alineación con ODS (Objetivos de Desarrollo Sostenible)
+
+#### Lineamientos PDET
+- **17 lineamientos** para los 170 municipios PDET
+- **8 pilares** del Acuerdo de Paz implementados
+- Validación especial de participación comunitaria
+- Requisitos de inversión rural (>60%)
+- Alineación con PATR subregionales
+
+## 📜 Estándares y Normativa
+
+### Marco Legal Colombiano
+
+#### Competencias Municipales
+- **Constitución Política de Colombia (1991)** - Artículos 311-320
+- **Ley 136 de 1994** - Organización y funcionamiento de los municipios
+- **Ley 715 de 2001** - Sistema General de Participaciones
+- **Ley 1551 de 2012** - Modernización de la organización municipal
+
+#### Indicadores MGA
+- **DNP** - Metodología General Ajustada (MGA)
+- **Sistema de Seguimiento a Proyectos de Inversión (SPI)**
+- Guía metodológica del Banco de Programas y Proyectos (BPIN)
+
+#### PDET (Programas de Desarrollo con Enfoque Territorial)
+- **Decreto 893 de 2017** - Creación de los PDET
+- **Acuerdo Final para la Terminación del Conflicto (2016)** - Punto 1: Reforma Rural Integral
+- **Agencia de Renovación del Territorio (ART)** - Directrices operativas
+
+### Niveles de Cumplimiento
+
+| Nivel | Rango | Descripción |
+|-------|-------|-------------|
+| **EXCELENTE** | >90% | Cumplimiento sobresaliente con todos los estándares |
+| **BUENO** | 75-90% | Cumplimiento adecuado de la mayoría de estándares |
+| **ACEPTABLE** | 60-75% | Cumplimiento mínimo requerido |
+| **INSUFICIENTE** | <60% | Requiere mejoras significativas |
+
+## 🤝 Contribuciones
+
+Este proyecto implementa estándares oficiales del DNP y el Acuerdo de Paz de Colombia. 
+
+### Cómo Contribuir
+
+1. **Fork** el repositorio
+2. **Crea** una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. **Commit** tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** a la rama (`git push origin feature/AmazingFeature`)
+5. **Abre** un Pull Request
+
+### Guías de Contribución
+
+- Las contribuciones deben mantener **estricta adherencia** a la normativa colombiana vigente
+- Todo código debe incluir **tests** apropiados
+- La documentación debe actualizarse junto con los cambios de código
+- Seguir las convenciones de código existentes (PEP 8 para Python)
+- Incluir ejemplos de uso para nuevas funcionalidades
+
+### Reportar Issues
+
+Para reportar bugs o solicitar features, por favor use el [issue tracker](https://github.com/kkkkknhh/FARFAN-2.0/issues) del repositorio.
+
+## 📄 Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+
+## 📞 Contacto y Soporte
+
+### Recursos Oficiales DNP
+
+- **DNP (Departamento Nacional de Planeación)**: https://www.dnp.gov.co
+- **ART (Agencia de Renovación del Territorio)**: https://www.renovacionterritorio.gov.co
+- **Sistema MGA**: https://mga.dnp.gov.co
+- **SISCONPES**: https://sisconpes.dnp.gov.co
+
+### Soporte Técnico
+
+Para preguntas técnicas sobre el framework:
+- Abrir un issue en GitHub
+- Revisar la [documentación completa](ORCHESTRATOR_README.md)
+- Consultar los [ejemplos de uso](ejemplo_dnp_completo.py)
+
+## 🙏 Agradecimientos
+
+Este framework fue desarrollado para apoyar la planificación territorial en Colombia, en línea con:
+- Los objetivos del Acuerdo de Paz
+- Los estándares del Departamento Nacional de Planeación (DNP)
+- Las mejores prácticas internacionales en evaluación de políticas públicas
+
+---
+
+**FARFAN 2.0** - Framework Avanzado de Reconstrucción y Análisis de Formulaciones de Acción Nacional
+
+© 2024 - Desarrollado para la construcción de paz y desarrollo territorial en Colombia
 
