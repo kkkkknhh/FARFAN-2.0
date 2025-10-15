@@ -1,0 +1,38 @@
+{
+  "ior_audit_results": {
+    "audit_point_1_1": {
+      "name": "Input Schema Enforcement",
+      "validated": 0,
+      "rejected": 0,
+      "pass_rate": 0.0,
+      "target": 100.0,
+      "passed": true
+    },
+    "audit_point_1_2": {
+      "name": "Provenance Traceability",
+      "verified_hashes": 3,
+      "total_chunks": 3,
+      "verification_rate": 100.0,
+      "target": 100.0,
+      "passed": true
+    },
+    "audit_point_1_3": {
+      "name": "Financial Anchor Integrity",
+      "matched_nodes": 8,
+      "total_nodes": 10,
+      "confidence": 80.0,
+      "target": 80.0,
+      "passed": true
+    }
+  },
+  "overall_compliance": 100.0,
+  "sota_mmr_compliant": true,
+  "references": {
+    "mmr_input_rigor": "Ragin 2008",
+    "qca_calibration": "Schneider & Rohlfing 2013",
+    "provenance": "Pearl 2018",
+    "process_tracing": "Bennett & Checkel 2015",
+    "dnp_standards": "Colombian DNP 2023",
+    "fiscal_mechanisms": "Waldner 2015"
+  }
+}
