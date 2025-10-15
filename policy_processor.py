@@ -566,6 +566,79 @@ class IndustrialPolicyProcessor:
             },
         }
 
+    def _match_patterns_in_sentences(
+        self, compiled_patterns: List, relevant_sentences: List[str]
+    ) -> Tuple[List[str], List[int]]:
+        """
+        Execute pattern matching across relevant sentences and collect matches with positions.
+        
+        Args:
+            compiled_patterns: List of compiled regex patterns to match
+            relevant_sentences: Filtered sentences to search within
+            
+        Returns:
+            Tuple of (matched_strings, match_positions)
+        """
+        matches = []
+        positions = []
+
+        for compiled_pattern in compiled_patterns:
+            for sentence in relevant_sentences:
+                for match in compiled_pattern.finditer(sentence):
+                    matches.append(match.group(0))
+                    positions.append(match.start())
+
+        return matches, positions
+
+    def _compute_evidence_confidence(
+        self, matches: List[str], text_length: int, pattern_specificity: float
+    ) -> float:
+        """
+        Calculate confidence score for evidence based on pattern matches and contextual factors.
+        
+        Args:
+            matches: List of matched pattern strings
+            text_length: Total length of the document text
+            pattern_specificity: Specificity coefficient for pattern weighting
+            
+        Returns:
+            Computed confidence score
+        """
+        confidence = self.scorer.compute_evidence_score(
+            matches, text_length, pattern_specificity=pattern_specificity
+        )
+        return confidence
+
+    def _construct_evidence_bundle(
+        self,
+        dimension: CausalDimension,
+        category: str,
+        matches: List[str],
+        positions: List[int],
+        confidence: float,
+    ) -> Dict[str, Any]:
+        """
+        Assemble evidence bundle from matched patterns and computed confidence.
+        
+        Args:
+            dimension: Causal dimension classification
+            category: Specific category within dimension
+            matches: List of matched pattern strings
+            positions: List of match positions in text
+            confidence: Computed confidence score
+            
+        Returns:
+            Serialized evidence bundle dictionary
+        """
+        bundle = EvidenceBundle(
+            dimension=dimension,
+            category=category,
+            matches=matches[: self.config.max_evidence_per_pattern],
+            confidence=confidence,
+            match_positions=positions[: self.config.max_evidence_per_pattern],
+        )
+        return bundle.to_dict()
+
     def _extract_point_evidence(
         self, text: str, sentences: List[str], point_code: str
     ) -> Dict[str, Any]:
@@ -585,30 +658,20 @@ class IndustrialPolicyProcessor:
             dimension_evidence = []
 
             for category, compiled_patterns in categories.items():
-                matches = []
-                positions = []
-
-                for compiled_pattern in compiled_patterns:
-                    for sentence in relevant_sentences:
-                        for match in compiled_pattern.finditer(sentence):
-                            matches.append(match.group(0))
-                            positions.append(match.start())
+                matches, positions = self._match_patterns_in_sentences(
+                    compiled_patterns, relevant_sentences
+                )
 
                 if matches:
-                    # Compute confidence score
-                    confidence = self.scorer.compute_evidence_score(
+                    confidence = self._compute_evidence_confidence(
                         matches, len(text), pattern_specificity=0.85
                     )
 
                     if confidence >= self.config.confidence_threshold:
-                        bundle = EvidenceBundle(
-                            dimension=dimension,
-                            category=category,
-                            matches=matches[: self.config.max_evidence_per_pattern],
-                            confidence=confidence,
-                            match_positions=positions[: self.config.max_evidence_per_pattern],
+                        evidence_dict = self._construct_evidence_bundle(
+                            dimension, category, matches, positions, confidence
                         )
-                        dimension_evidence.append(bundle.to_dict())
+                        dimension_evidence.append(evidence_dict)
 
             if dimension_evidence:
                 evidence_by_dimension[dimension.value] = dimension_evidence

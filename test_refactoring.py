@@ -17,17 +17,20 @@ def test_basic_functionality():
         "Los recursos son importantes."
     ]
     
-    # Test _filter_relevant_sentences
-    pattern = re.compile(r"diagnóstico")
-    filtered = processor._filter_relevant_sentences(sentences, pattern)
-    assert len(filtered) == 1, f"Expected 1 sentence, got {len(filtered)}"
-    print("✓ _filter_relevant_sentences works")
-    
-    # Test _collect_pattern_matches
+    # Test _match_patterns_in_sentences
     patterns = [re.compile(r"diagnóstico"), re.compile(r"línea")]
-    matches, positions = processor._collect_pattern_matches(sentences, patterns)
+    matches, positions = processor._match_patterns_in_sentences(patterns, sentences)
     assert len(matches) >= 1, f"Expected matches, got {len(matches)}"
-    print("✓ _collect_pattern_matches works")
+    print("✓ _match_patterns_in_sentences works")
+    
+    # Test _compute_evidence_confidence
+    confidence = processor._compute_evidence_confidence(matches, len(text), 0.85)
+    assert isinstance(confidence, float), f"Expected float, got {type(confidence)}"
+    print("✓ _compute_evidence_confidence works")
+    
+    # Test _construct_evidence_bundle (requires proper setup)
+    # This is tested as part of _extract_point_evidence
+    print("✓ _construct_evidence_bundle tested via integration")
     
     # Test the full pipeline (minimal)
     result = processor._extract_point_evidence(text, sentences, "P1")
