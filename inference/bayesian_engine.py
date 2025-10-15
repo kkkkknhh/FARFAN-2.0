@@ -15,6 +15,7 @@ la separación de concerns entre extracción, inferencia y auditoría.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -78,6 +79,14 @@ class EvidenceChunk:
     cosine_similarity: float
     source_page: Optional[int] = None
     bbox: Optional[Tuple[float, float, float, float]] = None
+    source_chunk_sha256: Optional[str] = None
+
+    def __post_init__(self):
+        """Compute SHA256 hash of text content if not provided"""
+        if self.source_chunk_sha256 is None and self.text:
+            self.source_chunk_sha256 = hashlib.sha256(
+                self.text.encode("utf-8")
+            ).hexdigest()
 
 
 @dataclass
@@ -141,6 +150,11 @@ class PosteriorDistribution:
 
         return self.confidence_interval
 
+    @property
+    def credible_interval_95(self) -> Tuple[float, float]:
+        """Get 95% credible interval (HDI)"""
+        return self.get_hdi(credible_mass=0.95)
+
 
 @dataclass
 class NecessityTestResult:
@@ -158,6 +172,134 @@ class NecessityTestResult:
             "missing": self.missing,
             "severity": self.severity,
             "remediation": self.remediation,
+        }
+
+
+@dataclass
+class InferenceExplainabilityPayload:
+    """
+    IoR (Inference of Relations) Per-Link Explainability Payload.
+    
+    Ensures transparent, traceable causal inferences per SOTA process-tracing
+    mandates (Beach & Pedersen 2019 on within-case transparency).
+    
+    Audit Point 3.1: Full Traceability Payload
+    - Every link generates JSON payload with posterior, necessity result, 
+      snippets, sha256
+    - XAI-compliant payloads (Doshi-Velez 2017)
+    - Enables replicable MMR inferences, reducing opacity in Bayesian models 
+      (Gelman 2013)
+    
+    Audit Point 3.2: Credibility Reporting
+    - QualityScore includes credible_interval_95 and Bayesian metrics
+    - Reflects epistemic uncertainty per Humphreys & Jacobs (2015)
+    - Avoids point-estimate biases in causal audits
+    """
+
+    # Link identification
+    cause_id: str
+    effect_id: str
+    link_type: str  # e.g., "producto→resultado", "resultado→impacto"
+    
+    # Bayesian inference results
+    posterior_mean: float
+    posterior_std: float
+    credible_interval_95: Tuple[float, float]
+    convergence_diagnostic: bool
+    
+    # Necessity test results
+    necessity_passed: bool
+    necessity_missing: List[str]
+    necessity_severity: Optional[str] = None
+    
+    # Evidence snippets for transparency
+    evidence_snippets: List[Dict[str, Any]] = field(default_factory=list)
+    
+    # Source traceability (SHA256 hashes)
+    source_chunk_hashes: List[str] = field(default_factory=list)
+    
+    # Quality metrics
+    evidence_strength: float = 0.0
+    epistemic_uncertainty: float = 0.0
+    
+    # Timestamp and metadata
+    timestamp: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def to_json_dict(self) -> Dict[str, Any]:
+        """
+        Convert to JSON-serializable dictionary.
+        
+        Implements Audit Point 3.1: Full Traceability Payload
+        All fields present and matching source hashes for replicability.
+        """
+        return {
+            # Link identification
+            "cause_id": self.cause_id,
+            "effect_id": self.effect_id,
+            "link_type": self.link_type,
+            
+            # Bayesian metrics (Audit Point 3.2)
+            "posterior_mean": float(self.posterior_mean),
+            "posterior_std": float(self.posterior_std),
+            "credible_interval_95": [
+                float(self.credible_interval_95[0]),
+                float(self.credible_interval_95[1])
+            ],
+            "convergence_diagnostic": self.convergence_diagnostic,
+            
+            # Necessity results
+            "necessity_test": {
+                "passed": self.necessity_passed,
+                "missing_components": self.necessity_missing,
+                "severity": self.necessity_severity
+            },
+            
+            # Evidence transparency (XAI-compliant)
+            "evidence_snippets": self.evidence_snippets,
+            "source_chunk_hashes": self.source_chunk_hashes,
+            
+            # Quality and uncertainty metrics
+            "quality_score": {
+                "evidence_strength": float(self.evidence_strength),
+                "epistemic_uncertainty": float(self.epistemic_uncertainty),
+                "credible_interval_width": float(
+                    self.credible_interval_95[1] - self.credible_interval_95[0]
+                )
+            },
+            
+            # Metadata
+            "timestamp": self.timestamp,
+            "metadata": self.metadata
+        }
+
+    def compute_quality_score(self) -> Dict[str, Any]:
+        """
+        Compute comprehensive quality score with Bayesian metrics.
+        
+        Implements Audit Point 3.2: Credibility Reporting
+        Includes credible_interval_95 and epistemic uncertainty.
+        """
+        # Evidence strength from posterior mean
+        self.evidence_strength = self.posterior_mean
+        
+        # Epistemic uncertainty from posterior std and interval width
+        interval_width = self.credible_interval_95[1] - self.credible_interval_95[0]
+        self.epistemic_uncertainty = min(1.0, self.posterior_std + interval_width / 2.0)
+        
+        # Overall quality combining evidence and uncertainty
+        quality_score = self.evidence_strength * (1.0 - self.epistemic_uncertainty)
+        
+        return {
+            "evidence_strength": float(self.evidence_strength),
+            "epistemic_uncertainty": float(self.epistemic_uncertainty),
+            "quality_score": float(quality_score),
+            "credible_interval_95": [
+                float(self.credible_interval_95[0]),
+                float(self.credible_interval_95[1])
+            ],
+            "credible_interval_width": float(interval_width),
+            "necessity_passed": self.necessity_passed
         }
 
 
@@ -619,6 +761,84 @@ class BayesianSamplingEngine:
         min_idx = np.argmin(interval_widths)
 
         return (sorted_samples[min_idx], sorted_samples[min_idx + interval_size])
+
+    def create_explainability_payload(
+        self,
+        link: CausalLink,
+        posterior: PosteriorDistribution,
+        evidence: List[EvidenceChunk],
+        necessity_result: Optional[NecessityTestResult] = None,
+        timestamp: Optional[str] = None,
+    ) -> InferenceExplainabilityPayload:
+        """
+        Create IoR (Inference of Relations) explainability payload for a causal link.
+        
+        Implements Audit Point 3.1 and 3.2:
+        - Full traceability with posterior, necessity results, snippets, SHA256
+        - XAI-compliant payload structure (Doshi-Velez 2017)
+        - Credibility reporting with Bayesian metrics and uncertainty
+        
+        Args:
+            link: Causal link being analyzed
+            posterior: Posterior distribution from Bayesian update
+            evidence: List of evidence chunks used in inference
+            necessity_result: Result from necessity test (optional)
+            timestamp: ISO format timestamp (optional)
+            
+        Returns:
+            InferenceExplainabilityPayload with full traceability
+        """
+        from datetime import datetime
+        
+        # Extract evidence snippets (top 5 by similarity)
+        evidence_snippets = []
+        sorted_evidence = sorted(evidence, key=lambda e: e.cosine_similarity, reverse=True)
+        for ev in sorted_evidence[:5]:
+            snippet = {
+                "chunk_id": ev.chunk_id,
+                "text": ev.text[:200] + "..." if len(ev.text) > 200 else ev.text,
+                "cosine_similarity": float(ev.cosine_similarity),
+                "source_page": ev.source_page,
+                "sha256": ev.source_chunk_sha256
+            }
+            evidence_snippets.append(snippet)
+        
+        # Collect all source chunk hashes
+        source_hashes = [
+            ev.source_chunk_sha256 for ev in evidence 
+            if ev.source_chunk_sha256 is not None
+        ]
+        
+        # Create necessity result if not provided
+        if necessity_result is None:
+            necessity_result = NecessityTestResult(
+                passed=True,
+                missing=[],
+                severity=None,
+                remediation=None
+            )
+        
+        # Construct payload
+        payload = InferenceExplainabilityPayload(
+            cause_id=link.cause_id,
+            effect_id=link.effect_id,
+            link_type=f"{link.cause_type}→{link.effect_type}",
+            posterior_mean=posterior.posterior_mean,
+            posterior_std=posterior.posterior_std,
+            credible_interval_95=posterior.credible_interval_95,
+            convergence_diagnostic=posterior.convergence_diagnostic,
+            necessity_passed=necessity_result.passed,
+            necessity_missing=necessity_result.missing,
+            necessity_severity=necessity_result.severity,
+            evidence_snippets=evidence_snippets,
+            source_chunk_hashes=source_hashes,
+            timestamp=timestamp or datetime.utcnow().isoformat() + "Z"
+        )
+        
+        # Compute quality score
+        payload.compute_quality_score()
+        
+        return payload
 
 
 # ============================================================================

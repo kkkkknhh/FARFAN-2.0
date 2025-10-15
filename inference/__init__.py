@@ -17,7 +17,9 @@ from .bayesian_engine import (
     EvidenceChunk,
     SamplingConfig,
     CausalLink,
-    ColombianMunicipalContext
+    ColombianMunicipalContext,
+    InferenceExplainabilityPayload,
+    DocumentEvidence
 )
 
 __all__ = [
@@ -31,5 +33,7 @@ __all__ = [
     'EvidenceChunk',
     'SamplingConfig',
     'CausalLink',
-    'ColombianMunicipalContext'
+    'ColombianMunicipalContext',
+    'InferenceExplainabilityPayload',
+    'DocumentEvidence'
 ]
