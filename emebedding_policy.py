@@ -1473,13 +1473,13 @@ def example_pdm_analysis():
         f"   - Numerical coherence: {report['numerical_evaluation']['numerical_coherence']:.3f}"
     )
 
-    print(f"\n4. TOP EVIDENCE PASSAGES:")
+    print("\n4. TOP EVIDENCE PASSAGES:")
     for i, passage in enumerate(report["evidence_passages"], 1):
         print(f"\n   [{i}] Relevance: {passage['relevance_score']:.3f}")
         print(f"       {passage['content'][:200]}...")
 
     # System diagnostics
-    print(f"\n5. SYSTEM DIAGNOSTICS")
+    print("\n5. SYSTEM DIAGNOSTICS")
     diag = embedder.get_diagnostics()
     print(f"   Model: {diag['model']}")
     print(f"   Cache efficiency: {diag['embedding_cache_size']} embeddings cached")

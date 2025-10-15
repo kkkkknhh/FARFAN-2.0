@@ -2640,14 +2640,14 @@ no cuenta con indicadores definidos.
     print(f"  - Altas: {result['high_severity_count']}")
     print(f"  - Medias: {result['medium_severity_count']}")
 
-    print(f"\nMÉTRICAS DE COHERENCIA:")
+    print("\nMÉTRICAS DE COHERENCIA:")
     print(f"  - Score global: {result['coherence_metrics']['coherence_score']:.3f}")
     print(f"  - Calificación: {result['coherence_metrics']['quality_grade']}")
     print(f"  - Coherencia semántica: {result['coherence_metrics']['semantic_coherence']:.3f}")
     print(f"  - Consistencia temporal: {result['coherence_metrics']['temporal_consistency']:.3f}")
     print(f"  - Coherencia causal: {result['coherence_metrics']['causal_coherence']:.3f}")
 
-    print(f"\nRECOMENDACIONES PRIORITARIAS:")
+    print("\nRECOMENDACIONES PRIORITARIAS:")
     for i, rec in enumerate(result['recommendations'][:3], 1):
         print(f"\n{i}. {rec['contradiction_type']} (Prioridad: {rec['priority'].upper()})")
         print(f"   Cantidad: {rec['count']} | Severidad promedio: {rec['avg_severity']:.2f}")
