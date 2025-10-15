@@ -30,6 +30,12 @@ from typing import Any, Dict, List, Optional, Set
 from infrastructure.calibration_constants import CALIBRATION
 from infrastructure.metrics_collector import MetricsCollector
 from infrastructure.audit_logger import ImmutableAuditLogger
+from infrastructure.telemetry import (
+    TelemetryCollector,
+    TraceContext,
+    ContractViolationError,
+    ValidationCheckError
+)
 
 
 # ============================================================================
@@ -52,7 +58,20 @@ class AnalyticalPhase(Enum):
 
 @dataclass
 class PhaseResult:
-    """Standardized return signature for all analytical phases"""
+    """
+    Standardized return signature for all analytical phases.
+    
+    Contract Requirements (SIN_CARRETA):
+    - phase_name: Must match AnalyticalPhase enum
+    - inputs: Must be non-empty dict with documented keys
+    - outputs: Must be non-empty dict with documented keys
+    - metrics: Must contain quantitative measurements
+    - timestamp: Must be ISO 8601 format
+    - status: Must be "success" or "error"
+    - input_hash: SHA-256 hash of inputs for reproducibility
+    - output_hash: SHA-256 hash of outputs for reproducibility
+    - trace_context: Distributed tracing context for auditability
+    """
     phase_name: str
     inputs: Dict[str, Any]
     outputs: Dict[str, Any]
@@ -60,6 +79,78 @@ class PhaseResult:
     timestamp: str
     status: str = "success"
     error: Optional[str] = None
+    input_hash: str = ""
+    output_hash: str = ""
+    trace_context: Optional[Any] = None  # TraceContext
+    
+    def validate_contract(self) -> None:
+        """
+        Validate that this PhaseResult satisfies its contract.
+        
+        Raises:
+            ContractViolationError: If contract is violated
+        """
+        # Validate phase_name is not empty
+        if not self.phase_name:
+            raise ContractViolationError(
+                phase_name="PhaseResult",
+                violation_type="empty_phase_name",
+                expected="non-empty string",
+                actual=self.phase_name,
+                trace_context=self.trace_context
+            )
+        
+        # Validate inputs is a dict
+        if not isinstance(self.inputs, dict):
+            raise ContractViolationError(
+                phase_name=self.phase_name,
+                violation_type="invalid_inputs_type",
+                expected="dict",
+                actual=type(self.inputs).__name__,
+                trace_context=self.trace_context
+            )
+        
+        # Validate outputs is a dict
+        if not isinstance(self.outputs, dict):
+            raise ContractViolationError(
+                phase_name=self.phase_name,
+                violation_type="invalid_outputs_type",
+                expected="dict",
+                actual=type(self.outputs).__name__,
+                trace_context=self.trace_context
+            )
+        
+        # Validate metrics is a dict
+        if not isinstance(self.metrics, dict):
+            raise ContractViolationError(
+                phase_name=self.phase_name,
+                violation_type="invalid_metrics_type",
+                expected="dict",
+                actual=type(self.metrics).__name__,
+                trace_context=self.trace_context
+            )
+        
+        # Validate status is valid
+        if self.status not in ("success", "error"):
+            raise ContractViolationError(
+                phase_name=self.phase_name,
+                violation_type="invalid_status",
+                expected="'success' or 'error'",
+                actual=self.status,
+                trace_context=self.trace_context
+            )
+        
+        # Validate timestamp format
+        try:
+            datetime.fromisoformat(self.timestamp)
+        except (ValueError, TypeError):
+            raise ContractViolationError(
+                phase_name=self.phase_name,
+                violation_type="invalid_timestamp_format",
+                expected="ISO 8601 format",
+                actual=self.timestamp,
+                trace_context=self.trace_context
+            )
 
 
 # ============================================================================
@@ -106,6 +197,9 @@ class AnalyticalOrchestrator:
         # Immutable audit logging (SIN_CARRETA governance)
         audit_store_path = self.log_dir / "audit_logs.jsonl"
         self.audit_logger = ImmutableAuditLogger(audit_store_path)
+        
+        # Structured telemetry (SIN_CARRETA auditability)
+        self.telemetry = TelemetryCollector()
         
         # Phase result storage (for backward compatibility)
         self._audit_log: List[PhaseResult] = []
@@ -165,50 +259,149 @@ class AnalyticalOrchestrator:
         start_time = datetime.now()
         self._global_report["orchestration_metadata"]["execution_start"] = start_time.isoformat()
         
+        # Create root trace context for distributed tracing
+        root_trace = TraceContext.create_root(run_id)
+        
         # SHA-256 source hash for audit trail
         sha256_source = ImmutableAuditLogger.hash_string(text)
         
         try:
             # Record pipeline start
             self.metrics.record("pipeline.start", 1.0)
+            self.telemetry.emit_phase_start(
+                phase_name="orchestration_pipeline",
+                trace_context=root_trace,
+                inputs={
+                    "text_hash": sha256_source,
+                    "text_length": len(text),
+                    "plan_name": plan_name,
+                    "dimension": dimension
+                },
+                metadata={"run_id": run_id}
+            )
+            
             # Phase 1: Extract Statements
             self.metrics.record("phase.extract_statements.start", 1.0)
-            statements_result = self._extract_statements(text, plan_name, dimension)
+            statements_trace = root_trace.create_child_span("extract_statements")
+            self.telemetry.emit_phase_start(
+                phase_name="extract_statements",
+                trace_context=statements_trace,
+                inputs={
+                    "text_length": len(text),
+                    "plan_name": plan_name,
+                    "dimension": dimension
+                }
+            )
+            statements_result = self._extract_statements(text, plan_name, dimension, statements_trace)
+            statements_result.validate_contract()  # Contract enforcement
             self._append_audit_log(statements_result)
+            self.telemetry.emit_phase_completion(
+                phase_name="extract_statements",
+                trace_context=statements_trace,
+                outputs=statements_result.outputs,
+                metrics=statements_result.metrics
+            )
             self.metrics.record("extraction.statements_count", len(statements_result.outputs["statements"]))
             
             # Phase 2: Detect Contradictions
             self.metrics.record("phase.detect_contradictions.start", 1.0)
+            contradictions_trace = root_trace.create_child_span("detect_contradictions")
+            self.telemetry.emit_phase_start(
+                phase_name="detect_contradictions",
+                trace_context=contradictions_trace,
+                inputs={
+                    "statements_count": len(statements_result.outputs["statements"]),
+                    "text_length": len(text)
+                }
+            )
             contradictions_result = self._detect_contradictions(
                 statements_result.outputs["statements"],
                 text,
                 plan_name,
-                dimension
+                dimension,
+                contradictions_trace
             )
+            contradictions_result.validate_contract()  # Contract enforcement
             self._append_audit_log(contradictions_result)
+            self.telemetry.emit_phase_completion(
+                phase_name="detect_contradictions",
+                trace_context=contradictions_trace,
+                outputs=contradictions_result.outputs,
+                metrics=contradictions_result.metrics
+            )
             self.metrics.record("contradictions.total_count", len(contradictions_result.outputs["contradictions"]))
             
             # Phase 3: Analyze Regulatory Constraints
+            regulatory_trace = root_trace.create_child_span("analyze_regulatory_constraints")
+            self.telemetry.emit_phase_start(
+                phase_name="analyze_regulatory_constraints",
+                trace_context=regulatory_trace,
+                inputs={
+                    "statements_count": len(statements_result.outputs["statements"]),
+                    "temporal_conflicts_count": len(contradictions_result.outputs.get("temporal_conflicts", []))
+                }
+            )
             regulatory_result = self._analyze_regulatory_constraints(
                 statements_result.outputs["statements"],
                 text,
-                contradictions_result.outputs.get("temporal_conflicts", [])
+                contradictions_result.outputs.get("temporal_conflicts", []),
+                regulatory_trace
             )
+            regulatory_result.validate_contract()  # Contract enforcement
             self._append_audit_log(regulatory_result)
+            self.telemetry.emit_phase_completion(
+                phase_name="analyze_regulatory_constraints",
+                trace_context=regulatory_trace,
+                outputs=regulatory_result.outputs,
+                metrics=regulatory_result.metrics
+            )
             
             # Phase 4: Calculate Coherence Metrics
+            coherence_trace = root_trace.create_child_span("calculate_coherence_metrics")
+            self.telemetry.emit_phase_start(
+                phase_name="calculate_coherence_metrics",
+                trace_context=coherence_trace,
+                inputs={
+                    "contradictions_count": len(contradictions_result.outputs["contradictions"]),
+                    "statements_count": len(statements_result.outputs["statements"])
+                }
+            )
             coherence_result = self._calculate_coherence_metrics(
                 contradictions_result.outputs["contradictions"],
                 statements_result.outputs["statements"],
-                text
+                text,
+                coherence_trace
             )
+            coherence_result.validate_contract()  # Contract enforcement
             self._append_audit_log(coherence_result)
+            self.telemetry.emit_phase_completion(
+                phase_name="calculate_coherence_metrics",
+                trace_context=coherence_trace,
+                outputs=coherence_result.outputs,
+                metrics=coherence_result.metrics
+            )
             
             # Phase 5: Generate Audit Summary
-            audit_result = self._generate_audit_summary(
-                contradictions_result.outputs["contradictions"]
+            audit_trace = root_trace.create_child_span("generate_audit_summary")
+            self.telemetry.emit_phase_start(
+                phase_name="generate_audit_summary",
+                trace_context=audit_trace,
+                inputs={
+                    "contradictions_count": len(contradictions_result.outputs["contradictions"])
+                }
             )
+            audit_result = self._generate_audit_summary(
+                contradictions_result.outputs["contradictions"],
+                audit_trace
+            )
+            audit_result.validate_contract()  # Contract enforcement
             self._append_audit_log(audit_result)
+            self.telemetry.emit_phase_completion(
+                phase_name="generate_audit_summary",
+                trace_context=audit_trace,
+                outputs=audit_result.outputs,
+                metrics=audit_result.metrics
+            )
             
             # Phase 6: Compile Final Report
             final_report = self._compile_final_report(
@@ -225,6 +418,35 @@ class AnalyticalOrchestrator:
             self.metrics.record("pipeline.duration_seconds", duration)
             self.metrics.record("pipeline.success", 1.0)
             
+            # Emit pipeline completion telemetry
+            self.telemetry.emit_phase_completion(
+                phase_name="orchestration_pipeline",
+                trace_context=root_trace,
+                outputs={
+                    "total_contradictions": len(contradictions_result.outputs["contradictions"]),
+                    "total_statements": len(statements_result.outputs["statements"])
+                },
+                metrics={
+                    "duration_seconds": duration,
+                    "phases_completed": 6
+                }
+            )
+            
+            # Verify telemetry completeness
+            telemetry_verification = self.telemetry.verify_all_phases([
+                "extract_statements",
+                "detect_contradictions",
+                "analyze_regulatory_constraints",
+                "calculate_coherence_metrics",
+                "generate_audit_summary",
+                "orchestration_pipeline"
+            ])
+            
+            if not telemetry_verification["all_complete"]:
+                self.logger.warning(
+                    f"Telemetry incomplete: {telemetry_verification['complete_phases']}/{telemetry_verification['total_phases']} phases complete"
+                )
+            
             # Immutable audit log (SIN_CARRETA governance)
             self.audit_logger.append_record(
                 run_id=run_id,
@@ -236,13 +458,41 @@ class AnalyticalOrchestrator:
                 dimension=dimension,
                 statements_count=len(statements_result.outputs["statements"]),
                 contradictions_count=len(contradictions_result.outputs["contradictions"]),
-                final_score=final_report.get("total_contradictions", 0)
+                final_score=final_report.get("total_contradictions", 0),
+                trace_id=root_trace.trace_id,
+                audit_id=root_trace.audit_id
             )
+            
+            # Persist telemetry events
+            self._persist_telemetry_events(run_id)
             
             return final_report
             
+        except ContractViolationError as e:
+            self.logger.error(f"Contract violation in orchestration: {e}", exc_info=True)
+            self.telemetry.emit_contract_violation(e)
+            self.metrics.increment("pipeline.contract_violation_count")
+            
+            # Audit failure
+            self.audit_logger.append_record(
+                run_id=run_id,
+                orchestrator="AnalyticalOrchestrator",
+                sha256_source=sha256_source,
+                event="orchestrate_analysis_contract_violation",
+                error=str(e),
+                trace_id=root_trace.trace_id,
+                audit_id=root_trace.audit_id
+            )
+            
+            raise
+            
         except Exception as e:
             self.logger.error(f"Orchestration failed: {e}", exc_info=True)
+            self.telemetry.emit_error(
+                phase_name="orchestration_pipeline",
+                trace_context=root_trace,
+                error=e
+            )
             self.metrics.increment("pipeline.error_count")
             
             # Audit failure
@@ -251,7 +501,9 @@ class AnalyticalOrchestrator:
                 orchestrator="AnalyticalOrchestrator",
                 sha256_source=sha256_source,
                 event="orchestrate_analysis_failed",
-                error=str(e)
+                error=str(e),
+                trace_id=root_trace.trace_id,
+                audit_id=root_trace.audit_id
             )
             
             return self._generate_error_report(str(e))
@@ -260,7 +512,8 @@ class AnalyticalOrchestrator:
         self,
         text: str,
         plan_name: str,
-        dimension: str
+        dimension: str,
+        trace_context: TraceContext
     ) -> PhaseResult:
         """
         Phase 1: Extract policy statements from text.
@@ -273,27 +526,37 @@ class AnalyticalOrchestrator:
         # Placeholder: In real implementation, call actual extraction logic
         statements = []  # Would be extracted from text
         
+        inputs = {
+            "text_length": len(text),
+            "plan_name": plan_name,
+            "dimension": dimension
+        }
+        
+        outputs = {
+            "statements": statements
+        }
+        
         return PhaseResult(
             phase_name="extract_statements",
-            inputs={
-                "text_length": len(text),
-                "plan_name": plan_name,
-                "dimension": dimension
-            },
-            outputs={
-                "statements": statements
-            },
+            inputs=inputs,
+            outputs=outputs,
             metrics={
                 "statements_count": len(statements),
                 "avg_statement_length": 0  # Would be calculated
             },
-            timestamp=timestamp
+            timestamp=timestamp,
+            input_hash=TelemetryCollector.hash_data(inputs),
+            output_hash=TelemetryCollector.hash_data(outputs),
+            trace_context=trace_context
         )
     
     def _detect_contradictions(
         self,
         statements: List[Any],
-        text: str
+        text: str,
+        plan_name: str,
+        dimension: str,
+        trace_context: TraceContext
     ) -> PhaseResult:
         """
         Phase 2: Detect contradictions across statements.
@@ -307,29 +570,38 @@ class AnalyticalOrchestrator:
         contradictions = []  # Would be detected
         temporal_conflicts = []  # Would be extracted
         
+        inputs = {
+            "statements_count": len(statements),
+            "text_length": len(text)
+        }
+        
+        outputs = {
+            "contradictions": contradictions,
+            "temporal_conflicts": temporal_conflicts
+        }
+        
         return PhaseResult(
             phase_name="detect_contradictions",
-            inputs={
-                "statements_count": len(statements),
-                "text_length": len(text)
-            },
-            outputs={
-                "contradictions": contradictions,
-                "temporal_conflicts": temporal_conflicts
-            },
+            inputs=inputs,
+            outputs=outputs,
             metrics={
                 "total_contradictions": len(contradictions),
                 "critical_severity_count": 0,
                 "high_severity_count": 0,
                 "medium_severity_count": 0
             },
-            timestamp=timestamp
+            timestamp=timestamp,
+            input_hash=TelemetryCollector.hash_data(inputs),
+            output_hash=TelemetryCollector.hash_data(outputs),
+            trace_context=trace_context
         )
     
     def _analyze_regulatory_constraints(
         self,
         statements: List[Any],
-        temporal_conflicts: List[Any]
+        text: str,
+        temporal_conflicts: List[Any],
+        trace_context: TraceContext
     ) -> PhaseResult:
         """
         Phase 3: Analyze regulatory constraints and compliance.
@@ -346,27 +618,36 @@ class AnalyticalOrchestrator:
             "d1_q5_quality": "insuficiente"
         }
         
+        inputs = {
+            "statements_count": len(statements),
+            "temporal_conflicts_count": len(temporal_conflicts),
+            "regulatory_depth_factor": self.calibration.REGULATORY_DEPTH_FACTOR
+        }
+        
+        outputs = {
+            "d1_q5_regulatory_analysis": regulatory_analysis
+        }
+        
         return PhaseResult(
             phase_name="analyze_regulatory_constraints",
-            inputs={
-                "statements_count": len(statements),
-                "temporal_conflicts_count": len(temporal_conflicts),
-                "regulatory_depth_factor": self.calibration.REGULATORY_DEPTH_FACTOR
-            },
-            outputs={
-                "d1_q5_regulatory_analysis": regulatory_analysis
-            },
+            inputs=inputs,
+            outputs=outputs,
             metrics={
                 "regulatory_references": regulatory_analysis["regulatory_references_count"],
                 "constraint_types": regulatory_analysis["constraint_types_mentioned"]
             },
-            timestamp=timestamp
+            timestamp=timestamp,
+            input_hash=TelemetryCollector.hash_data(inputs),
+            output_hash=TelemetryCollector.hash_data(outputs),
+            trace_context=trace_context
         )
     
     def _calculate_coherence_metrics(
         self,
         contradictions: List[Any],
-        statements: List[Any]
+        statements: List[Any],
+        text: str,
+        trace_context: TraceContext
     ) -> PhaseResult:
         """
         Phase 4: Calculate advanced coherence metrics.
@@ -383,26 +664,34 @@ class AnalyticalOrchestrator:
             "quality_grade": "insuficiente"
         }
         
+        inputs = {
+            "contradictions_count": len(contradictions),
+            "statements_count": len(statements),
+            "coherence_threshold": self.calibration.COHERENCE_THRESHOLD
+        }
+        
+        outputs = {
+            "coherence_metrics": coherence_metrics
+        }
+        
         return PhaseResult(
             phase_name="calculate_coherence_metrics",
-            inputs={
-                "contradictions_count": len(contradictions),
-                "statements_count": len(statements),
-                "coherence_threshold": self.calibration.COHERENCE_THRESHOLD
-            },
-            outputs={
-                "coherence_metrics": coherence_metrics
-            },
+            inputs=inputs,
+            outputs=outputs,
             metrics={
                 "overall_score": coherence_metrics["overall_coherence_score"],
                 "meets_threshold": coherence_metrics["overall_coherence_score"] >= self.calibration.COHERENCE_THRESHOLD
             },
-            timestamp=timestamp
+            timestamp=timestamp,
+            input_hash=TelemetryCollector.hash_data(inputs),
+            output_hash=TelemetryCollector.hash_data(outputs),
+            trace_context=trace_context
         )
     
     def _generate_audit_summary(
         self,
-        contradictions: List[Any]
+        contradictions: List[Any],
+        trace_context: TraceContext
     ) -> PhaseResult:
         """
         Phase 5: Generate audit summary with quality assessment.
@@ -431,20 +720,27 @@ class AnalyticalOrchestrator:
             "meets_causal_limit": causal_incoherence_count < self.calibration.CAUSAL_INCOHERENCE_LIMIT
         }
         
+        inputs = {
+            "contradictions_count": total_contradictions,
+            "causal_incoherence_limit": self.calibration.CAUSAL_INCOHERENCE_LIMIT
+        }
+        
+        outputs = {
+            "harmonic_front_4_audit": audit_summary
+        }
+        
         return PhaseResult(
             phase_name="generate_audit_summary",
-            inputs={
-                "contradictions_count": total_contradictions,
-                "causal_incoherence_limit": self.calibration.CAUSAL_INCOHERENCE_LIMIT
-            },
-            outputs={
-                "harmonic_front_4_audit": audit_summary
-            },
+            inputs=inputs,
+            outputs=outputs,
             metrics={
                 "quality_grade": quality_grade,
                 "causal_flags": causal_incoherence_count
             },
-            timestamp=timestamp
+            timestamp=timestamp,
+            input_hash=TelemetryCollector.hash_data(inputs),
+            output_hash=TelemetryCollector.hash_data(outputs),
+            trace_context=trace_context
         )
     
     def _compile_final_report(
@@ -495,6 +791,33 @@ class AnalyticalOrchestrator:
             f"Phase completed: {phase_result.phase_name} - "
             f"Status: {phase_result.status}"
         )
+    
+    def _persist_telemetry_events(self, run_id: str) -> None:
+        """
+        Persist telemetry events to disk for auditability.
+        
+        SIN_CARRETA Compliance:
+        - Immutable event log (append-only)
+        - 7-year retention policy
+        - Full trace context included
+        
+        Args:
+            run_id: Run identifier for file naming
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        telemetry_file = self.log_dir / f"telemetry_{run_id}_{timestamp}.jsonl"
+        
+        try:
+            with open(telemetry_file, 'w', encoding='utf-8') as f:
+                for event in self.telemetry.export_events():
+                    f.write(json.dumps(event, ensure_ascii=False) + '\n')
+            
+            self.logger.info(
+                f"Telemetry events persisted to: {telemetry_file} "
+                f"(events: {len(self.telemetry.export_events())})"
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to persist telemetry events: {e}", exc_info=True)
     
     def _persist_audit_log(self, plan_name: str) -> None:
         """
