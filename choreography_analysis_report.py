@@ -11,6 +11,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Set
 
+
 class EventFlowAnalyzer:
     """Analyzes EventBus publish/subscribe patterns."""
 
@@ -124,28 +125,33 @@ class EventFlowAnalyzer:
 
     def _get_context(self, content: str, lineno: int) -> str:
         """Get class/function context for a line."""
-        lines = content.split('\n')
+        lines = content.split("\n")
         context_parts = []
-        
+
         # Look backwards for class or function definitions
         for i in range(lineno - 1, max(0, lineno - 50), -1):
             line = lines[i].strip()
-            if line.startswith('class '):
-                context_parts.insert(0, line.split('(')[0].replace('class ', ''))
+            if line.startswith("class "):
+                context_parts.insert(0, line.split("(")[0].replace("class ", ""))
                 break
-            elif line.startswith('def ') or line.startswith('async def '):
-                func_name = line.split('(')[0].replace('def ', '').replace('async ', '').strip()
+            elif line.startswith("def ") or line.startswith("async def "):
+                func_name = (
+                    line.split("(")[0].replace("def ", "").replace("async ", "").strip()
+                )
                 context_parts.insert(0, func_name)
-                
-        return '.'.join(context_parts) if context_parts else 'module_level'
+
+        return ".".join(context_parts) if context_parts else "module_level"
 
     def analyze_directory(self, pattern: str = "**/*.py") -> None:
         """Analyze all Python files matching pattern."""
-        files = [f for f in self.base_path.glob(pattern) 
-                 if '.venv' not in str(f) and '.git' not in str(f)]
-        
+        files = [
+            f
+            for f in self.base_path.glob(pattern)
+            if ".venv" not in str(f) and ".git" not in str(f)
+        ]
+
         print(f"Analyzing {len(files)} Python files...")
-        
+
         for filepath in files:
             self.analyze_file(filepath)
 
@@ -188,21 +194,21 @@ def print_section(title: str, width: int = 80):
 def analyze_decoupling(flow_map: Dict) -> Dict[str, Any]:
     """Analyze event-based communication patterns."""
     event_coverage = {}
-    
+
     for event_type, flows in flow_map.items():
-        pub_count = len(flows['publishers'])
-        sub_count = len(flows['subscribers'])
-        
+        pub_count = len(flows["publishers"])
+        sub_count = len(flows["subscribers"])
+
         # Check for orphaned events (published but no subscribers)
         # or unused subscriptions (subscribed but never published)
         event_coverage[event_type] = {
-            'publishers': pub_count,
-            'subscribers': sub_count,
-            'orphaned': pub_count > 0 and sub_count == 0,
-            'unused_subscription': sub_count > 0 and pub_count == 0,
-            'active': pub_count > 0 and sub_count > 0,
+            "publishers": pub_count,
+            "subscribers": sub_count,
+            "orphaned": pub_count > 0 and sub_count == 0,
+            "unused_subscription": sub_count > 0 and pub_count == 0,
+            "active": pub_count > 0 and sub_count > 0,
         }
-    
+
     return event_coverage
 
 
@@ -221,62 +227,69 @@ def main():
 
     # Generate event flow map
     event_flow_map = analyzer.generate_event_flow_map()
-    
+
     print_section("EVENT FLOW MAP")
-    
+
     for event_type in sorted(analyzer.event_types):
         flows = event_flow_map.get(event_type, {"publishers": [], "subscribers": []})
         pub_count = len(flows["publishers"])
         sub_count = len(flows["subscribers"])
-        
+
         status = "✓" if pub_count > 0 and sub_count > 0 else "⚠️"
         print(f"{status} {event_type}")
         print(f"   Publishers: {pub_count}")
-        
+
         for pub in flows["publishers"][:5]:
             print(f"      📤 {pub['file']}:{pub['line']} ({pub['context']})")
-            if pub['payload_keys']:
+            if pub["payload_keys"]:
                 print(f"         Payload: {', '.join(pub['payload_keys'])}")
-        
+
         print(f"   Subscribers: {sub_count}")
         for sub in flows["subscribers"][:5]:
-            print(f"      📥 {sub['file']}:{sub['line']} ({sub['context']}) -> {sub['handler']}")
+            print(
+                f"      📥 {sub['file']}:{sub['line']} ({sub['context']}) -> {sub['handler']}"
+            )
         print()
 
     # Analyze decoupling
     print_section("DECOUPLING ANALYSIS")
     coverage = analyze_decoupling(event_flow_map)
-    
-    active_events = sum(1 for c in coverage.values() if c['active'])
-    orphaned_events = sum(1 for c in coverage.values() if c['orphaned'])
-    unused_subscriptions = sum(1 for c in coverage.values() if c['unused_subscription'])
-    
+
+    active_events = sum(1 for c in coverage.values() if c["active"])
+    orphaned_events = sum(1 for c in coverage.values() if c["orphaned"])
+    unused_subscriptions = sum(1 for c in coverage.values() if c["unused_subscription"])
+
     print(f"Active Event Types: {active_events}/{len(coverage)}")
     print(f"Orphaned Events (published but no subscribers): {orphaned_events}")
-    print(f"Unused Subscriptions (subscribed but never published): {unused_subscriptions}")
+    print(
+        f"Unused Subscriptions (subscribed but never published): {unused_subscriptions}"
+    )
     print()
-    
+
     if orphaned_events > 0:
         print("⚠️  Orphaned Events:")
         for event_type, stats in coverage.items():
-            if stats['orphaned']:
+            if stats["orphaned"]:
                 print(f"   - {event_type}")
-    
+
     if unused_subscriptions > 0:
         print("\n⚠️  Unused Subscriptions:")
         for event_type, stats in coverage.items():
-            if stats['unused_subscription']:
+            if stats["unused_subscription"]:
                 print(f"   - {event_type}")
-    
+
     # Check ContradictionDetectorV2
     print_section("CONTRADICTION DETECTOR V2 VERIFICATION")
-    
-    graph_edge_added_subs = event_flow_map.get("graph.edge_added", {}).get("subscribers", [])
+
+    graph_edge_added_subs = event_flow_map.get("graph.edge_added", {}).get(
+        "subscribers", []
+    )
     contradiction_detector_subs = [
-        sub for sub in graph_edge_added_subs 
-        if 'ContradictionDetectorV2' in sub.get('context', '')
+        sub
+        for sub in graph_edge_added_subs
+        if "ContradictionDetectorV2" in sub.get("context", "")
     ]
-    
+
     if contradiction_detector_subs:
         print("✓ ContradictionDetectorV2 subscribes to 'graph.edge_added'")
         for sub in contradiction_detector_subs:
@@ -284,45 +297,49 @@ def main():
             print(f"  Handler: {sub['handler']}")
     else:
         print("⚠️  ContradictionDetectorV2 does NOT subscribe to 'graph.edge_added'")
-    
+
     # Check StreamingBayesianUpdater
     print_section("STREAMING BAYESIAN UPDATER VERIFICATION")
-    
-    posterior_updated_pubs = event_flow_map.get("posterior.updated", {}).get("publishers", [])
+
+    posterior_updated_pubs = event_flow_map.get("posterior.updated", {}).get(
+        "publishers", []
+    )
     streaming_pubs = [
-        pub for pub in posterior_updated_pubs 
-        if 'StreamingBayesianUpdater' in pub.get('context', '') or 'update_from_stream' in pub.get('context', '')
+        pub
+        for pub in posterior_updated_pubs
+        if "StreamingBayesianUpdater" in pub.get("context", "")
+        or "update_from_stream" in pub.get("context", "")
     ]
-    
+
     if streaming_pubs:
         print("✓ StreamingBayesianUpdater publishes 'posterior.updated' events")
         for pub in streaming_pubs:
             print(f"  Location: {pub['file']}:{pub['line']}")
             print(f"  Context: {pub['context']}")
-            if pub['payload_keys']:
+            if pub["payload_keys"]:
                 print(f"  Payload keys: {', '.join(pub['payload_keys'])}")
     else:
         print("⚠️  StreamingBayesianUpdater does NOT publish 'posterior.updated' events")
-    
+
     # Validation triggers
     print_section("REAL-TIME VALIDATION TRIGGERS")
-    
+
     validation_events = [
         "graph.edge_added",
-        "graph.node_added", 
+        "graph.node_added",
         "posterior.updated",
         "contradiction.detected",
         "evidence.extracted",
         "validation.completed",
     ]
-    
+
     print("Expected real-time triggers:")
     for event in validation_events:
         if event in event_flow_map:
             flows = event_flow_map[event]
-            pub_count = len(flows['publishers'])
-            sub_count = len(flows['subscribers'])
-            
+            pub_count = len(flows["publishers"])
+            sub_count = len(flows["subscribers"])
+
             if pub_count > 0 and sub_count > 0:
                 print(f"  ✓ {event} ({pub_count} publishers, {sub_count} subscribers)")
             elif pub_count > 0:
@@ -333,7 +350,7 @@ def main():
                 print(f"  ❌ {event} (not used)")
         else:
             print(f"  ❌ {event} (not found)")
-    
+
     # Save detailed report
     report = {
         "event_types": list(analyzer.event_types),
@@ -348,11 +365,11 @@ def main():
         },
         "decoupling_coverage": coverage,
     }
-    
+
     output_file = "choreography_event_flow_report.json"
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(report, f, indent=2)
-    
+
     print_section("REPORT SAVED")
     print(f"Detailed report saved to: {output_file}")
     print()

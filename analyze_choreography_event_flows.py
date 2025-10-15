@@ -7,8 +7,8 @@ verifies event-based communication patterns, analyzes StreamingBayesianUpdater,
 validates ContradictionDetectorV2, and benchmarks memory consumption.
 """
 
-import asyncio
 import ast
+import asyncio
 import inspect
 import logging
 import os
@@ -36,12 +36,12 @@ try:
         MechanismPrior,
         StreamingBayesianUpdater,
     )
+
     CHOREOGRAPHY_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Could not import choreography modules: {e}")
     logger.warning("Static analysis will continue, but runtime tests will be skipped.")
     CHOREOGRAPHY_AVAILABLE = False
-
 
 # ============================================================================
 # EVENT FLOW TRACER
@@ -187,7 +187,8 @@ class EventFlowAnalyzer:
             "publish_locations": len(self.publish_calls),
             "subscribe_locations": len(self.subscribe_calls),
             "decoupling_score": (
-                event_based_communication / max(1, event_based_communication + len(direct_dependencies))
+                event_based_communication
+                / max(1, event_based_communication + len(direct_dependencies))
             )
             * 100,
         }
@@ -318,7 +319,9 @@ class ContradictionAnalyzer:
         for edge in test_edges:
             await event_bus.publish(
                 PDMEvent(
-                    event_type="graph.edge_added", run_id="contradiction_test", payload=edge
+                    event_type="graph.edge_added",
+                    run_id="contradiction_test",
+                    payload=edge,
                 )
             )
 
@@ -331,9 +334,7 @@ class ContradictionAnalyzer:
             "test_edges_published": len(test_edges),
             "contradictions_detected": contradiction_count,
             "contradiction_detection_works": contradiction_count > 0,
-            "detected_contradictions": [
-                c for c in detector.detected_contradictions
-            ],
+            "detected_contradictions": [c for c in detector.detected_contradictions],
         }
 
 
@@ -359,7 +360,9 @@ class MemoryBenchmark:
         # Disable event publishing for fair comparison
         updater.event_bus = None
 
-        posterior = await updater.update_from_stream(stream, prior, run_id="bench_stream")
+        posterior = await updater.update_from_stream(
+            stream, prior, run_id="bench_stream"
+        )
 
         current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
@@ -401,8 +404,12 @@ class MemoryBenchmark:
         evidence_count = 0
         for chunk in all_chunks_in_memory:
             if await updater._is_relevant(chunk, prior.mechanism_name):
-                likelihood = await updater._compute_likelihood(chunk, prior.mechanism_name)
-                current_posterior = updater._bayesian_update(current_posterior, likelihood)
+                likelihood = await updater._compute_likelihood(
+                    chunk, prior.mechanism_name
+                )
+                current_posterior = updater._bayesian_update(
+                    current_posterior, likelihood
+                )
                 evidence_count += 1
 
         current, peak = tracemalloc.get_traced_memory()
@@ -448,7 +455,9 @@ class MemoryBenchmark:
             * 100
         )
 
-        time_difference = streaming_result["elapsed_seconds"] - batch_result["elapsed_seconds"]
+        time_difference = (
+            streaming_result["elapsed_seconds"] - batch_result["elapsed_seconds"]
+        )
 
         return {
             "chunk_count": chunk_count,
@@ -577,8 +586,12 @@ async def run_comprehensive_analysis():
     print(f"Final Standard Deviation: {streaming_results['final_std']:.4f}")
     print(f"Evidence Incorporated: {streaming_results['evidence_count']}")
     print(f"Confidence Level: {streaming_results['confidence_level']}")
-    print(f"✓ Mean Changed Incrementally: {streaming_results['mean_changed_incrementally']}")
-    print(f"✓ Std Decreased Incrementally: {streaming_results['std_decreased_incrementally']}")
+    print(
+        f"✓ Mean Changed Incrementally: {streaming_results['mean_changed_incrementally']}"
+    )
+    print(
+        f"✓ Std Decreased Incrementally: {streaming_results['std_decreased_incrementally']}"
+    )
     print(f"✓ Updates Published to EventBus: {streaming_results['updates_published']}")
 
     results["streaming_bayesian"] = streaming_results
@@ -590,8 +603,12 @@ async def run_comprehensive_analysis():
     print(f"✓ Auto-subscribed to Events: {contradiction_results['auto_subscribed']}")
     print(f"  Subscriber Count: {contradiction_results['subscriber_count']}")
     print(f"  Test Edges Published: {contradiction_results['test_edges_published']}")
-    print(f"  Contradictions Detected: {contradiction_results['contradictions_detected']}")
-    print(f"✓ Real-time Detection Works: {contradiction_results['contradiction_detection_works']}")
+    print(
+        f"  Contradictions Detected: {contradiction_results['contradictions_detected']}"
+    )
+    print(
+        f"✓ Real-time Detection Works: {contradiction_results['contradiction_detection_works']}"
+    )
     print(f"\n  Detected Contradictions:")
     for c in contradiction_results["detected_contradictions"]:
         print(f"    - {c['type']}: {c.get('edge', {})}")
@@ -615,7 +632,9 @@ async def run_comprehensive_analysis():
     print(f"Efficiency Analysis:")
     print(f"  Memory Gain: {benchmark_results['memory_gain_percent']:.1f}%")
     print(f"  Time Difference: {benchmark_results['time_difference_seconds']:.3f}s")
-    print(f"  ✓ Streaming More Efficient: {benchmark_results['streaming_more_efficient']}")
+    print(
+        f"  ✓ Streaming More Efficient: {benchmark_results['streaming_more_efficient']}"
+    )
 
     results["memory_benchmark"] = benchmark_results
 
@@ -651,8 +670,12 @@ async def run_comprehensive_analysis():
     print(f"  - {streaming_results['updates_published']} events published")
     print()
     print("✓ ContradictionDetectorV2: Verified")
-    print(f"  - Auto-subscribes to graph.edge_added: {contradiction_results['auto_subscribed']}")
-    print(f"  - Real-time detection: {contradiction_results['contradiction_detection_works']}")
+    print(
+        f"  - Auto-subscribes to graph.edge_added: {contradiction_results['auto_subscribed']}"
+    )
+    print(
+        f"  - Real-time detection: {contradiction_results['contradiction_detection_works']}"
+    )
     print()
     print("✓ Memory Benchmark: Complete")
     print(f"  - Streaming saves {benchmark_results['memory_gain_percent']:.1f}% memory")

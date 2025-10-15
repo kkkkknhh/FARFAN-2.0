@@ -11,7 +11,7 @@ import sys
 import time
 import tracemalloc
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 # Setup path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -24,6 +24,7 @@ try:
         PosteriorDistribution,
         StreamingBayesianUpdater,
     )
+
     MODULES_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️  Required modules not available: {e}")
@@ -51,31 +52,32 @@ def create_test_chunks(count: int) -> List[Dict]:
 async def benchmark_streaming_approach(chunks: List[Dict]) -> Dict[str, Any]:
     """Benchmark streaming processing with EvidenceStream."""
     print(f"  Running streaming approach ({len(chunks)} chunks)...")
-    
+
     # Start memory tracking
     tracemalloc.start()
     start_time = time.time()
     start_mem = tracemalloc.get_traced_memory()[0]
-    
+
     # Setup
     event_bus = EventBus()
-    updater = StreamingBayesianUpdater(event_bus=None)  # Disable events for fair comparison
+    updater = StreamingBayesianUpdater(
+        event_bus=None
+    )  # Disable events for fair comparison
     stream = EvidenceStream(chunks, batch_size=1)
     prior = MechanismPrior(
-        mechanism_name="educación",
-        prior_mean=0.5,
-        prior_std=0.2,
-        confidence=0.5
+        mechanism_name="educación", prior_mean=0.5, prior_std=0.2, confidence=0.5
     )
-    
+
     # Process stream
-    posterior = await updater.update_from_stream(stream, prior, run_id="streaming_bench")
-    
+    posterior = await updater.update_from_stream(
+        stream, prior, run_id="streaming_bench"
+    )
+
     # Measure
     end_time = time.time()
     current_mem, peak_mem = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    
+
     return {
         "method": "streaming",
         "chunks": len(chunks),
@@ -93,24 +95,21 @@ async def benchmark_streaming_approach(chunks: List[Dict]) -> Dict[str, Any]:
 async def benchmark_batch_approach(chunks: List[Dict]) -> Dict[str, Any]:
     """Benchmark batch processing (load all into memory)."""
     print(f"  Running batch approach ({len(chunks)} chunks)...")
-    
+
     # Start memory tracking
     tracemalloc.start()
     start_time = time.time()
     start_mem = tracemalloc.get_traced_memory()[0]
-    
+
     # Setup
     updater = StreamingBayesianUpdater(event_bus=None)
     prior = MechanismPrior(
-        mechanism_name="educación",
-        prior_mean=0.5,
-        prior_std=0.2,
-        confidence=0.5
+        mechanism_name="educación", prior_mean=0.5, prior_std=0.2, confidence=0.5
     )
-    
+
     # Load ALL chunks into memory at once (batch approach)
     all_chunks_in_memory = list(chunks)  # Creates full copy in memory
-    
+
     # Initialize posterior
     current_posterior = PosteriorDistribution(
         mechanism_name=prior.mechanism_name,
@@ -118,9 +117,9 @@ async def benchmark_batch_approach(chunks: List[Dict]) -> Dict[str, Any]:
         posterior_std=prior.prior_std,
         evidence_count=0,
     )
-    
+
     evidence_count = 0
-    
+
     # Process all chunks sequentially (but all loaded in memory)
     for chunk in all_chunks_in_memory:
         if await updater._is_relevant(chunk, prior.mechanism_name):
@@ -128,12 +127,12 @@ async def benchmark_batch_approach(chunks: List[Dict]) -> Dict[str, Any]:
             current_posterior = updater._bayesian_update(current_posterior, likelihood)
             evidence_count += 1
             current_posterior.evidence_count = evidence_count
-    
+
     # Measure
     end_time = time.time()
     current_mem, peak_mem = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    
+
     return {
         "method": "batch",
         "chunks": len(chunks),
@@ -170,37 +169,49 @@ def print_benchmark_result(result: Dict[str, Any]):
 async def run_benchmarks():
     """Run comprehensive memory benchmarks."""
     print_section("MEMORY BENCHMARK: STREAMING VS BATCH PROCESSING")
-    
+
     chunk_sizes = [100, 500, 1000]
-    
+
     all_results = []
-    
+
     for chunk_count in chunk_sizes:
         print(f"\n{'─' * 80}")
         print(f"Testing with {chunk_count} chunks")
         print(f"{'─' * 80}")
-        
+
         # Create test data
         chunks = create_test_chunks(chunk_count)
-        
+
         # Run streaming
         streaming_result = await benchmark_streaming_approach(chunks)
         print_benchmark_result(streaming_result)
-        
+
         # Small delay to let GC clean up
         await asyncio.sleep(0.5)
-        
+
         # Run batch
         batch_result = await benchmark_batch_approach(chunks)
         print_benchmark_result(batch_result)
-        
+
         # Compare
-        memory_saving = batch_result['memory_delta_mb'] - streaming_result['memory_delta_mb']
-        memory_saving_pct = (memory_saving / batch_result['memory_delta_mb'] * 100) if batch_result['memory_delta_mb'] > 0 else 0
-        
-        time_diff = streaming_result['elapsed_seconds'] - batch_result['elapsed_seconds']
-        time_diff_pct = (time_diff / batch_result['elapsed_seconds'] * 100) if batch_result['elapsed_seconds'] > 0 else 0
-        
+        memory_saving = (
+            batch_result["memory_delta_mb"] - streaming_result["memory_delta_mb"]
+        )
+        memory_saving_pct = (
+            (memory_saving / batch_result["memory_delta_mb"] * 100)
+            if batch_result["memory_delta_mb"] > 0
+            else 0
+        )
+
+        time_diff = (
+            streaming_result["elapsed_seconds"] - batch_result["elapsed_seconds"]
+        )
+        time_diff_pct = (
+            (time_diff / batch_result["elapsed_seconds"] * 100)
+            if batch_result["elapsed_seconds"] > 0
+            else 0
+        )
+
         comparison = {
             "chunk_count": chunk_count,
             "streaming": streaming_result,
@@ -210,30 +221,30 @@ async def run_benchmarks():
             "time_overhead_seconds": time_diff,
             "time_overhead_percent": time_diff_pct,
         }
-        
+
         all_results.append(comparison)
-        
+
         print(f"\n  📊 Comparison:")
         print(f"     Memory Saving: {memory_saving:.2f} MB ({memory_saving_pct:+.1f}%)")
         print(f"     Time Overhead: {time_diff:+.3f}s ({time_diff_pct:+.1f}%)")
-        
+
         if memory_saving > 0:
             print(f"     ✓ Streaming uses LESS memory")
         else:
             print(f"     ⚠️  Streaming uses MORE memory")
-    
+
     # Summary
     print_section("SUMMARY")
-    
+
     print("\n📈 Results by Dataset Size:\n")
     print(f"{'Chunks':<10} {'Memory Δ (MB)':<15} {'Time Δ (s)':<15} {'Efficiency':<20}")
     print(f"{'-' * 70}")
-    
+
     for result in all_results:
-        chunks = result['chunk_count']
-        mem_saving = result['memory_saving_mb']
-        time_overhead = result['time_overhead_seconds']
-        
+        chunks = result["chunk_count"]
+        mem_saving = result["memory_saving_mb"]
+        time_overhead = result["time_overhead_seconds"]
+
         if mem_saving > 0 and time_overhead < 0.5:
             efficiency = "✓ Streaming Better"
         elif mem_saving > 0:
@@ -242,33 +253,41 @@ async def run_benchmarks():
             efficiency = "~ Streaming Faster"
         else:
             efficiency = "⚠️  Batch Better"
-        
-        print(f"{chunks:<10} {mem_saving:>+14.2f} {time_overhead:>+14.3f} {efficiency:<20}")
-    
+
+        print(
+            f"{chunks:<10} {mem_saving:>+14.2f} {time_overhead:>+14.3f} {efficiency:<20}"
+        )
+
     print(f"\n{'─' * 80}")
-    
-    avg_mem_saving = sum(r['memory_saving_mb'] for r in all_results) / len(all_results)
-    avg_time_overhead = sum(r['time_overhead_seconds'] for r in all_results) / len(all_results)
-    
+
+    avg_mem_saving = sum(r["memory_saving_mb"] for r in all_results) / len(all_results)
+    avg_time_overhead = sum(r["time_overhead_seconds"] for r in all_results) / len(
+        all_results
+    )
+
     print(f"\nAverage Memory Saving: {avg_mem_saving:+.2f} MB")
     print(f"Average Time Overhead: {avg_time_overhead:+.3f}s")
-    
+
     print("\n🔍 Analysis:")
-    
+
     if avg_mem_saving > 0:
         print(f"  ✓ Streaming approach is more memory-efficient on average")
         print(f"    Saves ~{avg_mem_saving:.1f} MB compared to batch processing")
     else:
         print(f"  ⚠️  Streaming approach uses more memory on average")
         print(f"    Uses ~{abs(avg_mem_saving):.1f} MB more than batch processing")
-    
+
     if avg_time_overhead < 0.1:
-        print(f"  ✓ Streaming has minimal time overhead (~{abs(avg_time_overhead):.3f}s)")
+        print(
+            f"  ✓ Streaming has minimal time overhead (~{abs(avg_time_overhead):.3f}s)"
+        )
     else:
-        print(f"  ⚠️  Streaming has noticeable time overhead (~{avg_time_overhead:.3f}s)")
-    
+        print(
+            f"  ⚠️  Streaming has noticeable time overhead (~{avg_time_overhead:.3f}s)"
+        )
+
     print(f"\n💡 Recommendation:")
-    
+
     if avg_mem_saving > 0.5:
         print(f"  Use STREAMING approach for large documents to save memory")
         print(f"  Memory savings scale with document size")
@@ -277,7 +296,7 @@ async def run_benchmarks():
     else:
         print(f"  Current implementation shows minimal difference between approaches")
         print(f"  Consider profiling with larger datasets (10k+ chunks)")
-    
+
     print_section("BENCHMARK COMPLETE")
 
 
@@ -289,5 +308,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Benchmark failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
