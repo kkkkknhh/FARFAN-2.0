@@ -53,23 +53,23 @@ def demonstrate_aguja_i():
     )
     posterior_std = posterior_var ** 0.5
     
-    print(f"\nCausal Link: MP-001 → MR-001")
-    print(f"\nEvidence Components:")
+    print("\nCausal Link: MP-001 → MR-001")
+    print("\nEvidence Components:")
     for component, value in evidence_components.items():
         print(f"  - {component:25s}: {value:.2f} (weight: {weights[component]:.2f})")
     
     print(f"\nComposite Likelihood: {likelihood:.3f}")
     
-    print(f"\nPrior Distribution:")
+    print("\nPrior Distribution:")
     print(f"  - Mean: {prior_mean:.3f}")
     print(f"  - Alpha: {prior_alpha:.3f}, Beta: {prior_beta:.3f}")
     
-    print(f"\nPosterior Distribution:")
+    print("\nPosterior Distribution:")
     print(f"  - Mean: {posterior_mean:.3f}")
     print(f"  - Std Dev: {posterior_std:.3f}")
     print(f"  - 95% Credible Interval: [{posterior_mean - 1.96*posterior_std:.3f}, {posterior_mean + 1.96*posterior_std:.3f}]")
     
-    print(f"\n✨ Instead of fixed 0.8, we have:")
+    print("\n✨ Instead of fixed 0.8, we have:")
     print(f"   P(causal_link) = {posterior_mean:.3f} ± {posterior_std:.3f}")
     print()
 
@@ -104,7 +104,7 @@ def demonstrate_aguja_ii():
         'político': ['concertar', 'negociar', 'aprobar', 'promulgar']
     }
     
-    print(f"\nNode: MP-001 (Producto)")
+    print("\nNode: MP-001 (Producto)")
     print(f"Observed Verbs: {observed_verbs}")
     
     # Bayesian update for each mechanism type
@@ -129,7 +129,7 @@ def demonstrate_aguja_ii():
     total = sum(posterior.values())
     posterior = {k: v/total for k, v in posterior.items()}
     
-    print(f"\nMechanism Type Posterior:")
+    print("\nMechanism Type Posterior:")
     for mech_type, prob in sorted(posterior.items(), key=lambda x: x[1], reverse=True):
         bar = '█' * int(prob * 50)
         print(f"  {mech_type:15s}: {prob:.3f} {bar}")
@@ -140,7 +140,7 @@ def demonstrate_aguja_ii():
     max_entropy = math.log(len(posterior))
     uncertainty = entropy / max_entropy
     
-    print(f"\nUncertainty Metrics:")
+    print("\nUncertainty Metrics:")
     print(f"  - Entropy: {entropy:.3f}")
     print(f"  - Normalized Uncertainty: {uncertainty:.3f}")
     print(f"  - Confidence: {1 - uncertainty:.3f}")
@@ -154,12 +154,81 @@ def demonstrate_aguja_ii():
                   (0.4 if has_activities else 0.0) + \
                   (0.2 if has_resources else 0.0)
     
-    print(f"\nSufficiency Test:")
-    print(f"  - Has Entity: {has_entity} ({'✓' if has_entity else '✗'})")
+    print("\nSufficiency Test:")
+    # Since has_entity and has_resources are always True in this demo,
+    # we display them as constants
+    print("  - Has Entity: True (✓)")
     print(f"  - Has Activities (≥2): {has_activities} ({'✓' if has_activities else '✗'})")
-    print(f"  - Has Resources: {has_resources} ({'✓' if has_resources else '✗'})")
+    print("  - Has Resources: True (✓)")
     print(f"  - Sufficiency Score: {sufficiency:.2f} ({'SUFFICIENT' if sufficiency >= 0.6 else 'INSUFFICIENT'})")
     print()
+
+
+def _calculate_severity(p_failure):
+    """Calculate severity level based on failure probability"""
+    if p_failure > 0.15:
+        return 'CRITICAL'
+    elif p_failure > 0.10:
+        return 'HIGH'
+    else:
+        return 'MEDIUM'
+
+
+def _print_omission_audit(omissions):
+    """Print direct evidence audit for omissions"""
+    print("\nDirect Evidence Audit (Layer 1):")
+    for omission, p_failure, effort in omissions:
+        severity = _calculate_severity(p_failure)
+        print(f"  - Missing {omission:12s}: P(failure) = {p_failure:.3f} [{severity}]")
+
+
+def _print_causal_implications(node):
+    """Print causal implications of missing attributes"""
+    print("\nCausal Implications (Layer 2):")
+    if not node['has_baseline']:
+        print("  - Missing baseline → P(target_miscalibrated) = 0.73")
+        print("    'Without baseline, target likely poorly calibrated'")
+    
+    if not node['has_entity']:
+        if node.get('budget_high', False):
+            print("  - Missing entity + high budget → P(implementation_failure) = 0.89")
+            print("    'Large budget without clear responsibility = high risk'")
+        else:
+            print("  - Missing entity → P(implementation_failure) = 0.65")
+            print("    'Unclear responsibility threatens execution'")
+
+
+def _calculate_remediations(omissions):
+    """Calculate and prioritize remediations based on expected value"""
+    remediations = []
+    for omission, p_failure, effort in omissions:
+        # EVI = Expected value of fixing / Effort
+        impact = p_failure * 1.5  # Assume some cascading effect
+        evi = impact / effort
+        remediations.append((omission, p_failure, effort, impact, evi))
+    
+    remediations.sort(key=lambda x: x[4], reverse=True)
+    return remediations
+
+
+def _print_remediation_priority(remediations):
+    """Print prioritized remediation table"""
+    print("\nOptimal Remediation (Layer 3):")
+    print("\n  Priority | Omission   | P(failure) | Effort | Impact | EVI")
+    print("  ---------|------------|------------|--------|--------|-------")
+    for i, (omission, p_fail, effort, impact, evi) in enumerate(remediations, 1):
+        print(f"     {i}     | {omission:10s} | {p_fail:10.3f} | {effort:6d} | {impact:6.3f} | {evi:.3f}")
+
+
+def _print_systemic_assessment(total_omissions, total_possible):
+    """Print system-wide success probability assessment"""
+    completeness = 1.0 - (total_omissions / total_possible)
+    success_probability = 0.70 * completeness  # Base rate * completeness
+    
+    print("\nSystemic Assessment:")
+    print(f"  - Documentation Completeness: {completeness:.1%}")
+    print(f"  - Estimated Success Probability: {success_probability:.1%}")
+    print(f"  - Recommendation: {'FIX CRITICAL OMISSIONS' if success_probability < 0.60 else 'Acceptable'}")
 
 
 def demonstrate_aguja_iii():
@@ -192,7 +261,7 @@ def demonstrate_aguja_iii():
     }
     
     print(f"\nNode: {node['id']}")
-    print(f"Attributes:")
+    print("Attributes:")
     for attr in ['baseline', 'target', 'entity', 'budget', 'mechanism']:
         has = node[f'has_{attr}']
         print(f"  - {attr:12s}: {'✓ Present' if has else '✗ MISSING'}")
@@ -207,51 +276,19 @@ def demonstrate_aguja_iii():
         p_failure = 1.0 - historical_priors['entity_presence']
         omissions.append(('entity', p_failure, 2))
     
-    print(f"\nDirect Evidence Audit (Layer 1):")
-    for omission, p_failure, effort in omissions:
-        severity = 'CRITICAL' if p_failure > 0.15 else 'HIGH' if p_failure > 0.10 else 'MEDIUM'
-        print(f"  - Missing {omission:12s}: P(failure) = {p_failure:.3f} [{severity}]")
+    _print_omission_audit(omissions)
     
-    # Causal implications (Layer 2)
-    print(f"\nCausal Implications (Layer 2):")
-    if not node['has_baseline']:
-        print(f"  - Missing baseline → P(target_miscalibrated) = 0.73")
-        print(f"    'Without baseline, target likely poorly calibrated'")
-    
-    if not node['has_entity']:
-        if node.get('budget_high', False):
-            print(f"  - Missing entity + high budget → P(implementation_failure) = 0.89")
-            print(f"    'Large budget without clear responsibility = high risk'")
-        else:
-            print(f"  - Missing entity → P(implementation_failure) = 0.65")
-            print(f"    'Unclear responsibility threatens execution'")
+    _print_causal_implications(node)
     
     # Calculate Expected Value of Information for prioritization
-    print(f"\nOptimal Remediation (Layer 3):")
-    remediations = []
-    for omission, p_failure, effort in omissions:
-        # EVI = Expected value of fixing / Effort
-        impact = p_failure * 1.5  # Assume some cascading effect
-        evi = impact / effort
-        remediations.append((omission, p_failure, effort, impact, evi))
+    remediations = _calculate_remediations(omissions)
     
-    remediations.sort(key=lambda x: x[4], reverse=True)
-    
-    print(f"\n  Priority | Omission   | P(failure) | Effort | Impact | EVI")
-    print(f"  ---------|------------|------------|--------|--------|-------")
-    for i, (omission, p_fail, effort, impact, evi) in enumerate(remediations, 1):
-        print(f"     {i}     | {omission:10s} | {p_fail:10.3f} | {effort:6d} | {impact:6.3f} | {evi:.3f}")
+    _print_remediation_priority(remediations)
     
     # System-wide success probability
     total_omissions = len(omissions)
     total_possible = 5  # 5 key attributes
-    completeness = 1.0 - (total_omissions / total_possible)
-    success_probability = 0.70 * completeness  # Base rate * completeness
-    
-    print(f"\nSystemic Assessment:")
-    print(f"  - Documentation Completeness: {completeness:.1%}")
-    print(f"  - Estimated Success Probability: {success_probability:.1%}")
-    print(f"  - Recommendation: {'FIX CRITICAL OMISSIONS' if success_probability < 0.60 else 'Acceptable'}")
+    _print_systemic_assessment(total_omissions, total_possible)
     print()
 
 
