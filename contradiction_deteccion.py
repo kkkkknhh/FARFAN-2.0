@@ -842,13 +842,14 @@ Análisis completo con contradicciones y métricas avanzadas
             if c.contradiction_type == ContradictionType.CAUSAL_INCOHERENCE
         )
 
+        total_contradictions_for_grading = self._audit_metrics.get("total_contradictions", len(contradictions))
+        quality_grade_classification = "Excelente" if total_contradictions_for_grading < 5 else "Bueno" if total_contradictions_for_grading < 10 else "Regular"
+        
         audit_summary = {
             "total_contradictions": self._audit_metrics.get("total_contradictions", len(contradictions)),
             "causal_incoherence_flags": causal_incoherence_count,
             "structural_failures": self._audit_metrics.get("structural_failures", 0),
-            "quality_grade": "Excelente" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 5
-                             else "Bueno" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 10
-                             else "Regular"
+            "quality_grade": quality_grade_classification
         }
 
         # HARMONIC FRONT 3 - Enhancement 3: Regulatory Constraint Assessment for D1-Q5
@@ -2129,7 +2130,7 @@ Análisis completo con contradicciones y métricas avanzadas
         try:
             cycles = list(nx.simple_cycles(causal_net))
             cycle_penalty = min(1.0, len(cycles) / max(1, causal_net.number_of_nodes()))
-        except:
+        except (nx.NetworkXError, nx.NetworkXNoCycle, ValueError, TypeError) as e:
             cycle_penalty = 0.0
 
         if causal_net.number_of_edges() > 0:
@@ -2488,7 +2489,7 @@ Análisis completo con contradicciones y métricas avanzadas
                 subgraph = undirected.subgraph(largest_cc)
                 diameter = nx.diameter(subgraph)
                 avg_path_length = nx.average_shortest_path_length(subgraph)
-        except:
+        except (nx.NetworkXError, ValueError, StopIteration) as e:
             diameter = -1
             avg_path_length = -1
 
