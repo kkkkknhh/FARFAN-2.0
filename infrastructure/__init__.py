@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Infrastructure Package for FARFAN 2.0
-=====================================
 
 Provides infrastructure components for resilient external service integration:
 - Circuit Breaker pattern for cascading failure prevention
@@ -44,3 +42,24 @@ __all__ = [
 ]
 
 __version__ = "1.0.0"
+Infrastructure Module
+Provides resource management and computational infrastructure
+"""
+
+from infrastructure.resource_pool import (
+    BayesianInferenceEngine,
+    ResourceConfig,
+    ResourcePool,
+    Worker,
+    WorkerMemoryError,
+    WorkerTimeoutError,
+)
+
+__all__ = [
+    "ResourceConfig",
+    "Worker",
+    "ResourcePool",
+    "WorkerTimeoutError",
+    "WorkerMemoryError",
+    "BayesianInferenceEngine",
+]
