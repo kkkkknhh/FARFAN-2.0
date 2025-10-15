@@ -17,7 +17,6 @@ from datetime import datetime
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-
 # ============================================================================
 # ENUMERATIONS
 # ============================================================================
@@ -25,6 +24,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 class ContractViolationType(Enum):
     """Types of contract violations"""
+
     MISSING_REQUIRED_FIELD = auto()
     INVALID_TYPE = auto()
     VALUE_OUT_OF_RANGE = auto()
@@ -35,6 +35,7 @@ class ContractViolationType(Enum):
 
 class PhaseStatus(Enum):
     """Phase execution status"""
+
     SUCCESS = "success"
     ERROR = "error"
     SKIPPED = "skipped"
@@ -47,7 +48,7 @@ class PhaseStatus(Enum):
 
 class ContractViolationError(Exception):
     """Raised when a phase contract is violated"""
-    
+
     def __init__(
         self,
         phase_name: str,
@@ -55,14 +56,14 @@ class ContractViolationError(Exception):
         field_name: str,
         expected: Any,
         actual: Any,
-        message: Optional[str] = None
+        message: Optional[str] = None,
     ):
         self.phase_name = phase_name
         self.violation_type = violation_type
         self.field_name = field_name
         self.expected = expected
         self.actual = actual
-        
+
         default_message = (
             f"Contract violation in {phase_name}: "
             f"{violation_type.name} for field '{field_name}'. "
@@ -83,12 +84,13 @@ class ExtractStatementsInput:
     Mechanism: Pass full document text with metadata
     Constraint: text must be non-empty string, plan_name and dimension are required
     """
+
     text: str
     plan_name: str
     dimension: str
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate input contract"""
         if not self.text or len(self.text) < 10:
@@ -98,7 +100,7 @@ class ExtractStatementsInput:
                 "text",
                 "non-empty string (>= 10 chars)",
                 f"{len(self.text)} chars",
-                "Text must be at least 10 characters"
+                "Text must be at least 10 characters",
             )
         if not self.plan_name:
             raise ContractViolationError(
@@ -106,7 +108,7 @@ class ExtractStatementsInput:
                 ContractViolationType.MISSING_REQUIRED_FIELD,
                 "plan_name",
                 "non-empty string",
-                self.plan_name
+                self.plan_name,
             )
         if not self.dimension:
             raise ContractViolationError(
@@ -114,7 +116,7 @@ class ExtractStatementsInput:
                 ContractViolationType.MISSING_REQUIRED_FIELD,
                 "dimension",
                 "non-empty string",
-                self.dimension
+                self.dimension,
             )
 
 
@@ -125,13 +127,14 @@ class DetectContradictionsInput:
     Mechanism: Analyze statements using NLI and semantic similarity
     Constraint: statements must be non-empty list, text for context
     """
+
     statements: Tuple[Any, ...]  # Frozen tuple of PolicyStatement objects
     text: str
     plan_name: str
     dimension: str
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate input contract"""
         if not self.statements:
@@ -140,7 +143,7 @@ class DetectContradictionsInput:
                 ContractViolationType.INVALID_LENGTH,
                 "statements",
                 "non-empty tuple",
-                f"{len(self.statements)} statements"
+                f"{len(self.statements)} statements",
             )
         if not self.text:
             raise ContractViolationError(
@@ -148,7 +151,7 @@ class DetectContradictionsInput:
                 ContractViolationType.MISSING_REQUIRED_FIELD,
                 "text",
                 "non-empty string",
-                self.text
+                self.text,
             )
 
 
@@ -159,12 +162,13 @@ class AnalyzeRegulatoryInput:
     Mechanism: Cross-reference statements against regulatory frameworks
     Constraint: statements required, temporal_conflicts can be empty
     """
+
     statements: Tuple[Any, ...]
     text: str
     temporal_conflicts: Tuple[Any, ...]
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate input contract"""
         if not isinstance(self.statements, tuple):
@@ -173,7 +177,7 @@ class AnalyzeRegulatoryInput:
                 ContractViolationType.INVALID_TYPE,
                 "statements",
                 "tuple",
-                type(self.statements).__name__
+                type(self.statements).__name__,
             )
         if not isinstance(self.temporal_conflicts, tuple):
             raise ContractViolationError(
@@ -181,7 +185,7 @@ class AnalyzeRegulatoryInput:
                 ContractViolationType.INVALID_TYPE,
                 "temporal_conflicts",
                 "tuple",
-                type(self.temporal_conflicts).__name__
+                type(self.temporal_conflicts).__name__,
             )
 
 
@@ -192,11 +196,12 @@ class ValidateRegulatoryInput:
     Mechanism: Execute theory of change validation
     Constraint: causal_graph required for DAG validation
     """
+
     causal_graph: Dict[str, Any]
     statements: Tuple[Any, ...]
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate input contract"""
         if not self.causal_graph:
@@ -205,7 +210,7 @@ class ValidateRegulatoryInput:
                 ContractViolationType.MISSING_REQUIRED_FIELD,
                 "causal_graph",
                 "non-empty dict",
-                self.causal_graph
+                self.causal_graph,
             )
 
 
@@ -216,12 +221,13 @@ class CalculateCoherenceInput:
     Mechanism: Apply statistical tests and Bayesian posterior calculation
     Constraint: contradictions and statements required for metrics
     """
+
     contradictions: Tuple[Any, ...]
     statements: Tuple[Any, ...]
     text: str
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate input contract"""
         if not isinstance(self.contradictions, tuple):
@@ -230,7 +236,7 @@ class CalculateCoherenceInput:
                 ContractViolationType.INVALID_TYPE,
                 "contradictions",
                 "tuple",
-                type(self.contradictions).__name__
+                type(self.contradictions).__name__,
             )
         if not isinstance(self.statements, tuple):
             raise ContractViolationError(
@@ -238,7 +244,7 @@ class CalculateCoherenceInput:
                 ContractViolationType.INVALID_TYPE,
                 "statements",
                 "tuple",
-                type(self.statements).__name__
+                type(self.statements).__name__,
             )
 
 
@@ -249,12 +255,13 @@ class GenerateRecommendationsInput:
     Mechanism: Prioritize contradictions and create actionable recommendations
     Constraint: contradictions and coherence_metrics required
     """
+
     contradictions: Tuple[Any, ...]
     coherence_metrics: Dict[str, Any]
     regulatory_analysis: Dict[str, Any]
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate input contract"""
         if not isinstance(self.coherence_metrics, dict):
@@ -263,7 +270,7 @@ class GenerateRecommendationsInput:
                 ContractViolationType.INVALID_TYPE,
                 "coherence_metrics",
                 "dict",
-                type(self.coherence_metrics).__name__
+                type(self.coherence_metrics).__name__,
             )
 
 
@@ -279,13 +286,14 @@ class ExtractStatementsOutput:
     Mechanism: List of PolicyStatement objects
     Constraint: statements must be immutable tuple
     """
+
     statements: Tuple[Any, ...]
     statement_count: int
     avg_statement_length: float
     dimensions_covered: Tuple[str, ...]
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate output contract"""
         if self.statement_count < 0:
@@ -294,7 +302,7 @@ class ExtractStatementsOutput:
                 ContractViolationType.VALUE_OUT_OF_RANGE,
                 "statement_count",
                 ">= 0",
-                self.statement_count
+                self.statement_count,
             )
         if self.statement_count != len(self.statements):
             raise ContractViolationError(
@@ -303,7 +311,7 @@ class ExtractStatementsOutput:
                 "statement_count",
                 len(self.statements),
                 self.statement_count,
-                "Count mismatch between statement_count and actual statements"
+                "Count mismatch between statement_count and actual statements",
             )
 
 
@@ -314,6 +322,7 @@ class DetectContradictionsOutput:
     Mechanism: Tuple of ContradictionEvidence objects
     Constraint: all counts must match actual data
     """
+
     contradictions: Tuple[Any, ...]
     temporal_conflicts: Tuple[Any, ...]
     total_contradictions: int
@@ -323,7 +332,7 @@ class DetectContradictionsOutput:
     low_severity_count: int
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate output contract"""
         if self.total_contradictions != len(self.contradictions):
@@ -332,14 +341,14 @@ class DetectContradictionsOutput:
                 ContractViolationType.SCHEMA_MISMATCH,
                 "total_contradictions",
                 len(self.contradictions),
-                self.total_contradictions
+                self.total_contradictions,
             )
-        
+
         severity_sum = (
-            self.critical_severity_count +
-            self.high_severity_count +
-            self.medium_severity_count +
-            self.low_severity_count
+            self.critical_severity_count
+            + self.high_severity_count
+            + self.medium_severity_count
+            + self.low_severity_count
         )
         if severity_sum > self.total_contradictions:
             raise ContractViolationError(
@@ -348,7 +357,7 @@ class DetectContradictionsOutput:
                 "severity_counts",
                 f"<= {self.total_contradictions}",
                 severity_sum,
-                "Severity counts exceed total contradictions"
+                "Severity counts exceed total contradictions",
             )
 
 
@@ -359,6 +368,7 @@ class AnalyzeRegulatoryOutput:
     Mechanism: DNP compliance validation
     Constraint: all boolean fields must be explicit
     """
+
     regulatory_references_count: int
     constraint_types_mentioned: int
     is_consistent: bool
@@ -368,7 +378,7 @@ class AnalyzeRegulatoryOutput:
     cumple_mga: bool
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate output contract"""
         if self.regulatory_references_count < 0:
@@ -377,9 +387,9 @@ class AnalyzeRegulatoryOutput:
                 ContractViolationType.VALUE_OUT_OF_RANGE,
                 "regulatory_references_count",
                 ">= 0",
-                self.regulatory_references_count
+                self.regulatory_references_count,
             )
-        
+
         valid_qualities = {"excelente", "bueno", "aceptable", "insuficiente"}
         if self.d1_q5_quality not in valid_qualities:
             raise ContractViolationError(
@@ -387,7 +397,7 @@ class AnalyzeRegulatoryOutput:
                 ContractViolationType.INVALID_FORMAT,
                 "d1_q5_quality",
                 f"one of {valid_qualities}",
-                self.d1_q5_quality
+                self.d1_q5_quality,
             )
 
 
@@ -398,13 +408,14 @@ class ValidateRegulatoryOutput:
     Mechanism: DAG validation and causal inference
     Constraint: validation status must be boolean
     """
+
     dag_is_valid: bool
     has_cycles: bool
     causal_coherence_score: float
     violations: Tuple[str, ...]
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate output contract"""
         if not (0.0 <= self.causal_coherence_score <= 1.0):
@@ -413,7 +424,7 @@ class ValidateRegulatoryOutput:
                 ContractViolationType.VALUE_OUT_OF_RANGE,
                 "causal_coherence_score",
                 "[0.0, 1.0]",
-                self.causal_coherence_score
+                self.causal_coherence_score,
             )
 
 
@@ -424,6 +435,7 @@ class CalculateCoherenceOutput:
     Mechanism: Statistical coherence calculation
     Constraint: all scores must be in [0.0, 1.0] range
     """
+
     overall_coherence_score: float
     temporal_consistency: float
     causal_coherence: float
@@ -433,14 +445,14 @@ class CalculateCoherenceOutput:
     credible_interval: Tuple[float, float]
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate output contract"""
         for field_name, value in [
             ("overall_coherence_score", self.overall_coherence_score),
             ("temporal_consistency", self.temporal_consistency),
             ("causal_coherence", self.causal_coherence),
-            ("bayesian_posterior", self.bayesian_posterior)
+            ("bayesian_posterior", self.bayesian_posterior),
         ]:
             if not (0.0 <= value <= 1.0):
                 raise ContractViolationError(
@@ -448,9 +460,9 @@ class CalculateCoherenceOutput:
                     ContractViolationType.VALUE_OUT_OF_RANGE,
                     field_name,
                     "[0.0, 1.0]",
-                    value
+                    value,
                 )
-        
+
         lower, upper = self.credible_interval
         if not (0.0 <= lower <= upper <= 1.0):
             raise ContractViolationError(
@@ -458,7 +470,7 @@ class CalculateCoherenceOutput:
                 ContractViolationType.VALUE_OUT_OF_RANGE,
                 "credible_interval",
                 "0.0 <= lower <= upper <= 1.0",
-                self.credible_interval
+                self.credible_interval,
             )
 
 
@@ -469,6 +481,7 @@ class GenerateRecommendationsOutput:
     Mechanism: AHP-prioritized recommendation list
     Constraint: all recommendations must pass validation
     """
+
     recommendations: Tuple[Any, ...]  # SMARTRecommendation objects
     recommendation_count: int
     critical_recommendations: int
@@ -477,7 +490,7 @@ class GenerateRecommendationsOutput:
     low_recommendations: int
     trace_id: str
     timestamp: str
-    
+
     def validate(self) -> None:
         """Validate output contract"""
         if self.recommendation_count != len(self.recommendations):
@@ -486,14 +499,14 @@ class GenerateRecommendationsOutput:
                 ContractViolationType.SCHEMA_MISMATCH,
                 "recommendation_count",
                 len(self.recommendations),
-                self.recommendation_count
+                self.recommendation_count,
             )
-        
+
         priority_sum = (
-            self.critical_recommendations +
-            self.high_recommendations +
-            self.medium_recommendations +
-            self.low_recommendations
+            self.critical_recommendations
+            + self.high_recommendations
+            + self.medium_recommendations
+            + self.low_recommendations
         )
         if priority_sum != self.recommendation_count:
             raise ContractViolationError(
@@ -502,7 +515,7 @@ class GenerateRecommendationsOutput:
                 "priority_counts",
                 self.recommendation_count,
                 priority_sum,
-                "Priority counts must sum to total recommendations"
+                "Priority counts must sum to total recommendations",
             )
 
 
@@ -518,6 +531,7 @@ class PhaseResult:
     Mechanism: Immutable result with full trace context
     Constraint: All fields required, status must be valid enum
     """
+
     phase_name: str
     inputs: Any  # Frozen input contract
     outputs: Any  # Frozen output contract
@@ -527,7 +541,7 @@ class PhaseResult:
     status: PhaseStatus
     error: Optional[str] = None
     duration_ms: float = 0.0
-    
+
     def validate(self) -> None:
         """Validate phase result contract"""
         if not self.phase_name:
@@ -536,30 +550,30 @@ class PhaseResult:
                 ContractViolationType.MISSING_REQUIRED_FIELD,
                 "phase_name",
                 "non-empty string",
-                self.phase_name
+                self.phase_name,
             )
-        
+
         if self.status == PhaseStatus.ERROR and not self.error:
             raise ContractViolationError(
                 "phase_result",
                 ContractViolationType.MISSING_REQUIRED_FIELD,
                 "error",
                 "non-empty string when status=ERROR",
-                self.error
+                self.error,
             )
-        
+
         if self.duration_ms < 0:
             raise ContractViolationError(
                 "phase_result",
                 ContractViolationType.VALUE_OUT_OF_RANGE,
                 "duration_ms",
                 ">= 0",
-                self.duration_ms
+                self.duration_ms,
             )
-        
+
         # Validate nested contracts
-        if hasattr(self.inputs, 'validate'):
+        if hasattr(self.inputs, "validate"):
             self.inputs.validate()
-        
-        if self.status == PhaseStatus.SUCCESS and hasattr(self.outputs, 'validate'):
+
+        if self.status == PhaseStatus.SUCCESS and hasattr(self.outputs, "validate"):
             self.outputs.validate()
