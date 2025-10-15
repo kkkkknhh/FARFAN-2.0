@@ -1400,10 +1400,10 @@ def example_pdm_analysis():
     # Generate comprehensive report
     report = embedder.generate_pdq_report(chunks, pdq_query)
 
-    print(f"\n3. ANALYSIS RESULTS")
+    print("\n3. ANALYSIS RESULTS")
     print(f"   Evidence chunks found: {report['evidence_count']}")
     print(f"   Overall confidence: {report['confidence']:.3f}")
-    print(f"\n   Numerical Evaluation:")
+    print("\n   Numerical Evaluation:")
     print(f"   - Point estimate: {report['numerical_evaluation']['point_estimate']:.3f}")
     print(f"   - 95% CI: [{report['numerical_evaluation']['credible_interval_95'][0]:.3f}, "
           f"{report['numerical_evaluation']['credible_interval_95'][1]:.3f}]")

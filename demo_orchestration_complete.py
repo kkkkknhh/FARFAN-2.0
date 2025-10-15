@@ -67,7 +67,7 @@ async def demonstrate_full_workflow():
     print("-" * 80)
     
     config = DemoConfig()
-    print(f"✓ Configuration created")
+    print("✓ Configuration created")
     print(f"  - Queue size: {config.queue_size}")
     print(f"  - Max concurrent jobs: {config.max_inflight_jobs}")
     print(f"  - Worker timeout: {config.worker_timeout_secs}s")
@@ -75,14 +75,14 @@ async def demonstrate_full_workflow():
     print()
     
     orchestrator = PDMOrchestrator(config)
-    print(f"✓ Orchestrator initialized")
+    print("✓ Orchestrator initialized")
     print(f"  - Initial state: {orchestrator.state}")
     print(f"  - Metrics collector: {type(orchestrator.metrics).__name__}")
     print(f"  - Audit logger: {type(orchestrator.audit_logger).__name__}")
     print()
     
     learning_loop = AdaptiveLearningLoop(config)
-    print(f"✓ Learning loop initialized")
+    print("✓ Learning loop initialized")
     print(f"  - Learning enabled: {learning_loop.enabled}")
     print(f"  - Prior store path: {learning_loop.prior_store.store_path}")
     print()
@@ -103,7 +103,7 @@ async def demonstrate_full_workflow():
     
     result1 = await orchestrator.analyze_plan(str(test_pdf))
     
-    print(f"✓ Analysis completed")
+    print("✓ Analysis completed")
     print(f"  - Run ID: {result1.run_id}")
     print(f"  - Final state: {orchestrator.state}")
     print(f"  - Quality score: {result1.quality_score.overall_score:.2%}")
@@ -176,7 +176,7 @@ async def demonstrate_full_workflow():
     
     result2 = await orchestrator.analyze_plan(str(test_pdf2))
     
-    print(f"✓ Analysis completed")
+    print("✓ Analysis completed")
     print(f"  - Run ID: {result2.run_id}")
     print(f"  - Final state: {orchestrator.state}")
     print(f"  - Quality score: {result2.quality_score.overall_score:.2%}")

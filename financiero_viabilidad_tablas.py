@@ -1397,7 +1397,7 @@ class PDETMunicipalPlanAnalyzer:
             Diccionario con todos los análisis y scores
         """
         print(f"\n{'='*70}")
-        print(f"ANÁLISIS DE PLAN DE DESARROLLO MUNICIPAL - PDET")
+        print("ANÁLISIS DE PLAN DE DESARROLLO MUNICIPAL - PDET")
         print(f"{'='*70}\n")
         print(f"📄 Archivo: {pdf_path}\n")
         

@@ -78,7 +78,7 @@ def example_3_parse_canonical_id():
     
     canonical = CanonicalID.from_string(question_id)
     
-    print(f"\nExtracted Components:")
+    print("\nExtracted Components:")
     print(f"  Policy: {canonical.policy}")
     print(f"  Policy Title: {canonical.get_policy_title()}")
     print(f"  Dimension: {canonical.dimension}")
@@ -115,14 +115,14 @@ def example_4_check_specific_policy():
                     policy_name = verifier.questions_config['puntos_decalogo'][policy_id].get('nombre')
                     print(f"Name: {policy_name}")
             
-            print(f"\nDimension Weights:")
+            print("\nDimension Weights:")
             for i in range(1, 7):
                 dim_key = f"D{i}_weight"
                 if dim_key in policy_map:
                     weight = policy_map[dim_key]
                     print(f"  D{i}: {weight:.2f}")
             
-            print(f"\nCritical Dimensions:")
+            print("\nCritical Dimensions:")
             if 'critical_dimensions' in policy_map:
                 for dim in policy_map['critical_dimensions']:
                     print(f"  - {dim}")
@@ -241,7 +241,7 @@ def example_8_custom_verification():
     print("\nStep 4: Generating report...")
     report = verifier.generate_report()
     
-    print(f"\nFinal Results:")
+    print("\nFinal Results:")
     print(f"  Total Issues: {len(verifier.issues)}")
     print(f"  Convergence: {report['verification_summary']['percent_questions_converged']}%")
     
