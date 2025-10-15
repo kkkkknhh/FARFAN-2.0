@@ -392,6 +392,7 @@ check_forked() {
 			fi
 		fi
 	fi
+	return 0
 }
 
 do_install() {
@@ -718,14 +719,12 @@ do_install() {
 			exit 1
 			;;
 		*)
-			if [ -z "$lsb_dist" ]; then
-				if is_darwin; then
-					echo >&2
-					echo "ERROR: Unsupported operating system 'macOS'" >&2
-					echo "Please get Docker Desktop from https://www.docker.com/products/docker-desktop" >&2
-					echo >&2
-					exit 1
-				fi
+			if [ -z "$lsb_dist" ] && is_darwin; then
+				echo >&2
+				echo "ERROR: Unsupported operating system 'macOS'" >&2
+				echo "Please get Docker Desktop from https://www.docker.com/products/docker-desktop" >&2
+				echo >&2
+				exit 1
 			fi
 			echo >&2
 			echo "ERROR: Unsupported distribution '$lsb_dist'" >&2
