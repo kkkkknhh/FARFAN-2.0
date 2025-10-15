@@ -181,10 +181,8 @@ class AdvancedSemanticChunker:
         semantic_chunks: list[SemanticChunk] = []
 
         for idx, chunk_text in enumerate(raw_chunks):
-            # Infer P-D-Q context from surrounding text
-            pdq_context = self._infer_pdq_context(
-                chunk_text, sections, document_metadata
-            )
+            # Infer P-D-Q context from chunk text
+            pdq_context = self._infer_pdq_context(chunk_text)
 
             # Count tokens (approximation: Spanish has ~1.3 chars/token)
             AVG_CHARS_PER_TOKEN = 1.3  # Source: Spanish language statistics
@@ -324,11 +322,9 @@ class AdvancedSemanticChunker:
     def _infer_pdq_context(
         self,
         chunk_text: str,
-        sections: list[dict[str, Any]],
-        doc_metadata: dict[str, Any],
     ) -> PDQIdentifier | None:
         """
-        Infer P-D-Q context from chunk content and structure.
+        Infer P-D-Q context from chunk content.
 
         Uses heuristics based on Colombian policy vocabulary.
         """
@@ -385,11 +381,11 @@ class AdvancedSemanticChunker:
         return None
 
     def _contains_table(
-        self, chunk_start: int, chunk_end: int, tables: list[dict[str, Any]]
+        self, chunk_text: str, tables: list[dict[str, Any]]
     ) -> bool:
-        """Check if chunk overlaps with table regions by position."""
+        """Check if chunk contains table markers."""
         return any(
-            chunk_start < table["end"] and chunk_end > table["start"]
+            table["marker"] in chunk_text
             for table in tables
         )
 
@@ -439,7 +435,6 @@ class BayesianNumericalAnalyzer:
     def evaluate_policy_metric(
         self,
         observed_values: list[float],
-        expected_range: tuple[float, float] = (0.0, 1.0),
         n_posterior_samples: int = 10000,
     ) -> BayesianEvaluation:
         """
@@ -881,7 +876,6 @@ class PolicyAnalysisEmbedder:
         document_chunks: list[SemanticChunk],
         pdq_filter: PDQIdentifier | None = None,
         use_reranking: bool = True,
-        use_mmr: bool = True,
     ) -> list[tuple[SemanticChunk, float]]:
         """
         Advanced semantic search with P-D-Q filtering and reranking.
@@ -890,14 +884,13 @@ class PolicyAnalysisEmbedder:
         1. Bi-encoder retrieval (fast, approximate)
         2. P-D-Q filtering (if specified)
         3. Cross-encoder reranking (precise)
-        4. MMR diversification (if enabled)
+        4. MMR diversification
 
         Args:
             query: Search query
             document_chunks: Pool of chunks to search
             pdq_filter: Optional P-D-Q context filter
             use_reranking: Enable cross-encoder reranking
-            use_mmr: Enable MMR diversification
 
         Returns:
             Ranked list of (chunk, score) tuples
@@ -905,11 +898,9 @@ class PolicyAnalysisEmbedder:
         if not document_chunks:
             return []
 
-        # Generate query embedding
-        query_embedding = self._embed_texts([query])[0]
-
         # Bi-encoder retrieval: fast approximate search
         chunk_embeddings = np.vstack([c["embedding"] for c in document_chunks])
+        query_embedding = self._embed_texts([query])[0]
         similarities = cosine_similarity(
             query_embedding.reshape(1, -1), chunk_embeddings
         ).ravel()
@@ -944,8 +935,8 @@ class PolicyAnalysisEmbedder:
             reranked = reranked[: self.config.top_k_rerank]
 
         # MMR diversification
-        if use_mmr and len(reranked) > 1:
-            reranked = self._apply_mmr(query_embedding, reranked)
+        if len(reranked) > 1:
+            reranked = self._apply_mmr(reranked)
 
         return reranked
 
@@ -1146,7 +1137,6 @@ class PolicyAnalysisEmbedder:
 
     def _apply_mmr(
         self,
-        query_embedding: NDArray[np.float32],
         ranked_results: list[tuple[SemanticChunk, float]],
     ) -> list[tuple[SemanticChunk, float]]:
         """
@@ -1337,8 +1327,6 @@ class PolicyAnalysisEmbedder:
 
 def create_policy_embedder(
     model_tier: Literal["fast", "balanced", "accurate"] = "balanced",
-    enable_cross_encoder: bool = True,
-    enable_mmr: bool = True,
 ) -> PolicyAnalysisEmbedder:
     """
     Factory function for creating production-ready policy embedder.
@@ -1348,8 +1336,6 @@ def create_policy_embedder(
             - "fast": Lightweight, low latency
             - "balanced": Good performance/accuracy balance (default)
             - "accurate": Maximum accuracy, higher latency
-        enable_cross_encoder: Enable precise reranking
-        enable_mmr: Enable diversity-based reranking
 
     Returns:
         Configured PolicyAnalysisEmbedder instance

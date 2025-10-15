@@ -18,6 +18,8 @@ import logging
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from infrastructure import (  # Audit Point 4.2; Audit Point 4.1; Audit Point 4.3
     DNP_AVAILABLE,
     AsyncOrchestrator,
@@ -454,8 +456,12 @@ async def test_fail_open_for_enrichment():
     assert not result.success
     assert result.status == "skipped"
     assert result.fail_open_applied
-    assert result.degradation_penalty == 0.05
-    assert result.score == 0.95  # 1.0 - 0.05 penalty
+    assert result.degradation_penalty == pytest.approx(
+        0.05, rel=1e-9, abs=1e-12
+    )  # replaced float equality with pytest.approx
+    assert result.score == pytest.approx(
+        0.95, rel=1e-9, abs=1e-12
+    )  # replaced float equality with pytest.approx
     print(f"✓ DNP validation failed, continued with penalty")
     print(f"✓ Score: {result.score} (penalty: {result.degradation_penalty})")
     print(f"✓ Fail-open applied: {result.fail_open_applied}")

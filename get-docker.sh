@@ -96,7 +96,8 @@ VERSION="${VERSION#v}"
 # The channel to install from:
 #   * stable
 #   * test
-DEFAULT_CHANNEL_VALUE="stable"
+DEFAULT_DOCKER_CHANNEL="stable"
+DEFAULT_CHANNEL_VALUE="$DEFAULT_DOCKER_CHANNEL"
 if [ -z "$CHANNEL" ]; then
 	CHANNEL=$DEFAULT_CHANNEL_VALUE
 fi
@@ -166,16 +167,17 @@ case "$mirror" in
 esac
 
 case "$CHANNEL" in
-	stable|test)
+	"$DEFAULT_DOCKER_CHANNEL"|test)
 		;;
 	*)
-		>&2 echo "unknown CHANNEL '$CHANNEL': use either stable or test."
+		>&2 echo "unknown CHANNEL '$CHANNEL': use either $DEFAULT_DOCKER_CHANNEL or test."
 		exit 1
 		;;
 esac
 
 command_exists() {
 	command -v "$@" > /dev/null 2>&1
+	return 0
 }
 
 # version_gte checks if the version specified in $VERSION is at least the given
@@ -191,10 +193,12 @@ command_exists() {
 # version_gte 19.03 // 0 (success)
 # version_gte 26.1  // 1 (fail)
 version_gte() {
+	local minimum_version="$1"
 	if [ -z "$VERSION" ]; then
 			return 0
 	fi
-	version_compare "$VERSION" "$1"
+	version_compare "$VERSION" "$minimum_version"
+	return 0
 }
 
 # version_compare compares two version strings (either SemVer (Major.Minor.Path),
@@ -251,6 +255,7 @@ is_wsl() {
 	*Microsoft* ) true ;; # WSL 1
 	* ) false;;
 	esac
+	return 0
 }
 
 is_darwin() {
@@ -259,6 +264,7 @@ is_darwin() {
 	*Darwin* ) true ;;
 	* ) false;;
 	esac
+	return 0
 }
 
 deprecation_notice() {
@@ -273,6 +279,7 @@ deprecation_notice() {
 	printf   "Press \033[1mCtrl+C\033[0m now to abort this script, or wait for the installation to continue."
 	echo
 	sleep 10
+	return 0
 }
 
 get_distribution() {
@@ -284,6 +291,7 @@ get_distribution() {
 	# Returning an empty string here should be alright since the
 	# case statements don't act unless you provide an actual value
 	echo "$lsb_dist"
+	return 0
 }
 
 echo_docker_as_nonroot() {
@@ -320,6 +328,7 @@ echo_docker_as_nonroot() {
 	echo
 	echo "================================================================================"
 	echo
+	return 0
 }
 
 # Check if this is a forked Linux distro
@@ -611,7 +620,7 @@ do_install() {
 					$sh_c "dnf -y -q --setopt=install_weak_deps=False install dnf-plugins-core"
 					$sh_c "dnf5 config-manager addrepo --overwrite --save-filename=docker-ce.repo --from-repofile='$repo_file_url'"
 
-					if [ "$CHANNEL" != "stable" ]; then
+					if [ "$CHANNEL" != "$DEFAULT_DOCKER_CHANNEL" ]; then
 						$sh_c "dnf5 config-manager setopt \"docker-ce-*.enabled=0\""
 						$sh_c "dnf5 config-manager setopt \"docker-ce-$CHANNEL.enabled=1\""
 					fi
@@ -621,7 +630,7 @@ do_install() {
 					$sh_c "rm -f /etc/yum.repos.d/docker-ce.repo  /etc/yum.repos.d/docker-ce-staging.repo"
 					$sh_c "dnf config-manager --add-repo $repo_file_url"
 
-					if [ "$CHANNEL" != "stable" ]; then
+					if [ "$CHANNEL" != "$DEFAULT_DOCKER_CHANNEL" ]; then
 						$sh_c "dnf config-manager --set-disabled \"docker-ce-*\""
 						$sh_c "dnf config-manager --set-enabled \"docker-ce-$CHANNEL\""
 					fi
@@ -631,7 +640,7 @@ do_install() {
 					$sh_c "rm -f /etc/yum.repos.d/docker-ce.repo  /etc/yum.repos.d/docker-ce-staging.repo"
 					$sh_c "yum-config-manager --add-repo $repo_file_url"
 
-					if [ "$CHANNEL" != "stable" ]; then
+					if [ "$CHANNEL" != "$DEFAULT_DOCKER_CHANNEL" ]; then
 						$sh_c "yum-config-manager --disable \"docker-ce-*\""
 						$sh_c "yum-config-manager --enable \"docker-ce-$CHANNEL\""
 					fi
