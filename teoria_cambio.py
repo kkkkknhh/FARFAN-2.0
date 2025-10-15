@@ -419,7 +419,7 @@ class AdvancedDAGValidator:
         """Detección de ciclos mediante el algoritmo de Kahn (ordenación topológica)."""
         if not nodes:
             return True
-        in_degree = {name: 0 for name in nodes}
+        in_degree = dict.fromkeys(nodes, 0)
         adjacency = defaultdict(list)
         for name, node in nodes.items():
             for dep in node.dependencies:
