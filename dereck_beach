@@ -47,6 +47,14 @@ except ImportError:
     DNP_AVAILABLE = False
     warnings.warn("Módulos DNP no disponibles. Validación DNP deshabilitada.")
 
+# Refactored Bayesian Engine (F1.2: Architectural Refactoring)
+try:
+    from inference.bayesian_adapter import BayesianEngineAdapter
+    REFACTORED_BAYESIAN_AVAILABLE = True
+except ImportError:
+    REFACTORED_BAYESIAN_AVAILABLE = False
+    warnings.warn("Motor Bayesiano refactorizado no disponible. Usando implementación legacy.")
+
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -2263,12 +2271,40 @@ class BayesianMechanismInference:
     """
     AGUJA II: El Modelo Generativo de Mecanismos
     Hierarchical Bayesian model for causal mechanism inference
+    
+    F1.2 ARCHITECTURAL REFACTORING:
+    This class now integrates with refactored Bayesian engine components:
+    - BayesianPriorBuilder: Construye priors adaptativos (AGUJA I)
+    - BayesianSamplingEngine: Ejecuta MCMC sampling (AGUJA II)
+    - NecessitySufficiencyTester: Ejecuta Hoop Tests (AGUJA III)
+    
+    The refactored components provide:
+    - Crystal-clear separation of concerns
+    - Trivial unit testing
+    - Explicit compliance with Fronts B and C
+    
+    Legacy methods are preserved for backward compatibility.
     """
     
     def __init__(self, config: ConfigLoader, nlp_model: spacy.Language) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
         self.nlp = nlp_model
+        
+        # F1.2: Initialize refactored Bayesian engine adapter if available
+        if REFACTORED_BAYESIAN_AVAILABLE:
+            try:
+                self.bayesian_adapter = BayesianEngineAdapter(config, nlp_model)
+                if self.bayesian_adapter.is_available():
+                    self.logger.info("✓ Usando motor Bayesiano refactorizado (F1.2)")
+                    self._log_refactored_components()
+                else:
+                    self.bayesian_adapter = None
+            except Exception as e:
+                self.logger.warning(f"Error inicializando motor refactorizado: {e}")
+                self.bayesian_adapter = None
+        else:
+            self.bayesian_adapter = None
         
         # Load mechanism type hyperpriors from configuration (externalized)
         self.mechanism_type_priors = {
@@ -2290,6 +2326,17 @@ class BayesianMechanismInference:
         
         # Track inferred mechanisms
         self.inferred_mechanisms: Dict[str, Dict[str, Any]] = {}
+    
+    def _log_refactored_components(self) -> None:
+        """Log status of refactored Bayesian components (F1.2)"""
+        if self.bayesian_adapter:
+            status = self.bayesian_adapter.get_component_status()
+            self.logger.info("  - BayesianPriorBuilder: " + 
+                           ("✓" if status['prior_builder_ready'] else "✗"))
+            self.logger.info("  - BayesianSamplingEngine: " + 
+                           ("✓" if status['sampling_engine_ready'] else "✗"))
+            self.logger.info("  - NecessitySufficiencyTester: " + 
+                           ("✓" if status['necessity_tester_ready'] else "✗"))
     
     def infer_mechanisms(self, nodes: Dict[str, MetaNode], 
                         text: str) -> Dict[str, Dict[str, Any]]:
@@ -2553,6 +2600,17 @@ class BayesianMechanismInference:
     def _test_necessity(self, node: MetaNode, 
                        observations: Dict[str, Any]) -> Dict[str, Any]:
         """Test if mechanism is necessary or if alternatives exist"""
+        # F1.2: Use refactored NecessitySufficiencyTester if available
+        if self.bayesian_adapter and self.bayesian_adapter.necessity_tester:
+            try:
+                return self.bayesian_adapter.test_necessity_from_observations(
+                    node.id,
+                    observations
+                )
+            except Exception as e:
+                self.logger.warning(f"Error en tester refactorizado: {e}, usando legacy")
+        
+        # Legacy implementation
         # Check uniqueness of entity
         entities = observations.get('entities', [])
         unique_entity = len(set(entities)) == 1 if entities else False

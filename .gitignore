@@ -20,6 +20,10 @@ env/
 index.html
 *.html
 
+# Orchestrator logs (keep directory, ignore log files)
+logs/orchestrator/*.json
+!logs/orchestrator/.gitkeep
+
 # Virtual environment
 venv/
 .venv/
@@ -47,3 +51,8 @@ Thumbs.db
 resilience_dev_default.yaml
 resilience_prod_default.yaml
 resilience_*.yaml
+
+# Runtime data
+data/
+*.jsonl
+prior_history.json
