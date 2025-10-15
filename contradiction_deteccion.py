@@ -1397,7 +1397,13 @@ Análisis completo con contradicciones y métricas avanzadas
         return None
 
     def _extract_structured_quantitative_claims(self, text: str) -> List[Dict[str, Any]]:
-        """Extracción estructurada de afirmaciones cuantitativas"""
+        """Extracción estructurada de afirmaciones cuantitativas
+        
+        Enhanced for D1-Q2 (Magnitud/Brecha/Limitaciones):
+        - Extracts relative metrics (ratios, gaps, deficits)
+        - Identifies quantified brechas (déficit de, porcentaje sin cubrir)
+        - Detects data limitation statements (dereck_beach patterns)
+        """
         claims = []
 
         patterns = [
@@ -1408,7 +1414,16 @@ Análisis completo con contradicciones y métricas avanzadas
             (r'(\d+(?:[.,]\d+)?)\s*(personas?|beneficiarios?|familias?|hogares?)', 'beneficiaries', 1.0),
             (r'(\d+(?:[.,]\d+)?)\s*(hectáreas?|has?|km2?|metros?\s*cuadrados?)', 'area', 1.0),
             (r'meta\s+(?:de\s+)?(\d+(?:[.,]\d+)?)', 'target', 1.0),
-            (r'indicador[:\s]+(\d+(?:[.,]\d+)?)', 'indicator', 1.0)
+            (r'indicador[:\s]+(\d+(?:[.,]\d+)?)', 'indicator', 1.0),
+            # D1-Q2: Gap/deficit patterns
+            (r'd[ée]ficit\s+de\s+(\d+(?:[.,]\d+)?)\s*(%|por\s*ciento|personas?|millones?)?', 'deficit', 1.0),
+            (r'brecha\s+de\s+(\d+(?:[.,]\d+)?)\s*(%|puntos?|millones?)?', 'gap', 1.0),
+            (r'falta(?:n)?\s+(\d+(?:[.,]\d+)?)\s*(personas?|millones?|%)?', 'shortage', 1.0),
+            (r'sin\s+(?:acceso|cobertura|atenci[óo]n)\s*[:\s]+(\d+(?:[.,]\d+)?)\s*(%|personas?)?', 'uncovered', 1.0),
+            (r'porcentaje\s+sin\s+(?:cubrir|atender|acceso)[:\s]*(\d+(?:[.,]\d+)?)\s*%?', 'uncovered_pct', 1.0),
+            # D1-Q2: Relative metrics (ratios)
+            (r'(\d+(?:[.,]\d+)?)\s*(?:de\s+cada|por\s+cada)\s+(\d+)', 'ratio', 1.0),
+            (r'tasa\s+de\s+[^:]+:\s*(\d+(?:[.,]\d+)?)\s*%?', 'rate', 1.0),
         ]
 
         for pattern, claim_type, multiplier in patterns:
@@ -1417,6 +1432,11 @@ Análisis completo con contradicciones y métricas avanzadas
                 value = self._parse_number_robust(value_str) * multiplier
 
                 unit = match.group(2) if match.lastindex >= 2 else None
+                
+                # For ratio type, capture both numerator and denominator
+                if claim_type == 'ratio' and match.lastindex >= 2:
+                    denominator = self._parse_number_robust(match.group(2))
+                    value = value / denominator if denominator > 0 else value
 
                 claims.append({
                     'type': claim_type,
@@ -1425,6 +1445,26 @@ Análisis completo con contradicciones y métricas avanzadas
                     'raw_text': match.group(0),
                     'position': match.span(),
                     'context': text[max(0, match.start()-30):min(len(text), match.end()+30)]
+                })
+        
+        # D1-Q2: Detect data limitation statements (dereck_beach patterns)
+        limitation_patterns = [
+            r'(?:no\s+se\s+cuenta\s+con|no\s+hay|falta(?:n)?)\s+(?:datos?|informaci[óo]n|estadísticas?)',
+            r'informaci[óo]n\s+(?:no\s+)?disponible',
+            r'(?:datos?|informaci[óo]n)\s+(?:insuficiente|limitada|incompleta)',
+            r'ausencia\s+de\s+(?:datos?|informaci[óo]n|registros?)',
+            r'sin\s+(?:registro|medici[óo]n|seguimiento)',
+        ]
+        
+        for pattern in limitation_patterns:
+            for match in re.finditer(pattern, text, re.IGNORECASE):
+                claims.append({
+                    'type': 'data_limitation',
+                    'value': None,
+                    'unit': None,
+                    'raw_text': match.group(0),
+                    'position': match.span(),
+                    'context': text[max(0, match.start()-50):min(len(text), match.end()+50)]
                 })
 
         return claims
