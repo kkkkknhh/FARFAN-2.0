@@ -813,43 +813,43 @@ Análisis completo con contradicciones y métricas avanzadas
             contradictions, statements, text
         )
 
-       recommendations = self._generate_actionable_recommendations(contradictions)
+        recommendations = self._generate_actionable_recommendations(contradictions)
 
-# HARMONIC FRONT 4: Include audit metrics for D6-Q3 quality criteria
-causal_incoherence_count = sum(
-    1 for c in contradictions
-    if c.contradiction_type == ContradictionType.CAUSAL_INCOHERENCE
-)
+        # HARMONIC FRONT 4: Include audit metrics for D6-Q3 quality criteria
+        causal_incoherence_count = sum(
+            1 for c in contradictions
+            if c.contradiction_type == ContradictionType.CAUSAL_INCOHERENCE
+        )
 
-audit_summary = {
-    "total_contradictions": self._audit_metrics.get("total_contradictions", len(contradictions)),
-    "causal_incoherence_flags": causal_incoherence_count,
-    "structural_failures": self._audit_metrics.get("structural_failures", 0),
-    "quality_grade": "Excelente" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 5
-                     else "Bueno" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 10
-                     else "Regular"
-}
+        audit_summary = {
+            "total_contradictions": self._audit_metrics.get("total_contradictions", len(contradictions)),
+            "causal_incoherence_flags": causal_incoherence_count,
+            "structural_failures": self._audit_metrics.get("structural_failures", 0),
+            "quality_grade": "Excelente" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 5
+                             else "Bueno" if self._audit_metrics.get("total_contradictions", len(contradictions)) < 10
+                             else "Regular"
+        }
 
-# HARMONIC FRONT 3 - Enhancement 3: Regulatory Constraint Assessment for D1-Q5
-regulatory_analysis = self._analyze_regulatory_constraints(statements, text, temporal_conflicts)
+        # HARMONIC FRONT 3 - Enhancement 3: Regulatory Constraint Assessment for D1-Q5
+        regulatory_analysis = self._analyze_regulatory_constraints(statements, text, temporal_conflicts)
 
-return {
-    "plan_name": plan_name,
-    "dimension": dimension.value,
-    "analysis_timestamp": pd.Timestamp.now().isoformat(),
-    "total_statements": len(statements),
-    "contradictions": [self._serialize_contradiction(c) for c in contradictions],
-    "total_contradictions": len(contradictions),
-    "critical_severity_count": sum(1 for c in contradictions if c.severity > 0.85),
-    "high_severity_count": sum(1 for c in contradictions if 0.7 < c.severity <= 0.85),
-    "medium_severity_count": sum(1 for c in contradictions if 0.5 < c.severity <= 0.7),
-    "coherence_metrics": coherence_metrics,
-    "recommendations": recommendations,
-    "knowledge_graph_stats": self._get_advanced_graph_statistics(),
-    "causal_network_stats": self._get_causal_network_statistics(),
-    "d1_q5_regulatory_analysis": regulatory_analysis,
-    "harmonic_front_4_audit": audit_summary
-}
+        return {
+            "plan_name": plan_name,
+            "dimension": dimension.value,
+            "analysis_timestamp": pd.Timestamp.now().isoformat(),
+            "total_statements": len(statements),
+            "contradictions": [self._serialize_contradiction(c) for c in contradictions],
+            "total_contradictions": len(contradictions),
+            "critical_severity_count": sum(1 for c in contradictions if c.severity > 0.85),
+            "high_severity_count": sum(1 for c in contradictions if 0.7 < c.severity <= 0.85),
+            "medium_severity_count": sum(1 for c in contradictions if 0.5 < c.severity <= 0.7),
+            "coherence_metrics": coherence_metrics,
+            "recommendations": recommendations,
+            "knowledge_graph_stats": self._get_advanced_graph_statistics(),
+            "causal_network_stats": self._get_causal_network_statistics(),
+            "d1_q5_regulatory_analysis": regulatory_analysis,
+            "harmonic_front_4_audit": audit_summary
+        }
 
     def _extract_policy_statements(
             self,
