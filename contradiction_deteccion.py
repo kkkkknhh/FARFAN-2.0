@@ -750,6 +750,12 @@ class PolicyContradictionDetectorV2:
         """
 Detección exhaustiva de contradicciones con análisis multi-modal
 
+Harmonic Front 3 - Enhancement 3: Regulatory Constraint Check
+Extracts regulatory references and verifies compliance with external mandates
+(e.g., Ley 152/1994, Ley 388). For D1-Q5 (Restricciones Legales/Competencias):
+Excelente requires PDM text explicitly mentions ≥3 types of constraints
+(Legal, Budgetary, Temporal/Competency) and is_consistent = True.
+
 Args:
 text: Texto completo del PDM
 plan_name: Identificador del plan
@@ -801,6 +807,9 @@ Análisis completo con contradicciones y métricas avanzadas
         )
 
         recommendations = self._generate_actionable_recommendations(contradictions)
+        
+        # HARMONIC FRONT 3 - Enhancement 3: Regulatory Constraint Assessment for D1-Q5
+        regulatory_analysis = self._analyze_regulatory_constraints(statements, text, temporal_conflicts)
 
         return {
             "plan_name": plan_name,
@@ -815,7 +824,8 @@ Análisis completo con contradicciones y métricas avanzadas
             "coherence_metrics": coherence_metrics,
             "recommendations": recommendations,
             "knowledge_graph_stats": self._get_advanced_graph_statistics(),
-            "causal_network_stats": self._get_causal_network_statistics()
+            "causal_network_stats": self._get_causal_network_statistics(),
+            "d1_q5_regulatory_analysis": regulatory_analysis
         }
 
     def _extract_policy_statements(
@@ -1579,6 +1589,124 @@ Análisis completo con contradicciones y métricas avanzadas
             if config['pattern'].search(stmt.text):
                 return config['weight']
         return 1.0
+    
+    def _analyze_regulatory_constraints(self, statements: List[PolicyStatement], 
+                                       text: str, 
+                                       temporal_conflicts: List[ContradictionEvidence]) -> Dict[str, Any]:
+        """
+        Harmonic Front 3 - Enhancement 3: Regulatory Constraint Analysis for D1-Q5
+        
+        Analyzes regulatory references and verifies compliance with external mandates.
+        D1-Q5 (Restricciones Legales/Competencias) quality criteria:
+        - Excelente: PDM text explicitly mentions ≥3 types of constraints 
+          (Legal, Budgetary, Temporal/Competency) AND is_consistent = True
+        """
+        # Collect all regulatory references from statements
+        all_regulatory_refs = []
+        for stmt in statements:
+            all_regulatory_refs.extend(stmt.regulatory_references)
+        
+        # Also extract from full text
+        text_regulatory_refs = self._extract_regulatory_references(text)
+        all_regulatory_refs.extend(text_regulatory_refs)
+        
+        # Remove duplicates
+        all_regulatory_refs = list(set(all_regulatory_refs))
+        
+        # Classify constraint types mentioned in text
+        constraint_types = {
+            'Legal': [],
+            'Budgetary': [],
+            'Temporal': [],
+            'Competency': [],
+            'Institutional': [],
+            'Technical': []
+        }
+        
+        # Legal constraints patterns
+        legal_patterns = [
+            r'ley\s+152\s+de\s+1994',
+            r'ley\s+388\s+de\s+1997',
+            r'ley\s+715\s+de\s+2001',
+            r'ley\s+1551\s+de\s+2012',
+            r'competencia\s+municipal',
+            r'marco\s+normativo',
+            r'restricción\s+legal',
+            r'limitación\s+normativa'
+        ]
+        
+        # Budgetary constraints patterns
+        budgetary_patterns = [
+            r'restricción\s+presupuestal',
+            r'límite\s+fiscal',
+            r'capacidad\s+financiera',
+            r'disponibilidad\s+de\s+recursos',
+            r'SGP|SGR|recursos\s+propios',
+            r'déficit\s+fiscal',
+            r'sostenibilidad\s+financiera'
+        ]
+        
+        # Temporal/Competency constraints patterns
+        temporal_patterns = [
+            r'plazo\s+(?:legal|establecido|normativo)',
+            r'horizonte\s+temporal',
+            r'periodo\s+de\s+gobierno',
+            r'cuatrienio',
+            r'restricción\s+temporal',
+            r'capacidad\s+(?:técnica|institucional)',
+            r'competencia\s+(?:administrativa|territorial)'
+        ]
+        
+        text_lower = text.lower()
+        
+        # Check for Legal constraints
+        for pattern in legal_patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                constraint_types['Legal'].append(pattern)
+        
+        # Check for Budgetary constraints
+        for pattern in budgetary_patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                constraint_types['Budgetary'].append(pattern)
+        
+        # Check for Temporal/Competency constraints
+        for pattern in temporal_patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                constraint_types['Temporal'].append(pattern)
+        
+        # Count distinct constraint types mentioned
+        constraint_types_mentioned = sum(1 for types in constraint_types.values() if types)
+        
+        # Check temporal consistency (from _detect_temporal_conflicts_formal)
+        is_consistent = len(temporal_conflicts) == 0
+        
+        # D1-Q5 quality assessment
+        d1_q5_quality = 'insuficiente'
+        if constraint_types_mentioned >= 3 and is_consistent:
+            d1_q5_quality = 'excelente'
+        elif constraint_types_mentioned >= 3 or is_consistent:
+            d1_q5_quality = 'bueno'
+        elif constraint_types_mentioned >= 2:
+            d1_q5_quality = 'aceptable'
+        
+        logger.info(f"D1-Q5 Regulatory Analysis: {constraint_types_mentioned} constraint types, "
+                   f"is_consistent={is_consistent}, quality={d1_q5_quality}")
+        
+        return {
+            'regulatory_references': all_regulatory_refs,
+            'regulatory_references_count': len(all_regulatory_refs),
+            'constraint_types_detected': {k: len(v) for k, v in constraint_types.items()},
+            'constraint_types_mentioned': constraint_types_mentioned,
+            'is_consistent': is_consistent,
+            'd1_q5_quality': d1_q5_quality,
+            'd1_q5_criteria': {
+                'legal_constraints': len(constraint_types['Legal']) > 0,
+                'budgetary_constraints': len(constraint_types['Budgetary']) > 0,
+                'temporal_competency_constraints': len(constraint_types['Temporal']) > 0,
+                'minimum_constraint_types': constraint_types_mentioned >= 3,
+                'temporal_consistency': is_consistent
+            }
+        }
 
     def _calculate_comprehensive_severity(
             self,
