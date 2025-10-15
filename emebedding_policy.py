@@ -35,6 +35,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 # DESIGN CONSTANTS - Model Configuration
 # ============================================================================
 
+# Embedding model for semantic similarity
+DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+
 # Cross-encoder model for semantic reranking
 DEFAULT_CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
@@ -744,7 +747,7 @@ class PolicyEmbeddingConfig:
     """Configuration for policy embedding system."""
 
     # Model selection
-    embedding_model: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+    embedding_model: str = DEFAULT_EMBEDDING_MODEL
     cross_encoder_model: str = DEFAULT_CROSS_ENCODER_MODEL
 
     # Chunking parameters
@@ -1369,7 +1372,7 @@ def create_policy_embedder(
             batch_size=64,
         ),
         "balanced": PolicyEmbeddingConfig(
-            embedding_model="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+            embedding_model=DEFAULT_EMBEDDING_MODEL,
             cross_encoder_model=DEFAULT_CROSS_ENCODER_MODEL,
             chunk_size=512,
             chunk_overlap=128,
@@ -1378,7 +1381,7 @@ def create_policy_embedder(
             batch_size=32,
         ),
         "accurate": PolicyEmbeddingConfig(
-            embedding_model="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+            embedding_model=DEFAULT_EMBEDDING_MODEL,
             cross_encoder_model="cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
             chunk_size=768,
             chunk_overlap=192,
