@@ -50,7 +50,6 @@ import random
 import sys
 import time
 
-STATUS_PASSED = "✅ PASÓ"
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -80,6 +79,7 @@ LOGGER = logging.getLogger(__name__)
 
 # --- Constantes Globales ---
 SEED: int = 42
+STATUS_PASSED = "✅ PASÓ"
 
 # ============================================================================
 # 2. ENUMS Y ESTRUCTURAS DE DATOS (DATACLASSES)
