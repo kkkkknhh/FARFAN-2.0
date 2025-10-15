@@ -20,81 +20,16 @@ from __future__ import annotations
 
 import json
 import logging
-import time
-import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 # SIN_CARRETA Compliance: Use centralized calibration constants
 from infrastructure.calibration_constants import CALIBRATION
 from infrastructure.metrics_collector import MetricsCollector
 from infrastructure.audit_logger import ImmutableAuditLogger
-
-# Phase contracts and telemetry
-from orchestrator_contracts import (
-    PhaseResult as ContractPhaseResult,
-    PhaseStatus,
-    ContractViolationError,
-    ExtractStatementsInput,
-    ExtractStatementsOutput,
-    DetectContradictionsInput,
-    DetectContradictionsOutput,
-    AnalyzeRegulatoryInput,
-    AnalyzeRegulatoryOutput,
-    ValidateRegulatoryInput,
-    ValidateRegulatoryOutput,
-    CalculateCoherenceInput,
-    CalculateCoherenceOutput,
-    GenerateRecommendationsInput,
-    GenerateRecommendationsOutput,
-)
-from orchestrator_telemetry import (
-    TelemetryCollector,
-    TraceContext,
-    EventType,
-    EventSeverity,
-    DecisionTracker,
-    generate_audit_id,
-)
-
-# Live module integrations
-try:
-    from contradiction_deteccion import PolicyContradictionDetectorV2, PolicyDimension
-    HAVE_CONTRADICTION_DETECTOR = True
-except ImportError as e:
-    logging.warning(f"Could not import PolicyContradictionDetectorV2: {e}")
-    HAVE_CONTRADICTION_DETECTOR = False
-
-try:
-    from dnp_integration import ValidadorDNP
-    HAVE_DNP_VALIDATOR = True
-except ImportError as e:
-    logging.warning(f"Could not import ValidadorDNP: {e}")
-    HAVE_DNP_VALIDATOR = False
-
-try:
-    from teoria_cambio import TeoriaCambio, AdvancedDAGValidator
-    HAVE_TEORIA_CAMBIO = True
-except ImportError as e:
-    logging.warning(f"Could not import TeoriaCambio: {e}")
-    HAVE_TEORIA_CAMBIO = False
-
-try:
-    from smart_recommendations import SMARTRecommendation, RecommendationPrioritizer, SMARTCriteria, Priority
-    HAVE_SMART_RECOMMENDATIONS = True
-except ImportError as e:
-    logging.warning(f"Could not import SMARTRecommendation: {e}")
-    HAVE_SMART_RECOMMENDATIONS = False
-
-try:
-    from inference.bayesian_engine import BayesianPriorBuilder, BayesianSamplingEngine
-    HAVE_BAYESIAN_ENGINE = True
-except ImportError as e:
-    logging.warning(f"Could not import Bayesian components: {e}")
-    HAVE_BAYESIAN_ENGINE = False
 
 
 # ============================================================================
@@ -117,7 +52,7 @@ class AnalyticalPhase(Enum):
 
 @dataclass
 class PhaseResult:
-    """Standardized return signature for all analytical phases (backward compatibility wrapper)"""
+    """Standardized return signature for all analytical phases"""
     phase_name: str
     inputs: Dict[str, Any]
     outputs: Dict[str, Any]
@@ -146,8 +81,7 @@ class AnalyticalOrchestrator:
     def __init__(
         self,
         log_dir: Path = None,
-        calibration: Any = None,
-        enable_telemetry: bool = True
+        calibration: Any = None
     ):
         """
         Initialize orchestrator with centralized calibration constants.
@@ -155,12 +89,10 @@ class AnalyticalOrchestrator:
         SIN_CARRETA Compliance:
         - Uses CALIBRATION singleton by default
         - Accepts override only for testing (with explicit markers)
-        - Enables telemetry and tracing by default
         
         Args:
             log_dir: Directory for audit logs (default: logs/orchestrator)
             calibration: Override calibration (TESTING ONLY, default: CALIBRATION)
-            enable_telemetry: Enable telemetry collection
         """
         self.log_dir = log_dir or Path("logs/orchestrator")
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -174,16 +106,6 @@ class AnalyticalOrchestrator:
         # Immutable audit logging (SIN_CARRETA governance)
         audit_store_path = self.log_dir / "audit_logs.jsonl"
         self.audit_logger = ImmutableAuditLogger(audit_store_path)
-        
-        # Telemetry and tracing
-        self.enable_telemetry = enable_telemetry
-        if enable_telemetry:
-            telemetry_dir = self.log_dir / "telemetry"
-            self.telemetry = TelemetryCollector(telemetry_dir)
-            self.decision_tracker = DecisionTracker(self.telemetry)
-        else:
-            self.telemetry = None
-            self.decision_tracker = None
         
         # Phase result storage (for backward compatibility)
         self._audit_log: List[PhaseResult] = []
@@ -213,85 +135,6 @@ class AnalyticalOrchestrator:
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
-        
-        # Initialize live modules (SIN_CARRETA: fail explicitly if modules unavailable)
-        self._init_live_modules()
-    
-    def _init_live_modules(self) -> None:
-        """
-        Intent: Initialize live module instances with explicit failure modes
-        Mechanism: Import and instantiate all required modules
-        Constraint: MUST fail loudly if critical modules unavailable
-        """
-        # Initialize PolicyContradictionDetectorV2
-        if not HAVE_CONTRADICTION_DETECTOR:
-            raise RuntimeError(
-                "CRITICAL: PolicyContradictionDetectorV2 not available. "
-                "Cannot proceed without contradiction detection capability. "
-                "SIN_CARRETA doctrine: NO silent fallbacks."
-            )
-        
-        try:
-            self.contradiction_detector = PolicyContradictionDetectorV2()
-            self.logger.info("✓ PolicyContradictionDetectorV2 initialized")
-        except Exception as e:
-            raise RuntimeError(
-                f"CRITICAL: Failed to initialize PolicyContradictionDetectorV2: {e}"
-            ) from e
-        
-        # Initialize ValidadorDNP (optional, fail gracefully)
-        if HAVE_DNP_VALIDATOR:
-            try:
-                self.dnp_validator = ValidadorDNP(es_municipio_pdet=False)
-                self.logger.info("✓ ValidadorDNP initialized")
-            except Exception as e:
-                self.logger.warning(f"ValidadorDNP initialization failed: {e}")
-                self.dnp_validator = None
-        else:
-            self.dnp_validator = None
-            self.logger.warning("ValidadorDNP not available")
-        
-        # Initialize TeoriaCambio (optional, fail gracefully)
-        if HAVE_TEORIA_CAMBIO:
-            try:
-                self.teoria_cambio = TeoriaCambio()
-                self.dag_validator = AdvancedDAGValidator()
-                self.logger.info("✓ TeoriaCambio validators initialized")
-            except Exception as e:
-                self.logger.warning(f"TeoriaCambio initialization failed: {e}")
-                self.teoria_cambio = None
-                self.dag_validator = None
-        else:
-            self.teoria_cambio = None
-            self.dag_validator = None
-            self.logger.warning("TeoriaCambio not available")
-        
-        # Initialize SMARTRecommendation system (optional)
-        if HAVE_SMART_RECOMMENDATIONS:
-            try:
-                self.recommendation_prioritizer = RecommendationPrioritizer()
-                self.logger.info("✓ SMARTRecommendation system initialized")
-            except Exception as e:
-                self.logger.warning(f"SMARTRecommendation initialization failed: {e}")
-                self.recommendation_prioritizer = None
-        else:
-            self.recommendation_prioritizer = None
-            self.logger.warning("SMARTRecommendation not available")
-        
-        # Initialize Bayesian components (optional)
-        if HAVE_BAYESIAN_ENGINE:
-            try:
-                self.bayesian_prior_builder = BayesianPriorBuilder()
-                self.bayesian_sampling_engine = BayesianSamplingEngine()
-                self.logger.info("✓ Bayesian inference components initialized")
-            except Exception as e:
-                self.logger.warning(f"Bayesian components initialization failed: {e}")
-                self.bayesian_prior_builder = None
-                self.bayesian_sampling_engine = None
-        else:
-            self.bayesian_prior_builder = None
-            self.bayesian_sampling_engine = None
-            self.logger.warning("Bayesian components not available")
     
     def orchestrate_analysis(
         self,
@@ -420,182 +263,32 @@ class AnalyticalOrchestrator:
         dimension: str
     ) -> PhaseResult:
         """
-        Intent: Extract policy statements from raw document text
-        Mechanism: Use PolicyContradictionDetectorV2._extract_policy_statements
-        Constraint: Must return non-empty statements or fail explicitly
+        Phase 1: Extract policy statements from text.
         
-        Phase 1: Extract policy statements from text using live module.
-        NO PLACEHOLDERS. Calls PolicyContradictionDetectorV2 directly.
+        This is a placeholder implementation. In production, this would call
+        the actual statement extraction logic from contradiction_deteccion.py
         """
-        start_time = time.time()
         timestamp = datetime.now().isoformat()
-        trace_id = str(uuid.uuid4())
         
-        # Emit telemetry: phase start
-        if self.telemetry:
-            self.telemetry.emit_event(
-                EventType.PHASE_START,
-                "extract_statements",
-                message=f"Extracting statements from {plan_name}",
-                metadata={"plan_name": plan_name, "dimension": dimension, "text_length": len(text)}
-            )
+        # Placeholder: In real implementation, call actual extraction logic
+        statements = []  # Would be extracted from text
         
-        try:
-            # Create input contract
-            contract_input = ExtractStatementsInput(
-                text=text,
-                plan_name=plan_name,
-                dimension=dimension,
-                trace_id=trace_id,
-                timestamp=timestamp
-            )
-            
-            # Validate input contract
-            try:
-                contract_input.validate()
-            except ContractViolationError as e:
-                self.logger.error(f"Input contract violation: {e}")
-                if self.telemetry:
-                    self.telemetry.emit_event(
-                        EventType.CONTRACT_VALIDATION,
-                        "extract_statements",
-                        severity=EventSeverity.ERROR,
-                        message="Input contract validation failed",
-                        error=str(e)
-                    )
-                raise
-            
-            # Map dimension string to PolicyDimension enum
-            dimension_map = {
-                "diagnóstico": PolicyDimension.DIAGNOSTICO,
-                "estratégico": PolicyDimension.ESTRATEGICO,
-                "estrategico": PolicyDimension.ESTRATEGICO,
-                "programático": PolicyDimension.PROGRAMATICO,
-                "programatico": PolicyDimension.PROGRAMATICO,
-                "financiero": PolicyDimension.FINANCIERO,
-                "plan plurianual de inversiones": PolicyDimension.FINANCIERO,
-                "seguimiento": PolicyDimension.SEGUIMIENTO,
-                "territorial": PolicyDimension.TERRITORIAL
-            }
-            
-            policy_dimension = dimension_map.get(
-                dimension.lower(),
-                PolicyDimension.ESTRATEGICO  # Default
-            )
-            
-            # LIVE MODULE CALL: PolicyContradictionDetectorV2._extract_policy_statements
-            self.logger.info(f"Calling PolicyContradictionDetectorV2._extract_policy_statements")
-            if self.telemetry:
-                self.telemetry.emit_event(
-                    EventType.MODULE_INVOCATION,
-                    "extract_statements",
-                    message="Invoking PolicyContradictionDetectorV2._extract_policy_statements"
-                )
-            
-            statements = self.contradiction_detector._extract_policy_statements(
-                text,
-                policy_dimension
-            )
-            
-            # Explicit assertion: statements must not be empty unless text is trivial
-            if not statements and len(text) > 100:
-                error_msg = (
-                    f"ASSERTION FAILURE: No statements extracted from text of length {len(text)}. "
-                    "This violates the contract expectation that non-trivial text produces statements."
-                )
-                self.logger.error(error_msg)
-                raise RuntimeError(error_msg)
-            
-            # Calculate metrics
-            avg_length = (
-                sum(len(s.text) for s in statements) / len(statements)
-                if statements else 0.0
-            )
-            
-            dimensions_covered = tuple(set(s.dimension.value for s in statements))
-            
-            # Create output contract
-            contract_output = ExtractStatementsOutput(
-                statements=tuple(statements),  # Immutable
-                statement_count=len(statements),
-                avg_statement_length=avg_length,
-                dimensions_covered=dimensions_covered,
-                trace_id=trace_id,
-                timestamp=datetime.now().isoformat()
-            )
-            
-            # Validate output contract
-            try:
-                contract_output.validate()
-            except ContractViolationError as e:
-                self.logger.error(f"Output contract violation: {e}")
-                if self.telemetry:
-                    self.telemetry.emit_event(
-                        EventType.CONTRACT_VALIDATION,
-                        "extract_statements",
-                        severity=EventSeverity.ERROR,
-                        message="Output contract validation failed",
-                        error=str(e)
-                    )
-                raise
-            
-            duration_ms = (time.time() - start_time) * 1000
-            
-            # Emit telemetry: phase complete
-            if self.telemetry:
-                self.telemetry.emit_event(
-                    EventType.PHASE_COMPLETE,
-                    "extract_statements",
-                    message=f"Extracted {len(statements)} statements",
-                    duration_ms=duration_ms,
-                    metadata={
-                        "statement_count": len(statements),
-                        "avg_statement_length": avg_length
-                    }
-                )
-            
-            # Return backward-compatible PhaseResult
-            return PhaseResult(
-                phase_name="extract_statements",
-                inputs={
-                    "text_length": len(text),
-                    "plan_name": plan_name,
-                    "dimension": dimension
-                },
-                outputs={
-                    "statements": list(statements),  # Convert back to list for compatibility
-                    "statement_count": len(statements),
-                    "avg_statement_length": avg_length,
-                    "dimensions_covered": list(dimensions_covered)
-                },
-                metrics={
-                    "statements_count": len(statements),
-                    "avg_statement_length": avg_length,
-                    "duration_ms": duration_ms
-                },
-                timestamp=timestamp,
-                status="success"
-            )
-            
-        except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            self.logger.error(f"Phase extract_statements failed: {e}", exc_info=True)
-            
-            # Emit telemetry: phase error
-            if self.telemetry:
-                self.telemetry.emit_event(
-                    EventType.PHASE_ERROR,
-                    "extract_statements",
-                    severity=EventSeverity.ERROR,
-                    message="Statement extraction failed",
-                    error=str(e),
-                    duration_ms=duration_ms
-                )
-            
-            # SIN_CARRETA: NO silent fallbacks, raise explicitly
-            raise RuntimeError(
-                f"CRITICAL FAILURE in extract_statements: {e}"
-            ) from e
+        return PhaseResult(
+            phase_name="extract_statements",
+            inputs={
+                "text_length": len(text),
+                "plan_name": plan_name,
+                "dimension": dimension
+            },
+            outputs={
+                "statements": statements
+            },
+            metrics={
+                "statements_count": len(statements),
+                "avg_statement_length": 0  # Would be calculated
+            },
+            timestamp=timestamp
+        )
     
     def _detect_contradictions(
         self,
@@ -605,191 +298,35 @@ class AnalyticalOrchestrator:
         dimension: str
     ) -> PhaseResult:
         """
-        Intent: Detect contradictions across policy statements
-        Mechanism: Use PolicyContradictionDetectorV2.detect() with full validation
-        Constraint: Must classify all contradictions by severity
+        Phase 2: Detect contradictions across statements.
         
-        Phase 2: Detect contradictions across statements using live module.
-        NO PLACEHOLDERS. Calls PolicyContradictionDetectorV2.detect() directly.
+        This is a placeholder implementation. In production, this would call
+        the actual contradiction detection logic from contradiction_deteccion.py
         """
-        start_time = time.time()
         timestamp = datetime.now().isoformat()
-        trace_id = str(uuid.uuid4())
         
-        # Emit telemetry: phase start
-        if self.telemetry:
-            self.telemetry.emit_event(
-                EventType.PHASE_START,
-                "detect_contradictions",
-                message=f"Detecting contradictions in {len(statements)} statements",
-                metadata={"statement_count": len(statements)}
-            )
+        # Placeholder: In real implementation, call actual detection logic
+        contradictions = []  # Would be detected
+        temporal_conflicts = []  # Would be extracted
         
-        try:
-            # Create input contract
-            contract_input = DetectContradictionsInput(
-                statements=tuple(statements),
-                text=text,
-                plan_name=plan_name,
-                dimension=dimension,
-                trace_id=trace_id,
-                timestamp=timestamp
-            )
-            
-            # Validate input contract
-            contract_input.validate()
-            
-            # Map dimension string to PolicyDimension enum
-            dimension_map = {
-                "diagnóstico": PolicyDimension.DIAGNOSTICO,
-                "estratégico": PolicyDimension.ESTRATEGICO,
-                "estrategico": PolicyDimension.ESTRATEGICO,
-                "programático": PolicyDimension.PROGRAMATICO,
-                "programatico": PolicyDimension.PROGRAMATICO,
-                "financiero": PolicyDimension.FINANCIERO,
-                "seguimiento": PolicyDimension.SEGUIMIENTO,
-                "territorial": PolicyDimension.TERRITORIAL
-            }
-            
-            policy_dimension = dimension_map.get(
-                dimension.lower(),
-                PolicyDimension.ESTRATEGICO
-            )
-            
-            # LIVE MODULE CALL: PolicyContradictionDetectorV2.detect()
-            self.logger.info(f"Calling PolicyContradictionDetectorV2.detect()")
-            if self.telemetry:
-                self.telemetry.emit_event(
-                    EventType.MODULE_INVOCATION,
-                    "detect_contradictions",
-                    message="Invoking PolicyContradictionDetectorV2.detect()"
-                )
-            
-            detection_result = self.contradiction_detector.detect(
-                text,
-                plan_name,
-                policy_dimension
-            )
-            
-            # Extract contradictions from result
-            contradictions = detection_result.get("contradictions", [])
-            
-            # Explicit runtime assertion: result must have expected structure
-            required_keys = ["contradictions", "total_contradictions", "coherence_metrics"]
-            missing_keys = [k for k in required_keys if k not in detection_result]
-            if missing_keys:
-                raise RuntimeError(
-                    f"ASSERTION FAILURE: Detection result missing required keys: {missing_keys}"
-                )
-            
-            # Count severity levels
-            critical_count = detection_result.get("critical_severity_count", 0)
-            high_count = detection_result.get("high_severity_count", 0)
-            medium_count = detection_result.get("medium_severity_count", 0)
-            low_count = len(contradictions) - (critical_count + high_count + medium_count)
-            
-            # Extract temporal conflicts if available
-            temporal_conflicts = []
-            # Look for temporal conflicts in contradictions or separate field
-            for c in contradictions:
-                if isinstance(c, dict) and c.get("contradiction_type") == "TEMPORAL_CONFLICT":
-                    temporal_conflicts.append(c)
-            
-            # Create output contract
-            contract_output = DetectContradictionsOutput(
-                contradictions=tuple(contradictions),
-                temporal_conflicts=tuple(temporal_conflicts),
-                total_contradictions=len(contradictions),
-                critical_severity_count=critical_count,
-                high_severity_count=high_count,
-                medium_severity_count=medium_count,
-                low_severity_count=max(0, low_count),
-                trace_id=trace_id,
-                timestamp=datetime.now().isoformat()
-            )
-            
-            # Validate output contract
-            contract_output.validate()
-            
-            duration_ms = (time.time() - start_time) * 1000
-            
-            # Decision point: Check if contradictions exceed threshold
-            if self.decision_tracker:
-                self.decision_tracker.record_decision(
-                    phase_name="detect_contradictions",
-                    decision_point="quality_assessment",
-                    criteria={
-                        "total_contradictions": len(contradictions),
-                        "excellent_limit": self.calibration.EXCELLENT_CONTRADICTION_LIMIT,
-                        "good_limit": self.calibration.GOOD_CONTRADICTION_LIMIT
-                    },
-                    outcome=(
-                        "excellent" if len(contradictions) < self.calibration.EXCELLENT_CONTRADICTION_LIMIT
-                        else "good" if len(contradictions) < self.calibration.GOOD_CONTRADICTION_LIMIT
-                        else "needs_improvement"
-                    ),
-                    rationale=f"Total contradictions: {len(contradictions)}"
-                )
-            
-            # Emit telemetry: phase complete
-            if self.telemetry:
-                self.telemetry.emit_event(
-                    EventType.PHASE_COMPLETE,
-                    "detect_contradictions",
-                    message=f"Detected {len(contradictions)} contradictions",
-                    duration_ms=duration_ms,
-                    metadata={
-                        "total_contradictions": len(contradictions),
-                        "critical": critical_count,
-                        "high": high_count,
-                        "medium": medium_count,
-                        "low": low_count
-                    }
-                )
-            
-            # Return backward-compatible PhaseResult
-            return PhaseResult(
-                phase_name="detect_contradictions",
-                inputs={
-                    "statements_count": len(statements),
-                    "text_length": len(text)
-                },
-                outputs={
-                    "contradictions": list(contradictions),
-                    "temporal_conflicts": list(temporal_conflicts),
-                    "total_contradictions": len(contradictions)
-                },
-                metrics={
-                    "total_contradictions": len(contradictions),
-                    "critical_severity_count": critical_count,
-                    "high_severity_count": high_count,
-                    "medium_severity_count": medium_count,
-                    "low_severity_count": low_count,
-                    "duration_ms": duration_ms
-                },
-                timestamp=timestamp,
-                status="success"
-            )
-            
-        except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            self.logger.error(f"Phase detect_contradictions failed: {e}", exc_info=True)
-            
-            # Emit telemetry: phase error
-            if self.telemetry:
-                self.telemetry.emit_event(
-                    EventType.PHASE_ERROR,
-                    "detect_contradictions",
-                    severity=EventSeverity.ERROR,
-                    message="Contradiction detection failed",
-                    error=str(e),
-                    duration_ms=duration_ms
-                )
-            
-            # SIN_CARRETA: NO silent fallbacks, raise explicitly
-            raise RuntimeError(
-                f"CRITICAL FAILURE in detect_contradictions: {e}"
-            ) from e
+        return PhaseResult(
+            phase_name="detect_contradictions",
+            inputs={
+                "statements_count": len(statements),
+                "text_length": len(text)
+            },
+            outputs={
+                "contradictions": contradictions,
+                "temporal_conflicts": temporal_conflicts
+            },
+            metrics={
+                "total_contradictions": len(contradictions),
+                "critical_severity_count": 0,
+                "high_severity_count": 0,
+                "medium_severity_count": 0
+            },
+            timestamp=timestamp
+        )
     
     def _analyze_regulatory_constraints(
         self,
