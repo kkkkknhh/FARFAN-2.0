@@ -49,6 +49,8 @@ import logging
 import random
 import sys
 import time
+
+STATUS_PASSED = "✅ PASÓ"
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -673,7 +675,7 @@ class IndustrialGradeValidator:
         ]
 
         total_time = time.time() - start_time
-        passed = sum(1 for m in self.metrics if m.status == "✅ PASÓ")
+        passed = sum(1 for m in self.metrics if m.status == STATUS_PASSED)
         success_rate = (passed / len(self.metrics) * 100) if self.metrics else 100
 
         self.logger.info("\n" + "=" * 80)
@@ -704,7 +706,7 @@ class IndustrialGradeValidator:
                 "s",
                 self.performance_benchmarks["engine_readiness"],
             )
-            return metric.status == "✅ PASÓ"
+            return metric.status == STATUS_PASSED
         except Exception as e:
             self.logger.error("    ❌ Error crítico al instanciar motores: %s", e)
             return False
@@ -770,7 +772,7 @@ class IndustrialGradeValidator:
         )
 
         return all(
-            m.status == "✅ PASÓ"
+            m.status == STATUS_PASSED
             for m in self.metrics
             if m.name in self.performance_benchmarks
         )
@@ -787,10 +789,10 @@ class IndustrialGradeValidator:
 
     def _log_metric(self, name: str, value: float, unit: str, threshold: float):
         """Registra y reporta una métrica de validación."""
-        status = "✅ PASÓ" if value <= threshold else "❌ FALLÓ"
+        status = STATUS_PASSED if value <= threshold else "❌ FALLÓ"
         metric = ValidationMetric(name, value, unit, threshold, status)
         self.metrics.append(metric)
-        icon = "🟢" if status == "✅ PASÓ" else "🔴"
+        icon = "🟢" if status == STATUS_PASSED else "🔴"
         self.logger.info(
             f"    {icon} {name}: {value:.4f} {unit} (Límite: {threshold:.4f} {unit}) - {status}"
         )
