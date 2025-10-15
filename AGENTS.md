@@ -16,7 +16,14 @@ python -m spacy download es_core_news_lg
 ```bash
 python -m unittest test_canonical_notation.py
 python -m unittest test_circuit_breaker.py
+python -m unittest test_convergence.py
 python test_risk_mitigation.py
+```
+
+**Convergence Verification:**  
+```bash
+python verify_convergence.py
+python example_convergence.py
 ```
 
 **Dev/Run:**  
@@ -39,6 +46,7 @@ FARFAN 2.0 is a framework for auditing Colombian Municipal Development Plans (PD
 - `orchestrator.py`: 9-stage pipeline coordinating all modules to answer 300 evaluation questions
 - `question_answering_engine.py`, `report_generator.py`, `module_choreographer.py`: Question answering and reporting
 - `canonical_notation.py`: Canonical notation system (P#-D#-Q# format)
+- `verify_convergence.py`: Convergence verification between questions_config.json, guia_cuestionario.json, and cuestionario_canonico
 - `dnp_integration.py`, `competencias_municipales.py`, `mga_indicadores.py`, `pdet_lineamientos.py`: DNP compliance validation
 - `circuit_breaker.py`: Circuit breaker pattern for distributed pipeline resilience
 - `risk_mitigation_layer.py`: Pre-execution risk assessment with severity-based escalation and comprehensive logging
