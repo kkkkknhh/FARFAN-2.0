@@ -90,8 +90,8 @@ class AnalyticalDimension(Enum):
 
 
 # Regex patterns for validation
-QUESTION_UNIQUE_ID_PATTERN = re.compile(r'^P(10|[1-9])-D[1-6]-Q[1-9][0-9]*$')
-RUBRIC_KEY_PATTERN = re.compile(r'^D[1-6]-Q[1-9][0-9]*$')
+QUESTION_UNIQUE_ID_PATTERN = re.compile(r'^P(10|[1-9])-D[1-6]-Q[1-9]\d*$')
+RUBRIC_KEY_PATTERN = re.compile(r'^D[1-6]-Q[1-9]\d*$')
 POLICY_PATTERN = re.compile(r'^P(10|[1-9])$')
 DIMENSION_PATTERN = re.compile(r'^D[1-6]$')
 
