@@ -23,7 +23,7 @@ def test_orchestrator_creation():
     
     # Custom calibration
     orch2 = create_orchestrator(coherence_threshold=0.8)
-    assert orch2.calibration["coherence_threshold"] == 0.8
+    assert abs(orch2.calibration["coherence_threshold"] - 0.8) < 1e-9
     
     print("✓ Test orchestrator creation PASSED")
 
@@ -142,7 +142,7 @@ def test_calibration_constants_usage():
     )
     
     # Verify custom calibration is set
-    assert orch.calibration["coherence_threshold"] == 0.85
+    assert abs(orch.calibration["coherence_threshold"] - 0.85) < 1e-9
     assert orch.calibration["causal_incoherence_limit"] == 3
     
     # Execute pipeline
@@ -153,7 +153,7 @@ def test_calibration_constants_usage():
     )
     
     # Verify calibration is in metadata
-    assert result["orchestration_metadata"]["calibration"]["coherence_threshold"] == 0.85
+    assert abs(result["orchestration_metadata"]["calibration"]["coherence_threshold"] - 0.85) < 1e-9
     assert result["orchestration_metadata"]["calibration"]["causal_incoherence_limit"] == 3
     
     print("✓ Test calibration constants usage PASSED")

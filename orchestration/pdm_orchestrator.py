@@ -154,7 +154,7 @@ class ImmutableAuditLogger:
         self.audit_store_path = audit_store_path or Path("audit_logs.jsonl")
         self.records: List[Dict[str, Any]] = []
     
-    async def append_record(self, **kwargs) -> None:
+    def append_record(self, **kwargs) -> None:
         """Append an immutable audit record"""
         record = {
             **kwargs,
@@ -269,7 +269,7 @@ class PDMOrchestrator:
             self.metrics.record('pipeline.duration_seconds', duration)
             
             # Immutable Audit Log (Governance Standard)
-            await self.audit_logger.append_record(
+            self.audit_logger.append_record(
                 run_id=run_id,
                 timestamp=pd.Timestamp.now().isoformat(),
                 sha256_source=self._hash_file(pdf_path),
@@ -336,7 +336,7 @@ class PDMOrchestrator:
         
         # PHASE IV: Final Convergence (Verdict)
         self._transition_state(PDMAnalysisState.FINALIZING)
-        final_score = await self._calculate_quality_score(
+        final_score = self._calculate_quality_score(
             causal_graph=causal_graph,
             mechanism_results=mechanism_results,
             validation_results=validation_results,
@@ -403,7 +403,7 @@ class PDMOrchestrator:
         self.logger.warning("No validator configured, using fallback")
         return ValidationResult(requires_manual_review=False, passed=True)
     
-    async def _calculate_quality_score(
+    def _calculate_quality_score(
         self,
         causal_graph: Any,
         mechanism_results: List[MechanismResult],

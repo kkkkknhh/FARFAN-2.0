@@ -118,8 +118,8 @@ def test_prior_store_operations():
     
     # Get default prior (should be fresh)
     prior = store.get_mechanism_prior("test_mechanism")
-    assert prior.alpha == 2.0
-    assert prior.beta == 2.0
+    assert abs(prior.alpha - 2.0) < 1e-9
+    assert abs(prior.beta - 2.0) < 1e-9
     
     # Update prior
     store.update_mechanism_prior(
@@ -129,7 +129,7 @@ def test_prior_store_operations():
     )
     
     updated_prior = store.get_mechanism_prior("test_mechanism")
-    assert updated_prior.alpha == 1.8
+    assert abs(updated_prior.alpha - 1.8) < 1e-9
     assert updated_prior.update_count == 1
     
     # Save snapshot
@@ -181,7 +181,7 @@ def test_feedback_extraction():
     
     assert len(feedback.failed_mechanism_types) == 1
     assert len(feedback.passed_mechanism_types) == 1
-    assert feedback.overall_quality == 0.7
+    assert abs(feedback.overall_quality - 0.7) < 1e-9
     assert 'causal_link' in feedback.failed_mechanism_types
     
     print("✓ Feedback extraction working correctly")
