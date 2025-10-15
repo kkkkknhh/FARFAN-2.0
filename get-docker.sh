@@ -191,10 +191,11 @@ command_exists() {
 # version_gte 19.03 // 0 (success)
 # version_gte 26.1  // 1 (fail)
 version_gte() {
+	local minimum_version="$1"
 	if [ -z "$VERSION" ]; then
 			return 0
 	fi
-	version_compare "$VERSION" "$1"
+	version_compare "$VERSION" "$minimum_version"
 }
 
 # version_compare compares two version strings (either SemVer (Major.Minor.Path),
