@@ -1,27 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Infrastructure Module for FARFAN 2.0
-====================================
-
-Provides dependency injection, configuration management, and robust wiring
-for all CDAF components.
+Infrastructure Module
+Provides resource management and computational infrastructure
 """
 
-from .di_container import (
-    DeviceConfig,
-    DIContainer,
-    IBayesianEngine,
-    ICausalBuilder,
-    IExtractor,
-    configure_container,
+from infrastructure.resource_pool import (
+    BayesianInferenceEngine,
+    ResourceConfig,
+    ResourcePool,
+    Worker,
+    WorkerMemoryError,
+    WorkerTimeoutError,
 )
 
 __all__ = [
-    "DIContainer",
-    "DeviceConfig",
-    "configure_container",
-    "IExtractor",
-    "ICausalBuilder",
-    "IBayesianEngine",
+    "ResourceConfig",
+    "Worker",
+    "ResourcePool",
+    "WorkerTimeoutError",
+    "WorkerMemoryError",
+    "BayesianInferenceEngine",
 ]
