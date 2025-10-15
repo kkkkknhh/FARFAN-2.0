@@ -177,6 +177,7 @@ esac
 
 command_exists() {
 	command -v "$@" > /dev/null 2>&1
+	return 0
 }
 
 # version_gte checks if the version specified in $VERSION is at least the given
@@ -197,6 +198,7 @@ version_gte() {
 			return 0
 	fi
 	version_compare "$VERSION" "$minimum_version"
+	return 0
 }
 
 # version_compare compares two version strings (either SemVer (Major.Minor.Path),
@@ -253,6 +255,7 @@ is_wsl() {
 	*Microsoft* ) true ;; # WSL 1
 	* ) false;;
 	esac
+	return 0
 }
 
 is_darwin() {
@@ -261,6 +264,7 @@ is_darwin() {
 	*Darwin* ) true ;;
 	* ) false;;
 	esac
+	return 0
 }
 
 deprecation_notice() {
@@ -275,6 +279,7 @@ deprecation_notice() {
 	printf   "Press \033[1mCtrl+C\033[0m now to abort this script, or wait for the installation to continue."
 	echo
 	sleep 10
+	return 0
 }
 
 get_distribution() {
@@ -286,6 +291,7 @@ get_distribution() {
 	# Returning an empty string here should be alright since the
 	# case statements don't act unless you provide an actual value
 	echo "$lsb_dist"
+	return 0
 }
 
 echo_docker_as_nonroot() {
@@ -322,6 +328,7 @@ echo_docker_as_nonroot() {
 	echo
 	echo "================================================================================"
 	echo
+	return 0
 }
 
 # Check if this is a forked Linux distro
