@@ -1,0 +1,639 @@
+{
+  "event_flows": {
+    "analysis.completed": {
+      "event_type": "analysis.completed",
+      "publishers": [],
+      "subscribers": [
+        {
+          "event_type": "analysis.completed",
+          "file_path": "example_integration_choreography.py",
+          "line_number": 185,
+          "handler_name": "log_analysis_milestone",
+          "subscriber_component": "IntegratedPDMAnalyzer"
+        }
+      ],
+      "is_orphaned": false,
+      "is_unused": true
+    },
+    "contradiction.detected": {
+      "event_type": "contradiction.detected",
+      "publishers": [
+        {
+          "event_type": "contradiction.detected",
+          "file_path": "example_integration_choreography.py",
+          "line_number": 84,
+          "function_name": "module_level",
+          "payload_keys": [],
+          "publisher_component": "MockContradictionDetector"
+        },
+        {
+          "event_type": "contradiction.detected",
+          "file_path": "choreography/event_bus.py",
+          "line_number": 512,
+          "function_name": "module_level",
+          "payload_keys": [],
+          "publisher_component": "ContradictionDetectorV2"
+        }
+      ],
+      "subscribers": [
+        {
+          "event_type": "contradiction.detected",
+          "file_path": "analyze_choreography_event_flows.py",
+          "line_number": 309,
+          "handler_name": "count_contradictions",
+          "subscriber_component": "ContradictionAnalyzer"
+        },
+        {
+          "event_type": "contradiction.detected",
+          "file_path": "demo_choreography.py",
+          "line_number": 96,
+          "handler_name": "on_contradiction",
+          "subscriber_component": "demo_choreography"
+        },
+        {
+          "event_type": "contradiction.detected",
+          "file_path": "example_integration_choreography.py",
+          "line_number": 183,
+          "handler_name": "log_contradiction",
+          "subscriber_component": "IntegratedPDMAnalyzer"
+        },
+        {
+          "event_type": "contradiction.detected",
+          "file_path": "test_choreography.py",
+          "line_number": 264,
+          "handler_name": "contradiction_handler",
+          "subscriber_component": "TestContradictionDetectorV2"
+        },
+        {
+          "event_type": "contradiction.detected",
+          "file_path": "test_choreography.py",
+          "line_number": 542,
+          "handler_name": "track_events",
+          "subscriber_component": "TestIntegration"
+        },
+        {
+          "event_type": "contradiction.detected",
+          "file_path": "test_choreography_standalone.py",
+          "line_number": 172,
+          "handler_name": "handler",
+          "subscriber_component": "test_choreography_standalone"
+        },
+        {
+          "event_type": "contradiction.detected",
+          "file_path": "test_choreography_standalone.py",
+          "line_number": 311,
+          "handler_name": "handler",
+          "subscriber_component": "test_choreography_standalone"
+        }
+      ],
+      "is_orphaned": false,
+      "is_unused": false
+    },
+    "evidence.extracted": {
+      "event_type": "evidence.extracted",
+      "publishers": [],
+      "subscribers": [
+        {
+          "event_type": "evidence.extracted",
+          "file_path": "example_integration_choreography.py",
+          "line_number": 67,
+          "handler_name": "on_evidence_extracted",
+          "subscriber_component": "MockContradictionDetector"
+        }
+      ],
+      "is_orphaned": false,
+      "is_unused": true
+    },
+    "graph.edge_added": {
+      "event_type": "graph.edge_added",
+      "publishers": [
+        {
+          "event_type": "graph.edge_added",
+          "file_path": "analyze_choreography_event_flows.py",
+          "line_number": 319,
+          "function_name": "module_level",
+          "payload_keys": [],
+          "publisher_component": "ContradictionAnalyzer"
+        },
+        {
+          "event_type": "graph.edge_added",
+          "file_path": "demo_choreography.py",
+          "line_number": 100,
+          "function_name": "module_level",
+          "payload_keys": [
+            "source",
+            "target",
+            "relation"
+          ],
+          "publisher_component": "demo_choreography"
+        },
+        {
+          "event_type": "graph.edge_added",
+          "file_path": "demo_choreography.py",
+          "line_number": 115,
+          "function_name": "module_level",
+          "payload_keys": [
+            "source",
+            "target",
+            "relation"
+          ],
+          "publisher_component": "demo_choreography"
+        },
+        {
+          "event_type": "graph.edge_added",
+          "file_path": "example_integration_choreography.py",
+          "line_number": 135,
+          "function_name": "module_level",
+          "payload_keys": [
+            "edge_data",
+            "total_edges"
+          ],
+          "publisher_component": "MockCausalGraph"
+        },
+        {
+          "event_type": "graph.edge_added",
+          "file_path": "test_choreography.py",
+          "line_number": 553,
+          "function_name": "module_level",
+          "payload_keys": [
+            "source",
+            "target"
+          ],
+          "publisher_component": "TestIntegration"
+        },
+        {
+          "event_type": "graph.edge_added",
+          "file_path": "test_choreography_standalone.py",
+          "line_number": 322,
+          "function_name": "module_level",
+          "payload_keys": [
+            "source",
+            "target"
+          ],
+          "publisher_component": "test_choreography_standalone"
+        }
+      ],
+      "subscribers": [
+        {
+          "event_type": "graph.edge_added",
+          "file_path": "example_integration_choreography.py",
+          "line_number": 66,
+          "handler_name": "on_graph_update",
+          "subscriber_component": "MockContradictionDetector"
+        },
+        {
+          "event_type": "graph.edge_added",
+          "file_path": "choreography/event_bus.py",
+          "line_number": 459,
+          "handler_name": "on_edge_added",
+          "subscriber_component": "ContradictionDetectorV2"
+        }
+      ],
+      "is_orphaned": false,
+      "is_unused": false
+    },
+    "graph.node_added": {
+      "event_type": "graph.node_added",
+      "publishers": [
+        {
+          "event_type": "graph.node_added",
+          "file_path": "example_integration_choreography.py",
+          "line_number": 118,
+          "function_name": "module_level",
+          "payload_keys": [
+            "node_id",
+            "node_type",
+            "total_nodes"
+          ],
+          "publisher_component": "MockCausalGraph"
+        }
+      ],
+      "subscribers": [
+        {
+          "event_type": "graph.node_added",
+          "file_path": "choreography/event_bus.py",
+          "line_number": 460,
+          "handler_name": "on_node_added",
+          "subscriber_component": "ContradictionDetectorV2"
+        }
+      ],
+      "is_orphaned": false,
+      "is_unused": false
+    },
+    "graph.updated": {
+      "event_type": "graph.updated",
+      "publishers": [
+        {
+          "event_type": "graph.updated",
+          "file_path": "demo_choreography.py",
+          "line_number": 53,
+          "function_name": "module_level",
+          "payload_keys": [
+            "action"
+          ],
+          "publisher_component": "demo_choreography"
+        }
+      ],
+      "subscribers": [
+        {
+          "event_type": "graph.updated",
+          "file_path": "demo_choreography.py",
+          "line_number": 46,
+          "handler_name": "on_graph_update",
+          "subscriber_component": "demo_choreography"
+        }
+      ],
+      "is_orphaned": false,
+      "is_unused": false
+    },
+    "posterior.updated": {
+      "event_type": "posterior.updated",
+      "publishers": [
+        {
+          "event_type": "posterior.updated",
+          "file_path": "choreography/evidence_stream.py",
+          "line_number": 405,
+          "function_name": "module_level",
+          "payload_keys": [
+            "posterior",
+            "chunk_id",
+            "progress"
+          ],
+          "publisher_component": "StreamingBayesianUpdater"
+        }
+      ],
+      "subscribers": [
+        {
+          "event_type": "posterior.updated",
+          "file_path": "analyze_choreography_event_flows.py",
+          "line_number": 245,
+          "handler_name": "track_update",
+          "subscriber_component": "StreamingAnalyzer"
+        },
+        {
+          "event_type": "posterior.updated",
+          "file_path": "demo_choreography.py",
+          "line_number": 218,
+          "handler_name": "on_posterior_update",
+          "subscriber_component": "demo_choreography"
+        },
+        {
+          "event_type": "posterior.updated",
+          "file_path": "example_integration_choreography.py",
+          "line_number": 184,
+          "handler_name": "log_posterior_update",
+          "subscriber_component": "IntegratedPDMAnalyzer"
+        },
+        {
+          "event_type": "posterior.updated",
+          "file_path": "test_choreography.py",
+          "line_number": 461,
+          "handler_name": "event_handler",
+          "subscriber_component": "TestStreamingBayesianUpdater"
+        },
+        {
+          "event_type": "posterior.updated",
+          "file_path": "test_choreography.py",
+          "line_number": 541,
+          "handler_name": "track_events",
+          "subscriber_component": "TestIntegration"
+        },
+        {
+          "event_type": "posterior.updated",
+          "file_path": "test_choreography_standalone.py",
+          "line_number": 279,
+          "handler_name": "handler",
+          "subscriber_component": "test_choreography_standalone"
+        },
+        {
+          "event_type": "posterior.updated",
+          "file_path": "test_choreography_standalone.py",
+          "line_number": 310,
+          "handler_name": "handler",
+          "subscriber_component": "test_choreography_standalone"
+        }
+      ],
+      "is_orphaned": false,
+      "is_unused": false
+    },
+    "test.event": {
+      "event_type": "test.event",
+      "publishers": [],
+      "subscribers": [
+        {
+          "event_type": "test.event",
+          "file_path": "test_choreography.py",
+          "line_number": 104,
+          "handler_name": "handler",
+          "subscriber_component": "TestEventBus"
+        },
+        {
+          "event_type": "test.event",
+          "file_path": "test_choreography.py",
+          "line_number": 115,
+          "handler_name": "handler",
+          "subscriber_component": "TestEventBus"
+        },
+        {
+          "event_type": "test.event",
+          "file_path": "test_choreography.py",
+          "line_number": 139,
+          "handler_name": "handler",
+          "subscriber_component": "TestEventBus"
+        },
+        {
+          "event_type": "test.event",
+          "file_path": "test_choreography.py",
+          "line_number": 165,
+          "handler_name": "handler1",
+          "subscriber_component": "TestEventBus"
+        },
+        {
+          "event_type": "test.event",
+          "file_path": "test_choreography.py",
+          "line_number": 166,
+          "handler_name": "handler2",
+          "subscriber_component": "TestEventBus"
+        },
+        {
+          "event_type": "test.event",
+          "file_path": "test_choreography.py",
+          "line_number": 184,
+          "handler_name": "sync_handler",
+          "subscriber_component": "TestEventBus"
+        },
+        {
+          "event_type": "test.event",
+          "file_path": "test_choreography_standalone.py",
+          "line_number": 137,
+          "handler_name": "handler",
+          "subscriber_component": "test_choreography_standalone"
+        },
+        {
+          "event_type": "test.event",
+          "file_path": "test_choreography_standalone.py",
+          "line_number": 151,
+          "handler_name": "handler",
+          "subscriber_component": "test_choreography_standalone"
+        }
+      ],
+      "is_orphaned": false,
+      "is_unused": true
+    },
+    "validation.completed": {
+      "event_type": "validation.completed",
+      "publishers": [
+        {
+          "event_type": "validation.completed",
+          "file_path": "demo_choreography.py",
+          "line_number": 61,
+          "function_name": "module_level",
+          "payload_keys": [
+            "status",
+            "validator"
+          ],
+          "publisher_component": "demo_choreography"
+        }
+      ],
+      "subscribers": [
+        {
+          "event_type": "validation.completed",
+          "file_path": "demo_choreography.py",
+          "line_number": 47,
+          "handler_name": "on_validation_result",
+          "subscriber_component": "demo_choreography"
+        }
+      ],
+      "is_orphaned": false,
+      "is_unused": false
+    }
+  },
+  "components": {
+    "ContradictionAnalyzer": {
+      "component_name": "ContradictionAnalyzer",
+      "publishes": [
+        "graph.edge_added"
+      ],
+      "subscribes": [
+        "contradiction.detected"
+      ],
+      "is_extractor": false,
+      "is_validator": true,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "demo_choreography": {
+      "component_name": "demo_choreography",
+      "publishes": [
+        "graph.edge_added",
+        "graph.updated",
+        "validation.completed"
+      ],
+      "subscribes": [
+        "posterior.updated",
+        "contradiction.detected",
+        "graph.updated",
+        "validation.completed"
+      ],
+      "is_extractor": false,
+      "is_validator": false,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "MockContradictionDetector": {
+      "component_name": "MockContradictionDetector",
+      "publishes": [
+        "contradiction.detected"
+      ],
+      "subscribes": [
+        "graph.edge_added",
+        "evidence.extracted"
+      ],
+      "is_extractor": false,
+      "is_validator": true,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "MockCausalGraph": {
+      "component_name": "MockCausalGraph",
+      "publishes": [
+        "graph.node_added",
+        "graph.edge_added"
+      ],
+      "subscribes": [],
+      "is_extractor": false,
+      "is_validator": false,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "TestIntegration": {
+      "component_name": "TestIntegration",
+      "publishes": [
+        "graph.edge_added"
+      ],
+      "subscribes": [
+        "contradiction.detected",
+        "posterior.updated"
+      ],
+      "is_extractor": false,
+      "is_validator": false,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "test_choreography_standalone": {
+      "component_name": "test_choreography_standalone",
+      "publishes": [
+        "graph.edge_added"
+      ],
+      "subscribes": [
+        "test.event",
+        "contradiction.detected",
+        "posterior.updated"
+      ],
+      "is_extractor": false,
+      "is_validator": false,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "ContradictionDetectorV2": {
+      "component_name": "ContradictionDetectorV2",
+      "publishes": [
+        "contradiction.detected"
+      ],
+      "subscribes": [
+        "graph.edge_added",
+        "graph.node_added"
+      ],
+      "is_extractor": false,
+      "is_validator": true,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "StreamingBayesianUpdater": {
+      "component_name": "StreamingBayesianUpdater",
+      "publishes": [
+        "posterior.updated"
+      ],
+      "subscribes": [],
+      "is_extractor": false,
+      "is_validator": false,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "StreamingAnalyzer": {
+      "component_name": "StreamingAnalyzer",
+      "publishes": [],
+      "subscribes": [
+        "posterior.updated"
+      ],
+      "is_extractor": false,
+      "is_validator": false,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "IntegratedPDMAnalyzer": {
+      "component_name": "IntegratedPDMAnalyzer",
+      "publishes": [],
+      "subscribes": [
+        "analysis.completed",
+        "contradiction.detected",
+        "posterior.updated"
+      ],
+      "is_extractor": false,
+      "is_validator": false,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "TestEventBus": {
+      "component_name": "TestEventBus",
+      "publishes": [],
+      "subscribes": [
+        "test.event"
+      ],
+      "is_extractor": false,
+      "is_validator": false,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "TestContradictionDetectorV2": {
+      "component_name": "TestContradictionDetectorV2",
+      "publishes": [],
+      "subscribes": [
+        "contradiction.detected"
+      ],
+      "is_extractor": false,
+      "is_validator": true,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    },
+    "TestStreamingBayesianUpdater": {
+      "component_name": "TestStreamingBayesianUpdater",
+      "publishes": [],
+      "subscribes": [
+        "posterior.updated"
+      ],
+      "is_extractor": false,
+      "is_validator": false,
+      "is_auditor": false,
+      "has_direct_coupling": false
+    }
+  },
+  "orphaned_events": [],
+  "unused_subscriptions": [
+    "analysis.completed",
+    "evidence.extracted",
+    "test.event"
+  ],
+  "event_storm_risks": [
+    {
+      "event_chain": [
+        "contradiction.detected",
+        "graph.edge_added",
+        "contradiction.detected"
+      ],
+      "severity": "HIGH",
+      "description": "Feedback loop detected: contradiction.detected -> graph.edge_added -> contradiction.detected",
+      "affected_components": []
+    },
+    {
+      "event_chain": [
+        "graph.updated",
+        "graph.updated"
+      ],
+      "severity": "HIGH",
+      "description": "Feedback loop detected: graph.updated -> graph.updated",
+      "affected_components": []
+    },
+    {
+      "event_chain": [
+        "graph.updated",
+        "validation.completed",
+        "graph.updated"
+      ],
+      "severity": "HIGH",
+      "description": "Feedback loop detected: graph.updated -> validation.completed -> graph.updated",
+      "affected_components": []
+    },
+    {
+      "event_chain": [
+        "validation.completed",
+        "validation.completed"
+      ],
+      "severity": "HIGH",
+      "description": "Feedback loop detected: validation.completed -> validation.completed",
+      "affected_components": []
+    }
+  ],
+  "missing_subscriptions": [
+    [
+      "TestContradictionDetectorV2",
+      "graph.edge_added"
+    ],
+    [
+      "TestContradictionDetectorV2",
+      "graph.node_added"
+    ]
+  ],
+  "decoupling_violations": [],
+  "analysis_hash": "8c726dc6d0b2b097deb3d8dc66a40609e89a27d9f99beb264021bdaf8b70e307"
+}
