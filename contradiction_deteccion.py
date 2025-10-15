@@ -808,6 +808,21 @@ Análisis completo con contradicciones y métricas avanzadas
         )
 
         recommendations = self._generate_actionable_recommendations(contradictions)
+        
+        # HARMONIC FRONT 4: Include audit metrics for D6-Q3 quality criteria
+        causal_incoherence_count = sum(
+            1 for c in contradictions 
+            if c.contradiction_type == ContradictionType.CAUSAL_INCOHERENCE
+        )
+        
+        audit_summary = {
+            'total_contradictions': self._audit_metrics.get('total_contradictions', len(contradictions)),
+            'causal_incoherence_flags': causal_incoherence_count,
+            'structural_failures': self._audit_metrics.get('structural_failures', 0),
+            'quality_grade': 'Excelente' if self._audit_metrics.get('total_contradictions', 0) < 5 
+                            else 'Bueno' if self._audit_metrics.get('total_contradictions', 0) < 10 
+                            else 'Regular'
+        }
 
         return {
             "plan_name": plan_name,
@@ -822,7 +837,8 @@ Análisis completo con contradicciones y métricas avanzadas
             "coherence_metrics": coherence_metrics,
             "recommendations": recommendations,
             "knowledge_graph_stats": self._get_advanced_graph_statistics(),
-            "causal_network_stats": self._get_causal_network_statistics()
+            "causal_network_stats": self._get_causal_network_statistics(),
+            "harmonic_front_4_audit": audit_summary  # NEW: Audit metrics for quality criteria
         }
 
     def _extract_policy_statements(
