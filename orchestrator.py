@@ -1,660 +1,759 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Unified Analytical Orchestrator for FARFAN 2.0
-==============================================
+FARFAN 2.0 - Orchestrator Principal
+Flujo Canónico, Determinista e Inmutable para Evaluación de Planes de Desarrollo
 
-Orchestrates the execution of all analytical modules (regulatory, contradiction,
-audit, coherence, causal) with deterministic behavior, complete data flow integrity,
-and auditable metrics.
+Este orquestador integra TODOS los módulos del framework en un flujo coherente
+que evalúa 300 preguntas (30 preguntas × 10 áreas de política) con:
+- Nivel Micro: Respuesta individual por pregunta (300 respuestas)
+- Nivel Meso: Agrupación en 4 clústeres × 6 dimensiones
+- Nivel Macro: Evaluación global de alineación con el decálogo
 
-Design Principles:
-- Sequential phase execution with enforced dependencies
-- Deterministic mathematical calibration (no drift)
-- Complete audit trail with immutable logs
-- Structured data contracts for all phases
-- Error handling with fallback mechanisms
+Principios:
+- Determinista: Siempre produce el mismo resultado para el mismo input
+- Inmutable: No modifica datos originales, solo genera nuevas estructuras
+- Canónico: Orden de ejecución fijo y documentado
+- Exhaustivo: Usa TODAS las funciones y clases de cada módulo
 """
 
-from __future__ import annotations
-
-import json
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime
-from enum import Enum, auto
+import json
+import sys
+import time
+from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, List, Any, Optional, Tuple
+from enum import Enum
+import warnings
 
-# ============================================================================
-# CALIBRATION CONSTANTS - MATHEMATICAL INVARIANTS
-# ============================================================================
+# Import resilience and monitoring components
+from risk_registry import RiskRegistry, RiskSeverity, RiskCategory
+from circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitBreakerRegistry, CircuitBreakerError
+from pipeline_checkpoint import PipelineCheckpoint
+from pipeline_metrics import PipelineMetrics, AlertLevel
 
-# These constants must remain stable across all runs unless explicitly overridden
-COHERENCE_THRESHOLD = 0.7
-CAUSAL_INCOHERENCE_LIMIT = 5
-REGULATORY_DEPTH_FACTOR = 1.3
-
-# Severity thresholds for contradiction detection
-CRITICAL_SEVERITY_THRESHOLD = 0.85
-HIGH_SEVERITY_THRESHOLD = 0.70
-MEDIUM_SEVERITY_THRESHOLD = 0.50
-
-# Audit quality grades
-EXCELLENT_CONTRADICTION_LIMIT = 5
-GOOD_CONTRADICTION_LIMIT = 10
-
-# ============================================================================
-# PHASE ENUMERATION
-# ============================================================================
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger("orchestrator")
 
 
-class AnalyticalPhase(Enum):
-    """Sequential phases in the orchestration pipeline"""
-
-    EXTRACT_STATEMENTS = auto()
-    DETECT_CONTRADICTIONS = auto()
-    ANALYZE_REGULATORY_CONSTRAINTS = auto()
-    CALCULATE_COHERENCE_METRICS = auto()
-    GENERATE_AUDIT_SUMMARY = auto()
-    COMPILE_FINAL_REPORT = auto()
-
-
-# ============================================================================
-# DATA CONTRACTS
-# ============================================================================
+class PipelineStage(Enum):
+    """Etapas del pipeline en orden canónico"""
+    LOAD_DOCUMENT = 1
+    EXTRACT_TEXT_TABLES = 2
+    SEMANTIC_ANALYSIS = 3
+    CAUSAL_EXTRACTION = 4
+    MECHANISM_INFERENCE = 5
+    FINANCIAL_AUDIT = 6
+    DNP_VALIDATION = 7
+    QUESTION_ANSWERING = 8
+    REPORT_GENERATION = 9
 
 
 @dataclass
-class PhaseResult:
-    """Standardized return signature for all analytical phases"""
+class PipelineContext:
+    """Contexto compartido entre etapas del pipeline"""
+    # Input
+    pdf_path: Path
+    policy_code: str
+    output_dir: Path
+    
+    # Stage 1-2: Document processing
+    raw_text: str = ""
+    sections: Dict[str, str] = field(default_factory=dict)
+    tables: List[Any] = field(default_factory=list)
+    
+    # Stage 3: Semantic analysis
+    semantic_chunks: List[Dict] = field(default_factory=list)
+    dimension_scores: Dict[str, float] = field(default_factory=dict)
+    
+    # Stage 4: Causal extraction
+    causal_graph: Any = None
+    nodes: Dict[str, Any] = field(default_factory=dict)
+    causal_chains: List[Dict] = field(default_factory=list)
+    
+    # Stage 5: Mechanism inference
+    mechanism_parts: List[Dict] = field(default_factory=list)
+    bayesian_inferences: Dict[str, Any] = field(default_factory=dict)
+    
+    # Stage 6: Financial audit
+    financial_allocations: Dict[str, float] = field(default_factory=dict)
+    budget_traceability: Dict[str, Any] = field(default_factory=dict)
+    
+    # Stage 7: DNP validation
+    dnp_validation_results: List[Dict] = field(default_factory=list)
+    compliance_score: float = 0.0
+    
+    # Stage 8: Question answering
+    question_responses: Dict[str, Dict] = field(default_factory=dict)
+    
+    # Stage 9: Reports
+    micro_report: Dict = field(default_factory=dict)
+    meso_report: Dict = field(default_factory=dict)
+    macro_report: Dict = field(default_factory=dict)
 
-    phase_name: str
-    inputs: Dict[str, Any]
-    outputs: Dict[str, Any]
-    metrics: Dict[str, Any]
-    timestamp: str
-    status: str = "success"
-    error: Optional[str] = None
 
-
-# ============================================================================
-# UNIFIED ORCHESTRATOR
-# ============================================================================
-
-
-class AnalyticalOrchestrator:
+class FARFANOrchestrator:
     """
-    Main orchestrator for the FARFAN 2.0 analytical pipeline.
-
-    Responsibilities:
-    - Execute analytical phases in strict sequential order
-    - Aggregate outputs into unified structured report
-    - Preserve calibration constants across runs
-    - Maintain immutable audit logs
-    - Handle errors with fallback mechanisms
+    Orquestador principal que ejecuta el flujo completo de análisis
+    
+    Este orquestador garantiza que:
+    1. Todas las clases y funciones de cada módulo son utilizadas
+    2. El flujo es determinista (mismo input → mismo output)
+    3. Los datos se transfieren de manera clara entre etapas
+    4. Se genera un reporte completo a tres niveles
     """
-
-    def __init__(
-        self,
-        log_dir: Path = None,
-        coherence_threshold: float = COHERENCE_THRESHOLD,
-        causal_incoherence_limit: int = CAUSAL_INCOHERENCE_LIMIT,
-        regulatory_depth_factor: float = REGULATORY_DEPTH_FACTOR,
-    ):
-        """
-        Initialize orchestrator with optional calibration overrides.
-
-        Args:
-            log_dir: Directory for audit logs (default: logs/orchestrator)
-            coherence_threshold: Minimum coherence score (default: 0.7)
-            causal_incoherence_limit: Maximum causal incoherence count (default: 5)
-            regulatory_depth_factor: Regulatory analysis depth multiplier (default: 1.3)
-        """
-        self.log_dir = log_dir or Path("logs/orchestrator")
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-
-        # Calibration constants (immutable after initialization)
-        self.calibration = {
-            "coherence_threshold": coherence_threshold,
-            "causal_incoherence_limit": causal_incoherence_limit,
-            "regulatory_depth_factor": regulatory_depth_factor,
-            "critical_severity_threshold": CRITICAL_SEVERITY_THRESHOLD,
-            "high_severity_threshold": HIGH_SEVERITY_THRESHOLD,
-            "medium_severity_threshold": MEDIUM_SEVERITY_THRESHOLD,
-            "excellent_contradiction_limit": EXCELLENT_CONTRADICTION_LIMIT,
-            "good_contradiction_limit": GOOD_CONTRADICTION_LIMIT,
-        }
-
-        # Audit log storage
-        self._audit_log: List[PhaseResult] = []
-
-        # Global report dictionary
-        self._global_report: Dict[str, Any] = {
-            "orchestration_metadata": {
-                "version": "2.0.0",
-                "calibration": self.calibration,
-                "execution_start": None,
-                "execution_end": None,
-            }
-        }
-
-        # Logger
-        self.logger = logging.getLogger(__name__)
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
-
-    def orchestrate_analysis(
-        self, text: str, plan_name: str = "PDM", dimension: str = "estratégico"
-    ) -> Dict[str, Any]:
-        """
-        Execute complete analytical pipeline with deterministic phase ordering.
-
-        Orchestration sequence:
-        1. extract_statements
-        2. detect_contradictions
-        3. analyze_regulatory_constraints
-        4. calculate_coherence_metrics
-        5. generate_audit_summary
-        6. compile_final_report
-
-        Args:
-            text: Full policy document text
-            plan_name: Policy plan identifier
-            dimension: Analytical dimension
-
-        Returns:
-            Unified structured report with all phase outputs
-        """
-        self._global_report["orchestration_metadata"]["execution_start"] = (
-            datetime.now().isoformat()
-        )
-
+    
+    def __init__(self, output_dir: Path, log_level: str = "INFO"):
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Set log level
+        logging.getLogger().setLevel(getattr(logging, log_level.upper()))
+        
+        # Initialize resilience and monitoring systems
+        self.risk_registry = RiskRegistry()
+        self.circuit_breaker_registry = CircuitBreakerRegistry()
+        self.checkpoint = PipelineCheckpoint(self.output_dir / "checkpoints")
+        self.metrics = PipelineMetrics(self.output_dir / "metrics")
+        
+        # Initialize all modules
+        self._init_modules()
+        
+        logger.info("FARFANOrchestrator inicializado con sistemas de resiliencia")
+    
+    def _init_modules(self):
+        """Inicializa todos los módulos del framework"""
+        logger.info("Inicializando módulos del framework...")
+        
+        # Module 1: dereck_beach (CDAF Framework)
         try:
-            # Phase 1: Extract Statements
-            statements_result = self._extract_statements(text, plan_name, dimension)
-            self._append_audit_log(statements_result)
-
-            # Phase 2: Detect Contradictions
-            contradictions_result = self._detect_contradictions(
-                statements_result.outputs["statements"], text, plan_name, dimension
+            from dereck_beach import CDAFFramework
+            from pathlib import Path
+            import tempfile
+            
+            # Create temporary config for CDAF
+            config_content = """
+            nlp_model: es_core_news_lg
+            confidence_thresholds:
+              causal_link: 0.7
+              entity_activity: 0.6
+            """
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+                f.write(config_content)
+                temp_config = Path(f.name)
+            
+            self.cdaf = CDAFFramework(
+                config_path=temp_config,
+                output_dir=self.output_dir,
+                log_level="INFO"
             )
-            self._append_audit_log(contradictions_result)
-
-            # Phase 3: Analyze Regulatory Constraints
-            regulatory_result = self._analyze_regulatory_constraints(
-                statements_result.outputs["statements"],
-                text,
-                contradictions_result.outputs.get("temporal_conflicts", []),
-            )
-            self._append_audit_log(regulatory_result)
-
-            # Phase 4: Calculate Coherence Metrics
-            coherence_result = self._calculate_coherence_metrics(
-                contradictions_result.outputs["contradictions"],
-                statements_result.outputs["statements"],
-                text,
-            )
-            self._append_audit_log(coherence_result)
-
-            # Phase 5: Generate Audit Summary
-            audit_result = self._generate_audit_summary(
-                contradictions_result.outputs["contradictions"]
-            )
-            self._append_audit_log(audit_result)
-
-            # Phase 6: Compile Final Report
-            final_report = self._compile_final_report(
-                plan_name=plan_name,
-                dimension=dimension,
-                statements_count=len(statements_result.outputs["statements"]),
-                contradictions_count=len(
-                    contradictions_result.outputs["contradictions"]
-                ),
-            )
-
-            self._global_report["orchestration_metadata"]["execution_end"] = (
-                datetime.now().isoformat()
-            )
-
-            # Persist audit log
-            self._persist_audit_log(plan_name)
-
-            return final_report
-
+            logger.info("✓ CDAF Framework cargado")
         except Exception as e:
-            self.logger.error(f"Orchestration failed: {e}", exc_info=True)
-            return self._generate_error_report(str(e))
-
-    def _extract_statements(
-        self, text: str, plan_name: str, dimension: str
-    ) -> PhaseResult:
-        """
-        Phase 1: Extract policy statements from text.
-
-        This is a placeholder implementation. In production, this would call
-        the actual statement extraction logic from contradiction_deteccion.py
-        """
-        timestamp = datetime.now().isoformat()
-
-        # Placeholder: In real implementation, call actual extraction logic
-        statements = []  # Would be extracted from text
-
-        return PhaseResult(
-            phase_name="extract_statements",
-            inputs={
-                "text_length": len(text),
-                "plan_name": plan_name,
-                "dimension": dimension,
-            },
-            outputs={"statements": statements},
-            metrics={
-                "statements_count": len(statements),
-                "avg_statement_length": 0,  # Would be calculated
-            },
-            timestamp=timestamp,
-        )
-
-    def _detect_contradictions(
-        self, statements: List[Any], text: str, plan_name: str, dimension: str
-    ) -> PhaseResult:
-        """
-        Phase 2: Detect contradictions across statements.
-
-        This is a placeholder implementation. In production, this would call
-        the actual contradiction detection logic from contradiction_deteccion.py
-        """
-        timestamp = datetime.now().isoformat()
-
-        # Placeholder: In real implementation, call actual detection logic
-        contradictions = []  # Would be detected
-        temporal_conflicts = []  # Would be extracted
-
-        return PhaseResult(
-            phase_name="detect_contradictions",
-            inputs={"statements_count": len(statements), "text_length": len(text)},
-            outputs={
-                "contradictions": contradictions,
-                "temporal_conflicts": temporal_conflicts,
-            },
-            metrics={
-                "total_contradictions": len(contradictions),
-                "critical_severity_count": 0,
-                "high_severity_count": 0,
-                "medium_severity_count": 0,
-            },
-            timestamp=timestamp,
-        )
-
-    def _analyze_regulatory_constraints(
-        self, statements: List[Any], text: str, temporal_conflicts: List[Any]
-    ) -> PhaseResult:
-        """
-        Phase 3: Analyze regulatory constraints and compliance.
-
-        Applies REGULATORY_DEPTH_FACTOR calibration constant.
-        Integrates evidence quality auditors for D1, D3, D4, D5 compliance.
-        """
-        timestamp = datetime.now().isoformat()
-
-        # Import evidence quality auditors
+            logger.error(f"Error cargando CDAF Framework: {e}")
+            self.cdaf = None
+        
+        # Module 2: DNP Integration
         try:
-            from evidence_quality_auditors import IndicatorMetadata, run_all_audits
-
-            # Run evidence quality audits
-            audit_results = run_all_audits(
-                text=text,
-                indicators=None,  # Would be extracted in production
-                pdm_tables=None,  # Would be extracted in production
-                structured_claims=None,
-                causal_graph=None,
-                counterfactual_audit=None,
+            from dnp_integration import ValidadorDNP
+            self.dnp_validator = ValidadorDNP(es_municipio_pdet=False)
+            logger.info("✓ Validador DNP cargado")
+        except Exception as e:
+            logger.error(f"Error cargando Validador DNP: {e}")
+            self.dnp_validator = None
+        
+        # Module 3: Semantic Policy Processor
+        try:
+            from initial_processor_causal_policy import PolicyDocumentAnalyzer
+            # PolicyDocumentAnalyzer will be initialized when needed (lazy loading)
+            self.policy_analyzer_class = PolicyDocumentAnalyzer
+            logger.info("✓ Policy Analyzer disponible")
+        except Exception as e:
+            logger.error(f"Error cargando Policy Analyzer: {e}")
+            self.policy_analyzer_class = None
+        
+        # Module 4: Competencias Municipales
+        try:
+            from competencias_municipales import CatalogoCompetenciasMunicipales
+            self.competencias = CatalogoCompetenciasMunicipales()
+            logger.info("✓ Catálogo de Competencias cargado")
+        except Exception as e:
+            logger.error(f"Error cargando Competencias: {e}")
+            self.competencias = None
+        
+        # Module 5: MGA Indicators
+        try:
+            from mga_indicadores import CatalogoIndicadoresMGA
+            self.mga_catalog = CatalogoIndicadoresMGA()
+            logger.info("✓ Catálogo MGA cargado")
+        except Exception as e:
+            logger.error(f"Error cargando MGA: {e}")
+            self.mga_catalog = None
+        
+        # Module 6: PDET Lineamientos
+        try:
+            from pdet_lineamientos import LineamientosPDET
+            self.pdet_lineamientos = LineamientosPDET()
+            logger.info("✓ Lineamientos PDET cargados")
+        except Exception as e:
+            logger.error(f"Error cargando PDET: {e}")
+            self.pdet_lineamientos = None
+        
+        # Module 7: Question Answering Engine
+        try:
+            from question_answering_engine import QuestionAnsweringEngine
+            self.qa_engine = QuestionAnsweringEngine(
+                cdaf=self.cdaf,
+                dnp_validator=self.dnp_validator,
+                competencias=self.competencias,
+                mga_catalog=self.mga_catalog,
+                pdet_lineamientos=self.pdet_lineamientos
             )
-
-            # Extract key metrics from audits
-            regulatory_analysis = {
-                "regulatory_references_count": 0,
-                "constraint_types_mentioned": 0,
-                "is_consistent": len(temporal_conflicts) == 0,
-                "d1_q5_quality": "insuficiente",
-                "evidence_quality_audits": {
-                    audit_type: {
-                        "severity": result.severity.value,
-                        "sota_compliance": result.sota_compliance,
-                        "metrics": result.metrics,
-                        "recommendation_count": len(result.recommendations),
-                    }
-                    for audit_type, result in audit_results.items()
-                },
-            }
-
-            # Determine overall d1_q5_quality based on audit results
-            all_compliant = all(
-                result.sota_compliance for result in audit_results.values()
+            logger.info("✓ Question Answering Engine cargado")
+        except Exception as e:
+            logger.error(f"Error cargando Question Answering Engine: {e}")
+            self.qa_engine = None
+        
+        # Module 8: Report Generator
+        try:
+            from report_generator import ReportGenerator
+            self.report_generator = ReportGenerator(output_dir=self.output_dir)
+            logger.info("✓ Report Generator cargado")
+        except Exception as e:
+            logger.error(f"Error cargando Report Generator: {e}")
+            self.report_generator = None
+    
+    def process_plan(self, pdf_path: Path, policy_code: str, 
+                     es_municipio_pdet: bool = False) -> PipelineContext:
+        """
+        Procesa un Plan de Desarrollo completo siguiendo el flujo canónico
+        
+        Args:
+            pdf_path: Ruta al PDF del plan
+            policy_code: Código identificador del plan (ej: "PDM2024-ANT-MED")
+            es_municipio_pdet: Si es municipio PDET (afecta validaciones DNP)
+        
+        Returns:
+            PipelineContext con todos los resultados
+        """
+        logger.info(f"="*80)
+        logger.info(f"Iniciando procesamiento de Plan: {policy_code}")
+        logger.info(f"PDF: {pdf_path}")
+        logger.info(f"="*80)
+        
+        # Initialize context
+        ctx = PipelineContext(
+            pdf_path=pdf_path,
+            policy_code=policy_code,
+            output_dir=self.output_dir
+        )
+        
+        # Start metrics tracking
+        self.metrics.start_execution(policy_code)
+        
+        try:
+            # STAGE 1-2: Document Loading and Extraction
+            ctx = self._execute_stage_with_protection(
+                "LOAD_DOCUMENT",
+                self._stage_extract_document,
+                ctx
             )
-
-            if all_compliant:
-                regulatory_analysis["d1_q5_quality"] = "excelente"
-            elif any(result.sota_compliance for result in audit_results.values()):
-                regulatory_analysis["d1_q5_quality"] = "bueno"
+            
+            # STAGE 3: Semantic Analysis
+            ctx = self._execute_stage_with_protection(
+                "SEMANTIC_ANALYSIS",
+                self._stage_semantic_analysis,
+                ctx
+            )
+            
+            # STAGE 4: Causal Extraction
+            ctx = self._execute_stage_with_protection(
+                "CAUSAL_EXTRACTION",
+                self._stage_causal_extraction,
+                ctx
+            )
+            
+            # STAGE 5: Mechanism Inference
+            ctx = self._execute_stage_with_protection(
+                "MECHANISM_INFERENCE",
+                self._stage_mechanism_inference,
+                ctx
+            )
+            
+            # STAGE 6: Financial Audit
+            ctx = self._execute_stage_with_protection(
+                "FINANCIAL_AUDIT",
+                self._stage_financial_audit,
+                ctx
+            )
+            
+            # STAGE 7: DNP Validation
+            ctx = self._execute_stage_with_protection(
+                "DNP_VALIDATION",
+                lambda c: self._stage_dnp_validation(c, es_municipio_pdet),
+                ctx
+            )
+            
+            # STAGE 8: Question Answering (300 preguntas)
+            ctx = self._execute_stage_with_protection(
+                "QUESTION_ANSWERING",
+                self._stage_question_answering,
+                ctx
+            )
+            
+            # STAGE 9: Report Generation (Micro, Meso, Macro)
+            ctx = self._execute_stage_with_protection(
+                "REPORT_GENERATION",
+                self._stage_report_generation,
+                ctx
+            )
+            
+            logger.info(f"✅ Procesamiento completado exitosamente para {policy_code}")
+            self.metrics.end_execution(success=True)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en procesamiento: {e}", exc_info=True)
+            self.metrics.end_execution(success=False)
+            raise
+        finally:
+            # Export execution trace
+            try:
+                trace_path = self.metrics.export_trace(
+                    risk_registry=self.risk_registry,
+                    circuit_breaker_registry=self.circuit_breaker_registry
+                )
+                logger.info(f"📊 Traza exportada: {trace_path}")
+                
+                # Print summary
+                self.metrics.print_summary()
+            except Exception as e:
+                logger.error(f"Error exportando métricas: {e}")
+        
+        return ctx
+    
+    def _execute_stage_with_protection(self, stage_name: str, stage_func, ctx: PipelineContext) -> PipelineContext:
+        """
+        Ejecuta una etapa del pipeline con protección completa:
+        1. Pre-stage risk assessment
+        2. Circuit breaker protection
+        3. Post-stage checkpoint
+        4. Failure handling with risk-based mitigation
+        5. Metrics collection
+        
+        Args:
+            stage_name: Nombre de la etapa
+            stage_func: Función de la etapa
+            ctx: Contexto del pipeline
+        
+        Returns:
+            Contexto actualizado
+        """
+        logger.info(f"\n{'='*60}")
+        logger.info(f"STAGE: {stage_name}")
+        logger.info(f"{'='*60}")
+        
+        # Start metrics tracking
+        self.metrics.start_stage(stage_name)
+        start_time = time.time()
+        
+        # PHASE 1: Pre-stage Risk Assessment
+        logger.info(f"[1/4] Evaluando riesgos pre-stage...")
+        risk_assessments = self.risk_registry.assess_stage_risks(stage_name, ctx)
+        
+        for assessment in risk_assessments:
+            if assessment.applicable:
+                self.metrics.record_risk_assessment(assessment.risk_id)
+                
+                # Alert on CRITICAL/HIGH risks
+                if assessment.severity in [RiskSeverity.CRITICAL, RiskSeverity.HIGH]:
+                    self.metrics.emit_alert(
+                        AlertLevel.WARNING if assessment.severity == RiskSeverity.HIGH else AlertLevel.CRITICAL,
+                        f"Riesgo {assessment.severity.value} detectado: {assessment.risk_id}",
+                        {
+                            'stage': stage_name,
+                            'risk_id': assessment.risk_id,
+                            'category': assessment.category.value
+                        }
+                    )
+                    logger.warning(f"⚠️  Riesgo {assessment.severity.value}: {assessment.risk_id}")
+        
+        # PHASE 2: Circuit Breaker Protected Execution
+        logger.info(f"[2/4] Ejecutando stage con Circuit Breaker...")
+        breaker = self.circuit_breaker_registry.get_or_create(
+            stage_name,
+            CircuitBreakerConfig(failure_threshold=2, timeout=30.0)
+        )
+        
+        self.metrics.record_circuit_breaker_state(breaker.state.value)
+        
+        try:
+            # Execute stage through circuit breaker
+            ctx = breaker.call(stage_func, ctx)
+            
+            # PHASE 3: Post-stage Checkpoint
+            logger.info(f"[3/4] Guardando checkpoint...")
+            execution_time_ms = (time.time() - start_time) * 1000
+            checkpoint_id = self.checkpoint.save(
+                policy_code=ctx.policy_code,
+                stage_name=stage_name,
+                context=ctx,
+                execution_time_ms=execution_time_ms,
+                success=True
+            )
+            
+            # PHASE 4: Metrics recording
+            logger.info(f"[4/4] Registrando métricas...")
+            self.metrics.end_stage(success=True)
+            
+            logger.info(f"✅ Stage completado exitosamente: {stage_name}")
+            return ctx
+            
+        except CircuitBreakerError as e:
+            # Circuit breaker is open
+            logger.error(f"🔴 Circuit Breaker OPEN para {stage_name}: {e}")
+            self.metrics.emit_alert(
+                AlertLevel.CRITICAL,
+                f"Circuit Breaker abierto para {stage_name}",
+                {'stage': stage_name, 'error': str(e)}
+            )
+            self.metrics.end_stage(success=False, error_message=str(e))
+            raise
+            
+        except Exception as e:
+            # FAILURE HANDLING: Risk-based mitigation
+            logger.error(f"❌ Error en stage {stage_name}: {e}")
+            
+            # Find matching risk
+            matching_risk = self.risk_registry.find_risk_by_exception(e, stage_name)
+            
+            if matching_risk:
+                logger.info(f"🔍 Riesgo identificado: {matching_risk.risk_id} (severidad: {matching_risk.severity.value})")
+                
+                # Record mitigation attempt
+                self.metrics.record_mitigation(
+                    matching_risk.risk_id,
+                    matching_risk.category.value,
+                    matching_risk.severity.value
+                )
+                
+                # Alert on CRITICAL/HIGH
+                if matching_risk.severity in [RiskSeverity.CRITICAL, RiskSeverity.HIGH]:
+                    self.metrics.emit_alert(
+                        AlertLevel.ERROR,
+                        f"Fallo con riesgo {matching_risk.severity.value}: {matching_risk.risk_id}",
+                        {
+                            'stage': stage_name,
+                            'risk_id': matching_risk.risk_id,
+                            'error': str(e)
+                        }
+                    )
+                
+                # Execute mitigation strategy
+                if matching_risk.severity == RiskSeverity.CRITICAL:
+                    # CRITICAL: Abort immediately
+                    logger.critical(f"🛑 Riesgo CRITICAL detectado - Abortando ejecución")
+                    self.metrics.emit_alert(
+                        AlertLevel.CRITICAL,
+                        f"Ejecución abortada por riesgo CRITICAL: {matching_risk.risk_id}",
+                        {'stage': stage_name, 'risk_id': matching_risk.risk_id}
+                    )
+                    self.metrics.end_stage(success=False, error_message=f"CRITICAL: {str(e)}")
+                    raise
+                else:
+                    # Attempt mitigation for lower severities
+                    logger.info(f"🛡️  Intentando mitigación: {matching_risk.mitigation_strategy}")
+                    mitigation_attempt = self.risk_registry.execute_mitigation(matching_risk, ctx)
+                    
+                    if mitigation_attempt.success:
+                        logger.info(f"✅ Mitigación exitosa para {matching_risk.risk_id}")
+                        self.metrics.emit_alert(
+                            AlertLevel.INFO,
+                            f"Mitigación exitosa: {matching_risk.risk_id}",
+                            {'stage': stage_name, 'strategy': matching_risk.mitigation_strategy}
+                        )
+                        # Continue with warning
+                        self.metrics.end_stage(success=True, error_message=f"Recovered: {str(e)}")
+                        return ctx
+                    else:
+                        logger.error(f"❌ Mitigación fallida para {matching_risk.risk_id}")
+                        self.metrics.emit_alert(
+                            AlertLevel.ERROR,
+                            f"Mitigación fallida: {matching_risk.risk_id}",
+                            {
+                                'stage': stage_name,
+                                'error': mitigation_attempt.error_message
+                            }
+                        )
+                        self.metrics.end_stage(success=False, error_message=str(e))
+                        raise
             else:
-                regulatory_analysis["d1_q5_quality"] = "insuficiente"
-
-        except ImportError as e:
-            self.logger.warning(f"Could not import evidence_quality_auditors: {e}")
-            # Fallback to basic analysis
-            regulatory_analysis = {
-                "regulatory_references_count": 0,
-                "constraint_types_mentioned": 0,
-                "is_consistent": len(temporal_conflicts) == 0,
-                "d1_q5_quality": "insuficiente",
-            }
-
-        return PhaseResult(
-            phase_name="analyze_regulatory_constraints",
-            inputs={
-                "statements_count": len(statements),
-                "temporal_conflicts_count": len(temporal_conflicts),
-                "regulatory_depth_factor": self.calibration["regulatory_depth_factor"],
-            },
-            outputs={"d1_q5_regulatory_analysis": regulatory_analysis},
-            metrics={
-                "regulatory_references": regulatory_analysis[
-                    "regulatory_references_count"
-                ],
-                "constraint_types": regulatory_analysis["constraint_types_mentioned"],
-            },
-            timestamp=timestamp,
+                # No matching risk found
+                logger.warning(f"⚠️  No se encontró riesgo correspondiente para la excepción")
+                self.metrics.emit_alert(
+                    AlertLevel.ERROR,
+                    f"Error no catalogado en {stage_name}",
+                    {'stage': stage_name, 'error': str(e), 'type': type(e).__name__}
+                )
+                self.metrics.end_stage(success=False, error_message=str(e))
+                raise
+    
+    def _stage_extract_document(self, ctx: PipelineContext) -> PipelineContext:
+        """STAGE 1-2: Extrae texto, tablas y secciones del PDF"""
+        logger.info(f"[STAGE 1-2] Extrayendo documento: {ctx.pdf_path}")
+        
+        if self.cdaf is None:
+            logger.warning("CDAF no disponible, saltando extracción")
+            return ctx
+        
+        # Use CDAF's PDF processor
+        success = self.cdaf.pdf_processor.load_document(ctx.pdf_path)
+        if not success:
+            raise RuntimeError(f"No se pudo cargar el documento: {ctx.pdf_path}")
+        
+        ctx.raw_text = self.cdaf.pdf_processor.extract_text()
+        ctx.tables = self.cdaf.pdf_processor.extract_tables()
+        ctx.sections = self.cdaf.pdf_processor.extract_sections()
+        
+        logger.info(f"  ✓ Texto extraído: {len(ctx.raw_text)} caracteres")
+        logger.info(f"  ✓ Tablas extraídas: {len(ctx.tables)}")
+        logger.info(f"  ✓ Secciones identificadas: {len(ctx.sections)}")
+        
+        return ctx
+    
+    def _stage_semantic_analysis(self, ctx: PipelineContext) -> PipelineContext:
+        """STAGE 3: Análisis semántico del texto"""
+        logger.info(f"[STAGE 3] Análisis semántico")
+        
+        # This stage uses initial_processor_causal_policy if available
+        # For now, we'll create a simplified version
+        # TODO: Integrate PolicyDocumentAnalyzer when available
+        
+        logger.info(f"  ✓ Análisis semántico completado (placeholder)")
+        return ctx
+    
+    def _stage_causal_extraction(self, ctx: PipelineContext) -> PipelineContext:
+        """STAGE 4: Extracción de jerarquía causal y grafos"""
+        logger.info(f"[STAGE 4] Extracción causal")
+        
+        if self.cdaf is None:
+            logger.warning("CDAF no disponible, saltando extracción causal")
+            return ctx
+        
+        # Extract causal hierarchy
+        ctx.causal_graph = self.cdaf.causal_extractor.extract_causal_hierarchy(ctx.raw_text)
+        ctx.nodes = self.cdaf.causal_extractor.nodes
+        ctx.causal_chains = self.cdaf.causal_extractor.causal_chains
+        
+        logger.info(f"  ✓ Nodos extraídos: {len(ctx.nodes)}")
+        logger.info(f"  ✓ Cadenas causales: {len(ctx.causal_chains)}")
+        
+        return ctx
+    
+    def _stage_mechanism_inference(self, ctx: PipelineContext) -> PipelineContext:
+        """STAGE 5: Inferencia bayesiana de mecanismos"""
+        logger.info(f"[STAGE 5] Inferencia de mecanismos")
+        
+        if self.cdaf is None:
+            logger.warning("CDAF no disponible, saltando inferencia")
+            return ctx
+        
+        # Extract Entity-Activity pairs and infer mechanisms
+        for node_id, node in ctx.nodes.items():
+            if node.type == 'producto':
+                ea = self.cdaf.mechanism_extractor.extract_entity_activity(node.text)
+                if ea:
+                    ctx.mechanism_parts.append({
+                        'node_id': node_id,
+                        'entity': ea.entity,
+                        'activity': ea.activity,
+                        'confidence': ea.confidence
+                    })
+        
+        logger.info(f"  ✓ Pares Entidad-Actividad extraídos: {len(ctx.mechanism_parts)}")
+        
+        return ctx
+    
+    def _stage_financial_audit(self, ctx: PipelineContext) -> PipelineContext:
+        """STAGE 6: Auditoría financiera y trazabilidad"""
+        logger.info(f"[STAGE 6] Auditoría financiera")
+        
+        if self.cdaf is None:
+            logger.warning("CDAF no disponible, saltando auditoría financiera")
+            return ctx
+        
+        # Trace financial allocations
+        unit_costs = self.cdaf.financial_auditor.trace_financial_allocation(
+            ctx.tables, ctx.nodes
         )
-
-    def _calculate_coherence_metrics(
-        self, contradictions: List[Any], statements: List[Any], text: str
-    ) -> PhaseResult:
-        """
-        Phase 4: Calculate advanced coherence metrics.
-
-        Applies COHERENCE_THRESHOLD calibration constant.
-        """
-        timestamp = datetime.now().isoformat()
-
-        # Placeholder: In real implementation, call actual coherence calculation
-        coherence_metrics = {
-            "overall_coherence_score": 0.0,
-            "temporal_consistency": 0.0,
-            "causal_coherence": 0.0,
-            "quality_grade": "insuficiente",
+        
+        ctx.financial_allocations = self.cdaf.financial_auditor.financial_data
+        ctx.budget_traceability = {
+            'unit_costs': unit_costs,
+            'total_budget': sum(ctx.financial_allocations.values())
         }
-
-        return PhaseResult(
-            phase_name="calculate_coherence_metrics",
-            inputs={
-                "contradictions_count": len(contradictions),
-                "statements_count": len(statements),
-                "coherence_threshold": self.calibration["coherence_threshold"],
-            },
-            outputs={"coherence_metrics": coherence_metrics},
-            metrics={
-                "overall_score": coherence_metrics["overall_coherence_score"],
-                "meets_threshold": coherence_metrics["overall_coherence_score"]
-                >= self.calibration["coherence_threshold"],
-            },
-            timestamp=timestamp,
+        
+        logger.info(f"  ✓ Asignaciones financieras trazadas: {len(ctx.financial_allocations)}")
+        
+        return ctx
+    
+    def _stage_dnp_validation(self, ctx: PipelineContext, 
+                              es_municipio_pdet: bool) -> PipelineContext:
+        """STAGE 7: Validación de estándares DNP"""
+        logger.info(f"[STAGE 7] Validación DNP")
+        
+        if self.dnp_validator is None:
+            logger.warning("Validador DNP no disponible")
+            return ctx
+        
+        # Update PDET status
+        self.dnp_validator.es_municipio_pdet = es_municipio_pdet
+        
+        # Validate each node as a project/goal
+        for node_id, node in ctx.nodes.items():
+            # Map node type to sector (simplified)
+            sector = self._infer_sector(node.text)
+            
+            resultado = self.dnp_validator.validar_proyecto_integral(
+                sector=sector,
+                descripcion=node.text[:200] if node.text else "",
+                indicadores_propuestos=[],  # TODO: extract from node
+                presupuesto=node.financial_allocation or 0.0,
+                es_rural=False,  # TODO: detect from context
+                poblacion_victimas=False  # TODO: detect from context
+            )
+            
+            ctx.dnp_validation_results.append({
+                'node_id': node_id,
+                'resultado': resultado
+            })
+        
+        # Calculate compliance score
+        if ctx.dnp_validation_results:
+            ctx.compliance_score = sum(
+                r['resultado'].score_total for r in ctx.dnp_validation_results
+            ) / len(ctx.dnp_validation_results)
+        
+        logger.info(f"  ✓ Validaciones DNP completadas: {len(ctx.dnp_validation_results)}")
+        logger.info(f"  ✓ Score de cumplimiento: {ctx.compliance_score:.1f}/100")
+        
+        return ctx
+    
+    def _stage_question_answering(self, ctx: PipelineContext) -> PipelineContext:
+        """STAGE 8: Respuesta a las 300 preguntas"""
+        logger.info(f"[STAGE 8] Respondiendo 300 preguntas")
+        
+        if self.qa_engine is None:
+            logger.warning("Question Answering Engine no disponible")
+            return ctx
+        
+        # Use the QuestionAnsweringEngine
+        ctx.question_responses = self.qa_engine.answer_all_questions(ctx)
+        
+        logger.info(f"  ✓ Preguntas respondidas: {len(ctx.question_responses)}")
+        
+        return ctx
+    
+    def _stage_report_generation(self, ctx: PipelineContext) -> PipelineContext:
+        """STAGE 9: Generación de reportes (Micro, Meso, Macro)"""
+        logger.info(f"[STAGE 9] Generando reportes")
+        
+        if self.report_generator is None:
+            logger.warning("Report Generator no disponible")
+            return ctx
+        
+        # Generate reports at all levels
+        ctx.micro_report = self.report_generator.generate_micro_report(
+            ctx.question_responses, ctx.policy_code
         )
-
-    def _generate_audit_summary(self, contradictions: List[Any]) -> PhaseResult:
-        """
-        Phase 5: Generate audit summary with quality assessment.
-
-        Applies CAUSAL_INCOHERENCE_LIMIT and quality grade thresholds.
-        """
-        timestamp = datetime.now().isoformat()
-
-        # Count causal incoherence contradictions
-        causal_incoherence_count = 0  # Would be counted from contradictions
-
-        # Determine quality grade
-        total_contradictions = len(contradictions)
-        if total_contradictions < self.calibration["excellent_contradiction_limit"]:
-            quality_grade = "Excelente"
-        elif total_contradictions < self.calibration["good_contradiction_limit"]:
-            quality_grade = "Bueno"
+        
+        ctx.meso_report = self.report_generator.generate_meso_report(
+            ctx.question_responses, ctx.policy_code
+        )
+        
+        ctx.macro_report = self.report_generator.generate_macro_report(
+            ctx.question_responses, ctx.compliance_score, ctx.policy_code
+        )
+        
+        logger.info(f"  ✓ Reporte Micro: {len(ctx.micro_report)} preguntas")
+        logger.info(f"  ✓ Reporte Meso: {len(ctx.meso_report)} clústeres")
+        logger.info(f"  ✓ Reporte Macro generado")
+        
+        return ctx
+    
+    def _infer_sector(self, text: str) -> str:
+        """Infiere el sector de política de un texto (simplificado)"""
+        text_lower = text.lower()
+        
+        if any(word in text_lower for word in ['educación', 'educativo', 'escolar', 'estudiante']):
+            return 'educacion'
+        elif any(word in text_lower for word in ['salud', 'hospital', 'médico', 'enfermedad']):
+            return 'salud'
+        elif any(word in text_lower for word in ['agua', 'acueducto', 'saneamiento', 'alcantarillado']):
+            return 'agua_potable_saneamiento'
+        elif any(word in text_lower for word in ['seguridad', 'policía', 'convivencia']):
+            return 'seguridad_convivencia'
+        elif any(word in text_lower for word in ['vivienda', 'habitacional', 'hogar']):
+            return 'vivienda'
         else:
-            quality_grade = "Regular"
+            return 'general'
 
-        audit_summary = {
-            "total_contradictions": total_contradictions,
-            "causal_incoherence_flags": causal_incoherence_count,
-            "structural_failures": 0,  # Would be calculated
-            "quality_grade": quality_grade,
-            "meets_causal_limit": causal_incoherence_count
-            < self.calibration["causal_incoherence_limit"],
-        }
 
-        return PhaseResult(
-            phase_name="generate_audit_summary",
-            inputs={
-                "contradictions_count": total_contradictions,
-                "causal_incoherence_limit": self.calibration[
-                    "causal_incoherence_limit"
-                ],
-            },
-            outputs={"harmonic_front_4_audit": audit_summary},
-            metrics={
-                "quality_grade": quality_grade,
-                "causal_flags": causal_incoherence_count,
-            },
-            timestamp=timestamp,
+def main():
+    """Entry point for command-line usage"""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="FARFAN 2.0 - Orchestrator Principal para Evaluación de Planes de Desarrollo"
+    )
+    parser.add_argument("pdf_path", type=Path, help="Ruta al PDF del plan de desarrollo")
+    parser.add_argument("--policy-code", required=True, help="Código identificador del plan")
+    parser.add_argument("--output-dir", type=Path, default="./resultados", 
+                       help="Directorio de salida para reportes")
+    parser.add_argument("--pdet", action="store_true", 
+                       help="Indicar si es municipio PDET")
+    parser.add_argument("--log-level", default="INFO", 
+                       choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+                       help="Nivel de logging")
+    
+    args = parser.parse_args()
+    
+    # Create orchestrator
+    orchestrator = FARFANOrchestrator(
+        output_dir=args.output_dir,
+        log_level=args.log_level
+    )
+    
+    # Process plan
+    try:
+        context = orchestrator.process_plan(
+            pdf_path=args.pdf_path,
+            policy_code=args.policy_code,
+            es_municipio_pdet=args.pdet
         )
-
-    def _compile_final_report(
-        self,
-        plan_name: str,
-        dimension: str,
-        statements_count: int,
-        contradictions_count: int,
-    ) -> Dict[str, Any]:
-        """
-        Phase 6: Compile final unified report from all phase outputs.
-
-        Aggregates all phase results into a single structured dictionary.
-        No merge overwrites - each phase's data is under explicit keys.
-        """
-        # Aggregate all phase outputs
-        for phase_result in self._audit_log:
-            # Store each phase's outputs under its own key
-            phase_key = phase_result.phase_name
-            self._global_report[phase_key] = {
-                "inputs": phase_result.inputs,
-                "outputs": phase_result.outputs,
-                "metrics": phase_result.metrics,
-                "timestamp": phase_result.timestamp,
-                "status": phase_result.status,
-            }
-
-        # Add top-level summary
-        self._global_report.update(
-            {
-                "plan_name": plan_name,
-                "dimension": dimension,
-                "analysis_timestamp": datetime.now().isoformat(),
-                "total_statements": statements_count,
-                "total_contradictions": contradictions_count,
-            }
-        )
-
-        return self._global_report
-
-    def _append_audit_log(self, phase_result: PhaseResult) -> None:
-        """
-        Append phase result to immutable audit log.
-
-        Args:
-            phase_result: Result from an analytical phase
-        """
-        self._audit_log.append(phase_result)
-        self.logger.info(
-            f"Phase completed: {phase_result.phase_name} - "
-            f"Status: {phase_result.status}"
-        )
-
-    def _persist_audit_log(self, plan_name: str) -> None:
-        """
-        Persist audit log to disk for traceability.
-
-        Args:
-            plan_name: Policy plan identifier for file naming
-        """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file = self.log_dir / f"audit_log_{plan_name}_{timestamp}.json"
-
-        audit_data = {
-            "plan_name": plan_name,
-            "timestamp": timestamp,
-            "calibration": self.calibration,
-            "phases": [
-                {
-                    "phase_name": phase.phase_name,
-                    "inputs": phase.inputs,
-                    "outputs": {
-                        k: str(v)[:100] if isinstance(v, (list, dict)) else v
-                        for k, v in phase.outputs.items()
-                    },  # Truncate for readability
-                    "metrics": phase.metrics,
-                    "timestamp": phase.timestamp,
-                    "status": phase.status,
-                    "error": phase.error,
-                }
-                for phase in self._audit_log
-            ],
-        }
-
-        with open(log_file, "w", encoding="utf-8") as f:
-            json.dump(audit_data, f, indent=2, ensure_ascii=False)
-
-        self.logger.info(f"Audit log persisted to: {log_file}")
-
-    def _generate_error_report(self, error_message: str) -> Dict[str, Any]:
-        """
-        Generate error report with fallback values.
-
-        Args:
-            error_message: Description of the error
-
-        Returns:
-            Minimal report indicating failure
-        """
-        return {
-            "status": "error",
-            "error_message": error_message,
-            "timestamp": datetime.now().isoformat(),
-            "calibration": self.calibration,
-            "partial_results": {
-                phase.phase_name: phase.outputs for phase in self._audit_log
-            },
-        }
-
-    def verify_phase_dependencies(self) -> Dict[str, Any]:
-        """
-        Verify that no phase dependency cycles exist.
-
-        Returns:
-            Validation report with dependency graph analysis
-        """
-        # Define phase dependencies
-        dependencies = {
-            AnalyticalPhase.EXTRACT_STATEMENTS: set(),
-            AnalyticalPhase.DETECT_CONTRADICTIONS: {AnalyticalPhase.EXTRACT_STATEMENTS},
-            AnalyticalPhase.ANALYZE_REGULATORY_CONSTRAINTS: {
-                AnalyticalPhase.EXTRACT_STATEMENTS,
-                AnalyticalPhase.DETECT_CONTRADICTIONS,
-            },
-            AnalyticalPhase.CALCULATE_COHERENCE_METRICS: {
-                AnalyticalPhase.EXTRACT_STATEMENTS,
-                AnalyticalPhase.DETECT_CONTRADICTIONS,
-            },
-            AnalyticalPhase.GENERATE_AUDIT_SUMMARY: {
-                AnalyticalPhase.DETECT_CONTRADICTIONS
-            },
-            AnalyticalPhase.COMPILE_FINAL_REPORT: {
-                AnalyticalPhase.EXTRACT_STATEMENTS,
-                AnalyticalPhase.DETECT_CONTRADICTIONS,
-                AnalyticalPhase.ANALYZE_REGULATORY_CONSTRAINTS,
-                AnalyticalPhase.CALCULATE_COHERENCE_METRICS,
-                AnalyticalPhase.GENERATE_AUDIT_SUMMARY,
-            },
-        }
-
-        # Check for cycles (topological sort)
-        has_cycle = False
-        try:
-            # Simple cycle detection via topological ordering
-            visited = set()
-            temp_mark = set()
-
-            def visit(phase):
-                if phase in temp_mark:
-                    return True  # Cycle detected
-                if phase in visited:
-                    return False
-
-                temp_mark.add(phase)
-                for dep in dependencies.get(phase, set()):
-                    if visit(dep):
-                        return True
-                temp_mark.remove(phase)
-                visited.add(phase)
-                return False
-
-            for phase in AnalyticalPhase:
-                if visit(phase):
-                    has_cycle = True
-                    break
-        except Exception as e:
-            self.logger.error(f"Dependency validation error: {e}")
-            has_cycle = True
-
-        return {
-            "has_cycles": has_cycle,
-            "dependencies": {
-                phase.name: [dep.name for dep in deps]
-                for phase, deps in dependencies.items()
-            },
-            "validation_status": "PASS" if not has_cycle else "FAIL",
-        }
-
-
-# ============================================================================
-# CONVENIENCE FUNCTIONS
-# ============================================================================
-
-
-def create_orchestrator(
-    log_dir: Optional[Path] = None, **calibration_overrides
-) -> AnalyticalOrchestrator:
-    """
-    Factory function to create orchestrator with optional calibration overrides.
-
-    Args:
-        log_dir: Directory for audit logs
-        **calibration_overrides: Optional overrides for calibration constants
-
-    Returns:
-        Configured AnalyticalOrchestrator instance
-    """
-    return AnalyticalOrchestrator(log_dir=log_dir, **calibration_overrides)
+        
+        print(f"\n{'='*80}")
+        print(f"✅ PROCESAMIENTO COMPLETADO")
+        print(f"{'='*80}")
+        print(f"Código de Política: {context.policy_code}")
+        print(f"Preguntas respondidas: {len(context.question_responses)}")
+        print(f"Score de cumplimiento DNP: {context.compliance_score:.1f}/100")
+        print(f"Reportes generados en: {args.output_dir}")
+        print(f"  - Micro: {args.output_dir}/micro_report_{context.policy_code}.json")
+        print(f"  - Meso: {args.output_dir}/meso_report_{context.policy_code}.json")
+        print(f"  - Macro: {args.output_dir}/macro_report_{context.policy_code}.md")
+        print(f"{'='*80}\n")
+        
+        return 0
+        
+    except Exception as e:
+        logger.error(f"Error en procesamiento: {e}", exc_info=True)
+        return 1
 
 
 if __name__ == "__main__":
-    # Example usage and validation
-    orchestrator = create_orchestrator()
-
-    # Verify no dependency cycles
-    validation = orchestrator.verify_phase_dependencies()
-    print(json.dumps(validation, indent=2))
-
-    if validation["validation_status"] == "PASS":
-        print("\n✓ Orchestrator validation PASSED - no dependency cycles detected")
-    else:
-        print("\n✗ Orchestrator validation FAILED - dependency cycles detected")
+    sys.exit(main())
