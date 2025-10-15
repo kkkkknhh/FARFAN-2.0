@@ -113,6 +113,7 @@ if [ -z "$REPO_FILE" ]; then
 	# a staging download url (download-stage.docker.com)
 	case "$DOWNLOAD_URL" in
 		*-stage*) REPO_FILE="docker-ce-staging.repo";;
+		*) ;;
 	esac
 fi
 
@@ -142,6 +143,8 @@ while [ $# -gt 0 ]; do
 			;;
 		--*)
 			echo "Illegal option $1"
+			;;
+		*)
 			;;
 	esac
 	shift $(( $# > 0 ? 1 : 0 ))
@@ -209,16 +212,19 @@ version_gte() {
 version_compare() (
 	set +x
 
-	yy_a="$(echo "$1" | cut -d'.' -f1)"
-	yy_b="$(echo "$2" | cut -d'.' -f1)"
+	version_a="$1"
+	version_b="$2"
+
+	yy_a="$(echo "$version_a" | cut -d'.' -f1)"
+	yy_b="$(echo "$version_b" | cut -d'.' -f1)"
 	if [ "$yy_a" -lt "$yy_b" ]; then
 		return 1
 	fi
 	if [ "$yy_a" -gt "$yy_b" ]; then
 		return 0
 	fi
-	mm_a="$(echo "$1" | cut -d'.' -f2)"
-	mm_b="$(echo "$2" | cut -d'.' -f2)"
+	mm_a="$(echo "$version_a" | cut -d'.' -f2)"
+	mm_b="$(echo "$version_b" | cut -d'.' -f2)"
 
 	# trim leading zeros to accommodate CalVer
 	mm_a="${mm_a#0}"
@@ -371,6 +377,8 @@ check_forked() {
 					8)
 						dist_version="jessie"
 					;;
+					*)
+					;;
 				esac
 			fi
 		fi
@@ -467,6 +475,8 @@ do_install() {
 				8)
 					dist_version="jessie"
 				;;
+				*)
+				;;
 			esac
 		;;
 
@@ -512,6 +522,8 @@ do_install() {
 			if [ "$dist_version" -lt 41 ]; then
 				deprecation_notice "$lsb_dist" "$dist_version"
 			fi
+			;;
+		*)
 			;;
 	esac
 

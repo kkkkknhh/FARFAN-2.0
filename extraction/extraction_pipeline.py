@@ -33,12 +33,7 @@ if TYPE_CHECKING:
 
 
 class ExtractedTable(BaseModel):
-    """
-    Validated table with metadata and quality metrics.
-
-    Audit Point 1.3: Schema Integrity (Hoop Tests)
-    Immediate Pydantic validation on critical fields with hard failure.
-    """
+    """Validated table with metadata and quality metrics"""
 
     data: List[List[Any]] = Field(description="Table data as list of rows")
     page_number: int = Field(ge=1, description="Page number where table was found")
@@ -50,10 +45,6 @@ class ExtractedTable(BaseModel):
     )
     column_count: int = Field(ge=1, description="Number of columns")
     row_count: int = Field(ge=0, description="Number of rows")
-    bpin: Optional[str] = Field(
-        default=None,
-        description="BPIN (Banco de Programas y Proyectos de Inversión Nacional) - DNP mandate for projects",
-    )
 
     class Config:
         arbitrary_types_allowed = True

@@ -111,7 +111,7 @@ class BayesianEngineAdapter(IBayesianEngine):
         # from inference.bayesian_engine import BayesianSamplingEngine, SamplingConfig
         # self.engine = BayesianSamplingEngine(SamplingConfig(**config))
         self.config = config
-        print(f"BayesianEngineAdapter initialized")
+        print("BayesianEngineAdapter initialized")
 
     def infer(self, graph: dict) -> dict:
         """Perform Bayesian inference"""
@@ -162,7 +162,7 @@ def create_cdaf_framework(config, output_dir: Path, log_level: str = "INFO"):
     # from dereck_beach import CDAFFramework
     # return CDAFFramework(config, output_dir, log_level)
 
-    print(f"Creating CDAF Framework:")
+    print("Creating CDAF Framework:")
     print(f"  - Output dir: {output_dir}")
     print(f"  - Log level: {log_level}")
 
@@ -231,14 +231,14 @@ class OrchestratorWithDI:
 
         # Step 1: Extract
         extracted_data = self.extractor.extract(document_path)
-        print(f"  1. Extracted data")
+        print("  1. Extracted data")
 
         # Step 2: Build graph (would use ICausalBuilder in real implementation)
         graph = {
             "nodes": extracted_data.get("nodes", []),
             "edges": extracted_data.get("edges", []),
         }
-        print(f"  2. Built graph")
+        print("  2. Built graph")
 
         # Step 3: Infer
         inference = self.engine.infer(graph)
