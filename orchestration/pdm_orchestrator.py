@@ -21,10 +21,11 @@ from typing import Any, Dict, List, Optional, Set
 
 import pandas as pd
 
+from infrastructure.audit_logger import ImmutableAuditLogger
+
 # SIN_CARRETA Compliance: Use centralized infrastructure
 from infrastructure.calibration_constants import CALIBRATION
 from infrastructure.metrics_collector import MetricsCollector
-from infrastructure.audit_logger import ImmutableAuditLogger
 
 
 class PDMAnalysisState(str, Enum):
@@ -306,7 +307,10 @@ class PDMOrchestrator:
         d6_score = final_score.dimension_scores.get("D6", 0.7)
         self.metrics.record("dimension.avg_score_D6", d6_score)
         if d6_score < CALIBRATION.D6_ALERT_THRESHOLD:
-            self.metrics.alert("CRITICAL", f"D6_SCORE_BELOW_THRESHOLD: {d6_score} < {CALIBRATION.D6_ALERT_THRESHOLD}")
+            self.metrics.alert(
+                "CRITICAL",
+                f"D6_SCORE_BELOW_THRESHOLD: {d6_score} < {CALIBRATION.D6_ALERT_THRESHOLD}",
+            )
 
         self._transition_state(PDMAnalysisState.COMPLETED)
 
@@ -471,9 +475,7 @@ class PDMOrchestrator:
             ],
         )
 
-    def _handle_failure(
-        self, run_id: str, error: Exception
-    ) -> AnalysisResult:
+    def _handle_failure(self, run_id: str, error: Exception) -> AnalysisResult:
         """Handle failure scenario"""
         self._transition_state(PDMAnalysisState.FAILED)
         self.logger.error(f"Analysis failed for run {run_id}: {error}", exc_info=True)

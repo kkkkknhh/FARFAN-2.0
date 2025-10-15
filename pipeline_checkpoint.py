@@ -29,7 +29,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Module-level constants
-CLOUD_BACKUP_DISABLED = 'Cloud backup not enabled'
+CLOUD_BACKUP_DISABLED = "Cloud backup not enabled"
 
 
 class CheckpointVersion:

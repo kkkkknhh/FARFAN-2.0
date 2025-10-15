@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger("pipeline_metrics")
 
 # Module-level constants
-NO_ACTIVE_EXECUTION = 'No hay ejecución activa'
+NO_ACTIVE_EXECUTION = "No hay ejecución activa"
 
 
 class AlertLevel(Enum):

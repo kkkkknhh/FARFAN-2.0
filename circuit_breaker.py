@@ -20,7 +20,7 @@ from typing import Any, Callable, List, Optional
 logger = logging.getLogger("circuit_breaker")
 
 # Module-level constants
-CIRCUIT_BREAKER_OPEN = 'Circuit breaker is OPEN'
+CIRCUIT_BREAKER_OPEN = "Circuit breaker is OPEN"
 
 
 class CircuitState(Enum):

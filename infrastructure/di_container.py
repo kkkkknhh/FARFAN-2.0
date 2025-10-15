@@ -203,14 +203,14 @@ class DIContainer:
         try:
             sig = inspect.signature(cls.__init__)
             return {
-                name: param
-                for name, param in sig.parameters.items()
-                if name != "self"
+                name: param for name, param in sig.parameters.items() if name != "self"
             }
         except (ValueError, AttributeError) as e:
             raise ValueError(f"Cannot inspect constructor for {cls}") from e
 
-    def _resolve_parameter(self, param_name: str, param: inspect.Parameter) -> tuple[bool, Any]:
+    def _resolve_parameter(
+        self, param_name: str, param: inspect.Parameter
+    ) -> tuple[bool, Any]:
         """
         Resolve a single constructor parameter.
 
