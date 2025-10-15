@@ -288,7 +288,10 @@ return {
 "posterior_std": float(np.sqrt(posterior_variance)),
 "information_gain": float(kl_divergence),
 "confidence": float(confidence),
-"evidence_strength": float(positive_evidence / (alpha_total - 2*self.prior_alpha)),
+"evidence_strength": float(
+    positive_evidence / (alpha_total - 2*self.prior_alpha)
+    if abs(alpha_total - 2*self.prior_alpha) > 1e-8 else 0.0
+),
 "n_chunks": len(similarities)
 }
 def _similarity_to_probability(self, sims: NDArray[np.float64]) -> NDArray[np.float64]:
