@@ -314,7 +314,7 @@ n = len(metadata)
 weights = np.ones(n, dtype=np.float64)
 for i, meta in enumerate(metadata):
 # Position weight (early = more reliable)
-pos_weight = 1.0 - (meta["position"] / max(1, n)) * 0.3
+pos_weight = 1.0 - (meta["position"] / max(1, n)) * POSITION_WEIGHT_SCALE
 # Content type weight
 content_weight = 1.0
 if meta.get("has_table", False):
