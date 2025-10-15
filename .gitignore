@@ -30,6 +30,9 @@ venv/
 env/
 ENV/
 
+# Python package requirements
+requirements.txt
+
 # Python
 .Python
 
