@@ -162,7 +162,9 @@ async def test_backpressure_http503():
         # Fill the queue with slow jobs (don't await them yet)
         tasks = []
         for i in range(5):
-            task = asyncio.create_task(orchestrator.submit_job(slow_job, job_id=f"slow_{i}", timeout=5))
+            task = asyncio.create_task(
+                orchestrator.submit_job(slow_job, job_id=f"slow_{i}", timeout=5)
+            )
             tasks.append(task)
             await asyncio.sleep(0.05)  # Let jobs queue up
 
@@ -176,7 +178,9 @@ async def test_backpressure_http503():
             queue_info = orchestrator.get_queue_info()
             if queue_info["current_size"] < queue_info["max_size"]:
                 # Queue wasn't full, this is ok
-                print(f"✓ Queue not full yet ({queue_info['current_size']}/{queue_info['max_size']}), job accepted")
+                print(
+                    f"✓ Queue not full yet ({queue_info['current_size']}/{queue_info['max_size']}), job accepted"
+                )
             else:
                 assert False, "Should have raised QueueFullError when queue was full"
         except QueueFullError as e:
@@ -185,13 +189,15 @@ async def test_backpressure_http503():
             print(f"✓ Queue full: {e.queue_size} jobs")
 
         metrics = orchestrator.get_metrics()
-        print(f"✓ Metrics: rejected={metrics.total_jobs_rejected}, backpressure_events={metrics.backpressure_events}")
+        print(
+            f"✓ Metrics: rejected={metrics.total_jobs_rejected}, backpressure_events={metrics.backpressure_events}"
+        )
 
         # Cancel pending tasks
         for task in tasks:
             if not task.done():
                 task.cancel()
-        
+
         # Wait for cancellations
         await asyncio.gather(*tasks, return_exceptions=True)
 

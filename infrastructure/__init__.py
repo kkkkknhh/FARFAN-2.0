@@ -74,6 +74,7 @@ try:
         WorkerMemoryError,
         WorkerTimeoutError,
     )
+
     RESOURCE_POOL_AVAILABLE = True
 except ImportError:
     # Graceful degradation if psutil is not available
