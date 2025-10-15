@@ -8,7 +8,7 @@ Shows how to integrate the Resource Pool Manager with the existing BayesianSampl
 import asyncio
 import sys
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 from infrastructure import ResourceConfig, ResourcePool
 
