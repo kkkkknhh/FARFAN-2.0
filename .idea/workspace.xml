@@ -4,29 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7de8b31-8538-410c-a7ce-0996291ccd2d" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/IOR_ADAPTIVE_LEARNING_LOOP_GUIDE.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/IOR_QUICKREF.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/audits/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/audits/causal_mechanism_auditor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/example_ior_audit.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ior_audit_report.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test_adaptive_learning_loop.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test_causal_mechanism_auditor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test_ior_audit.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/validators/ior_validator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/IOR_AUDIT_IMPLEMENTATION.md" beforeDir="false" afterPath="$PROJECT_DIR$/IOR_AUDIT_IMPLEMENTATION.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/canonical_notation.py" beforeDir="false" afterPath="$PROJECT_DIR$/canonical_notation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo_orchestration_complete.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo_orchestration_complete.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/emebedding_policy.py" beforeDir="false" afterPath="$PROJECT_DIR$/emebedding_policy.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/example_convergence.py" beforeDir="false" afterPath="$PROJECT_DIR$/example_convergence.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/example_di_integration.py" beforeDir="false" afterPath="$PROJECT_DIR$/example_di_integration.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/extraction/extraction_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/extraction/extraction_pipeline.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/financiero_viabilidad_tablas.py" beforeDir="false" afterPath="$PROJECT_DIR$/financiero_viabilidad_tablas.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/get-docker.sh" beforeDir="false" afterPath="$PROJECT_DIR$/get-docker.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/orchestrator.py" afterDir="false" />
-    </list>
+    <list default="true" id="b7de8b31-8538-410c-a7ce-0996291ccd2d" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -65,7 +43,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "Merging main",
+    "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "/Users/recovered/PycharmProjects/FLUX/FARFAN-2.0",
     "node.js.detected.package.eslint": "true",
@@ -107,7 +85,7 @@
       <workItem from="1760466237985" duration="679000" />
       <workItem from="1760486480473" duration="5044000" />
       <workItem from="1760540245919" duration="422000" />
-      <workItem from="1760546115571" duration="1662000" />
+      <workItem from="1760546115571" duration="1810000" />
     </task>
     <servers />
   </component>
