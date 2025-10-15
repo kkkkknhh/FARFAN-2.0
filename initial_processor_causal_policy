@@ -66,7 +66,7 @@ class SemanticConfig:
     similarity_threshold: float = 0.82  # Calibrated on PDM corpus
     min_evidence_chunks: int = 3     # Statistical significance floor
     bayesian_prior_strength: float = 0.5  # Conservative uncertainty
-    device: Literal["cpu", "cuda"] | None = None
+    device: Literal["cpu", "cuda"] | None
     batch_size: int = 32
     fp16: bool = True                # Memory optimization
 
@@ -121,7 +121,7 @@ class SemanticProcessor:
                 f"Missing dependency: {missing}. Please install with 'pip install {missing}'"
             ) from e
     
-    def chunk_text(self, text: str, preserve_structure: bool = True) -> list[dict[str, Any]]:
+    def chunk_text(self, text: str, preserve_structure: bool) -> list[dict[str, Any]]:
         """
         Policy-aware semantic chunking:
         - Respects section boundaries (numbered lists, headers)
@@ -438,7 +438,7 @@ class PolicyDocumentAnalyzer:
     - Causal dimension analysis per Marco Lógico
     """
     
-    def __init__(self, config: SemanticConfig | None = None):
+    def __init__(self, config: SemanticConfig | None):
         self.config = config or SemanticConfig()
         self.semantic = SemanticProcessor(self.config)
         self.bayesian = BayesianEvidenceIntegrator(
