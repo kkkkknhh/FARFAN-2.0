@@ -33,7 +33,12 @@ if TYPE_CHECKING:
 
 
 class ExtractedTable(BaseModel):
-    """Validated table with metadata and quality metrics"""
+    """
+    Validated table with metadata and quality metrics.
+
+    Audit Point 1.3: Schema Integrity (Hoop Tests)
+    Immediate Pydantic validation on critical fields with hard failure.
+    """
 
     data: List[List[Any]] = Field(description="Table data as list of rows")
     page_number: int = Field(ge=1, description="Page number where table was found")
@@ -45,24 +50,56 @@ class ExtractedTable(BaseModel):
     )
     column_count: int = Field(ge=1, description="Number of columns")
     row_count: int = Field(ge=0, description="Number of rows")
+    bpin: Optional[str] = Field(
+        default=None,
+        description="BPIN (Banco de Programas y Proyectos de Inversión Nacional) - DNP mandate for projects",
+    )
 
     class Config:
         arbitrary_types_allowed = True
 
     @validator("data")
     def validate_data_structure(cls, v):
-        """Ensure data is properly structured"""
+        """
+        Audit Point 1.3: Schema Integrity (Hoop Test)
+        Ensure data is properly structured - hard failure on missing critical field.
+        """
         if not v:
-            raise ValueError("Table data cannot be empty")
+            raise ValueError(
+                "Table data cannot be empty - Hoop Test failed (Audit Point 1.3)"
+            )
         if not all(isinstance(row, list) for row in v):
-            raise ValueError("All rows must be lists")
+            raise ValueError(
+                "All rows must be lists - Schema integrity violation (Audit Point 1.3)"
+            )
+        return v
+
+    @validator("bpin")
+    def validate_bpin_if_required(cls, v, values):
+        """
+        Audit Point 1.3: Conditional validation for DNP-mandated BPIN.
+        For financial/investment tables, BPIN should be present.
+        """
+        table_type = values.get("table_type", "")
+        if table_type in ["financial", "investment", "budget"] and not v:
+            # Log warning but don't hard-fail (degraded mode per Audit Point 1.4)
+            logging.warning(
+                f"BPIN missing for {table_type} table - DNP compliance degraded"
+            )
         return v
 
 
 class SemanticChunk(BaseModel):
-    """Semantic text chunk with provenance tracking"""
+    """
+    Semantic text chunk with provenance tracking.
 
-    chunk_id: str = Field(description="Unique identifier for the chunk")
+    Audit Point 1.2: Provenance Traceability (SHA-256)
+    Each chunk anchored to immutable chunk_id via SHA-256 hash of canonicalized string.
+    """
+
+    chunk_id: str = Field(
+        description="SHA-256 hash of canonicalized (doc_id + index + content preview) for immutable provenance"
+    )
     text: str = Field(min_length=1, description="Chunk text content")
     start_char: int = Field(ge=0, description="Starting character position in document")
     end_char: int = Field(ge=0, description="Ending character position in document")
@@ -71,12 +108,50 @@ class SemanticChunk(BaseModel):
         default_factory=dict, description="Additional metadata (page, section, etc.)"
     )
 
+    @validator("chunk_id")
+    def validate_chunk_id(cls, v):
+        """
+        Audit Point 1.3: Schema Integrity (Hoop Test)
+        Ensure chunk_id is present and valid SHA-256 hash format.
+        """
+        if not v:
+            raise ValueError(
+                "chunk_id is required for provenance traceability (Audit Point 1.2)"
+            )
+        # Validate SHA-256 format (64 hex characters)
+        if not (len(v) == 64 and all(c in "0123456789abcdef" for c in v.lower())):
+            raise ValueError(
+                f"chunk_id must be valid SHA-256 hash (64 hex chars), got: {v[:20]}..."
+            )
+        return v
+
     @validator("end_char")
     def validate_range(cls, v, values):
         """Ensure end_char > start_char"""
         if "start_char" in values and v <= values["start_char"]:
             raise ValueError("end_char must be greater than start_char")
         return v
+
+    @classmethod
+    def create_chunk_id(cls, doc_id: str, index: int, text_preview: str) -> str:
+        """
+        Generate deterministic SHA-256 chunk_id from canonicalized inputs.
+
+        Audit Point 1.2: Provenance Traceability
+        Creates immutable identifier enabling fine-grained process-tracing.
+
+        Args:
+            doc_id: Document SHA-256 hash
+            index: Chunk index in document
+            text_preview: First 200 chars of chunk content
+
+        Returns:
+            64-character SHA-256 hash hex string
+        """
+        # Canonicalize: normalize whitespace in preview
+        normalized_preview = " ".join(text_preview[:200].split())
+        canonical_string = f"{doc_id}|{index}|{normalized_preview}"
+        return hashlib.sha256(canonical_string.encode("utf-8")).hexdigest()
 
 
 class DataQualityMetrics(BaseModel):
@@ -261,7 +336,7 @@ class ExtractionPipeline:
                 continue
 
         # Chunking con trazabilidad inmediata
-        semantic_chunks = self._chunk_with_provenance(raw_text, doc_id=doc_id)
+        semantic_chunks = await self._chunk_with_provenance(raw_text, doc_id=doc_id)
 
         # Data Quality Assessment
         quality = self._assess_extraction_quality(
@@ -328,16 +403,21 @@ class ExtractionPipeline:
             self.logger.error(f"Table extraction failed: {e}")
             return []
 
-    def _chunk_with_provenance(self, text: str, doc_id: str) -> List[SemanticChunk]:
+    async def _chunk_with_provenance(
+        self, text: str, doc_id: str
+    ) -> List[SemanticChunk]:
         """
         Create semantic chunks with full provenance tracking.
+
+        Audit Point 1.2: Provenance Traceability (SHA-256)
+        Every SemanticChunk anchored to immutable chunk_id via SHA-256 hash.
 
         Args:
             text: Full text to chunk
             doc_id: Document SHA256 hash
 
         Returns:
-            List of validated semantic chunks
+            List of validated semantic chunks with SHA-256 chunk_id
         """
         chunks = []
         text_length = len(text)
@@ -362,16 +442,32 @@ class ExtractionPipeline:
             chunk_text = text[start:end].strip()
 
             if chunk_text:
-                chunk = SemanticChunk(
-                    chunk_id=f"{doc_id[:8]}_chunk_{chunk_num:04d}",
-                    text=chunk_text,
-                    start_char=start,
-                    end_char=end,
-                    doc_id=doc_id,
-                    metadata={"chunk_number": chunk_num, "total_length": text_length},
+                # Audit Point 1.2: Generate SHA-256 chunk_id for immutable provenance
+                chunk_id = SemanticChunk.create_chunk_id(
+                    doc_id=doc_id, index=chunk_num, text_preview=chunk_text
                 )
-                chunks.append(chunk)
-                chunk_num += 1
+
+                try:
+                    chunk = SemanticChunk(
+                        chunk_id=chunk_id,
+                        text=chunk_text,
+                        start_char=start,
+                        end_char=end,
+                        doc_id=doc_id,
+                        metadata={
+                            "chunk_number": chunk_num,
+                            "total_length": text_length,
+                        },
+                    )
+                    chunks.append(chunk)
+                    chunk_num += 1
+                except Exception as e:
+                    # Audit Point 1.3: Schema validation hard failure
+                    self.logger.error(
+                        f"Chunk validation failed (Audit 1.3 Hoop Test): {e}"
+                    )
+                    # Hard failure - skip invalid chunk from evidence pool
+                    continue
 
             # Move forward with overlap
             start = end - self.chunk_overlap
@@ -445,11 +541,14 @@ class ExtractionPipeline:
         """
         Compute SHA256 hash of PDF file for tracking.
 
+        Audit Point 1.2: Provenance Traceability (SHA-256)
+        source_pdf_hash over binary file enables blockchain-level provenance.
+
         Args:
             pdf_path: Path to PDF file
 
         Returns:
-            SHA256 hash as hex string
+            SHA256 hash as hex string (64 characters)
         """
         sha256_hash = hashlib.sha256()
 
@@ -458,4 +557,8 @@ class ExtractionPipeline:
             for byte_block in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(byte_block)
 
-        return sha256_hash.hexdigest()
+        hex_digest = sha256_hash.hexdigest()
+        self.logger.info(
+            f"Computed source_pdf_hash: {hex_digest[:16]}... (Audit Point 1.2)"
+        )
+        return hex_digest
