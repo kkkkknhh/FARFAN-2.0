@@ -7,6 +7,7 @@ pydantic>=2.0.0
 
 # NLP
 spacy>=3.5.0
+es-core-news-lg @ https://github.com/explosion/spacy-models/releases/download/es_core_news_lg-3.5.0/es_core_news_lg-3.5.0-py3-none-any.whl
 
 # Document Processing
 PyMuPDF>=1.23.0
@@ -19,6 +20,9 @@ pydot>=1.4.2
 # Testing
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
+
+# Utilities
+python-dateutil>=2.8.2
 
 # Optional: ML/Transformers (used in semantic_chunking_policy.py)
 # Uncomment if needed:
