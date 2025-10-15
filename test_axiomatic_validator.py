@@ -160,8 +160,8 @@ class TestAxiomaticValidator(unittest.TestCase):
         self.assertIn('contradiction_density', summary)
         self.assertIn('regulatory_score', summary)
         self.assertEqual(summary['structural_valid'], True)
-        self.assertEqual(summary['contradiction_density'], 0.02)
-        self.assertEqual(summary['regulatory_score'], 75.0)
+        self.assertAlmostEqual(summary['contradiction_density'], 0.02, places=6)
+        self.assertAlmostEqual(summary['regulatory_score'], 75.0, places=6)
     
     def test_ontology_initialization(self):
         """Test PDMOntology initialization"""
@@ -191,7 +191,7 @@ class TestAxiomaticValidator(unittest.TestCase):
         
         self.assertEqual(config.dnp_lexicon_version, "2024")
         self.assertTrue(config.es_municipio_pdet)
-        self.assertEqual(config.contradiction_threshold, 0.10)
+        self.assertAlmostEqual(config.contradiction_threshold, 0.10, places=6)
         self.assertFalse(config.enable_structural_penalty)
         self.assertFalse(config.enable_human_gating)
     

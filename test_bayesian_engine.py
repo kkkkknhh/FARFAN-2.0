@@ -98,11 +98,11 @@ class TestBayesianPriorBuilder(unittest.TestCase):
         """Test type transition prior calculation"""
         # Test known transition
         prior = self.builder._get_type_transition_prior('producto', 'resultado')
-        self.assertEqual(prior, 0.8)
+        self.assertAlmostEqual(prior, 0.8, places=6)
         
         # Test unknown transition (should return default)
         prior = self.builder._get_type_transition_prior('unknown', 'unknown')
-        self.assertEqual(prior, 0.5)
+        self.assertAlmostEqual(prior, 0.5, places=6)
     
     def test_mechanism_type_coherence(self):
         """Test mechanism type coherence validation"""
@@ -385,8 +385,8 @@ class TestDataStructures(unittest.TestCase):
         """Test MechanismPrior validation"""
         # Valid prior
         prior = MechanismPrior(alpha=2.0, beta=3.0, rationale="Test")
-        self.assertEqual(prior.alpha, 2.0)
-        self.assertEqual(prior.beta, 3.0)
+        self.assertAlmostEqual(prior.alpha, 2.0, places=6)
+        self.assertAlmostEqual(prior.beta, 3.0, places=6)
         
         # Invalid prior (negative alpha)
         with self.assertRaises(ValueError):

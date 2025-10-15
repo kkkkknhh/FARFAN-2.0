@@ -51,7 +51,7 @@ class TestValidatorStructure(unittest.TestCase):
         
         self.assertEqual(config.dnp_lexicon_version, "2025")
         self.assertFalse(config.es_municipio_pdet)
-        self.assertEqual(config.contradiction_threshold, 0.05)
+        self.assertAlmostEqual(config.contradiction_threshold, 0.05, places=6)
         self.assertTrue(config.enable_structural_penalty)
         self.assertTrue(config.enable_human_gating)
     
@@ -109,8 +109,8 @@ class TestValidatorStructure(unittest.TestCase):
         # Check default values
         self.assertTrue(result.is_valid)
         self.assertTrue(result.structural_valid)
-        self.assertEqual(result.contradiction_density, 0.0)
-        self.assertEqual(result.regulatory_score, 0.0)
+        self.assertAlmostEqual(result.contradiction_density, 0.0, places=6)
+        self.assertAlmostEqual(result.regulatory_score, 0.0, places=6)
         self.assertFalse(result.requires_manual_review)
         self.assertIsNone(result.hold_reason)
         self.assertEqual(len(result.failures), 0)
@@ -135,8 +135,8 @@ class TestValidatorStructure(unittest.TestCase):
         self.assertIn('requires_manual_review', summary)
         
         self.assertEqual(summary['structural_valid'], False)
-        self.assertEqual(summary['contradiction_density'], 0.08)
-        self.assertEqual(summary['regulatory_score'], 65.0)
+        self.assertAlmostEqual(summary['contradiction_density'], 0.08, places=6)
+        self.assertAlmostEqual(summary['regulatory_score'], 65.0, places=6)
     
     def test_add_critical_failure(self):
         """Test adding a critical failure"""
