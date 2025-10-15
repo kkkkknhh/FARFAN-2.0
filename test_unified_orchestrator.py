@@ -211,7 +211,7 @@ async def test_prior_snapshot_immutability(orchestrator):
     assert snapshot1.run_id != snapshot2.run_id
     
     # Verify snapshot1 unchanged
-    assert snapshot1.priors['tecnico'] != 5.0
+    assert not (snapshot1.priors['tecnico'] == pytest.approx(5.0, rel=1e-9, abs=1e-12))  # replaced float inequality with negated pytest.approx
 
 
 @pytest.mark.asyncio
@@ -474,7 +474,7 @@ def test_prior_snapshot_correctness():
     
     latest = history[-1]
     assert 'tecnico' in latest['priors']
-    assert latest['priors']['tecnico']['alpha'] == 3.5
+    assert latest['priors']['tecnico']['alpha'] == pytest.approx(3.5, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
 
 
 if __name__ == '__main__':

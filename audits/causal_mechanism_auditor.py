@@ -14,6 +14,7 @@ Implements SOTA process-tracing audits per Beach & Pedersen 2019:
 from __future__ import annotations
 
 import logging
+import math
 import re
 from dataclasses import dataclass, field
 from enum import Enum
@@ -325,7 +326,7 @@ class CausalMechanismAuditor:
                 missing_components.append("timeline")
 
             # Is necessary if all components present
-            is_necessary = necessity_score == 1.0
+            is_necessary = math.isclose(necessity_score, 1.0, rel_tol=1e-9, abs_tol=1e-12)  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
             if is_necessary:
                 necessary_links += 1
 
@@ -839,7 +840,7 @@ class CausalMechanismAuditor:
                 missing_components.append("causal_logic")
 
             # Quality grade (target 100%)
-            if extraction_accuracy == 1.0:
+            if math.isclose(extraction_accuracy, 1.0, rel_tol=1e-9, abs_tol=1e-12):  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
                 quality_grade = QualityGrade.EXCELENTE
             elif extraction_accuracy >= 0.66:
                 quality_grade = QualityGrade.BUENO
@@ -961,7 +962,7 @@ class CausalMechanismAuditor:
                 "complete_extractions": sum(
                     1
                     for r in activity_logic_results.values()
-                    if r.extraction_accuracy == 1.0
+                    if np.isclose(r.extraction_accuracy, 1.0, rtol=1e-9, atol=1e-12)  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
                 ),
                 "average_accuracy": (
                     np.mean(

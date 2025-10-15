@@ -10,6 +10,7 @@ against baseline values, and flags any drift or inconsistencies.
 """
 
 import json
+import math
 import sys
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Any, Tuple
@@ -228,7 +229,7 @@ def main():
     print(json.dumps(report, indent=2))
     
     # Exit code based on stability
-    if report["validation_summary"]["stability_rate"] == 100.0 and prior_valid:
+    if math.isclose(report["validation_summary"]["stability_rate"], 100.0, rel_tol=1e-9, abs_tol=1e-12) and prior_valid:  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
         print("\n✓ All calibration constants are STABLE", file=sys.stderr)
         return 0
     else:

@@ -12,6 +12,7 @@ AGGREGATES: MICRO (questions) → MESO (dimensions/policies) → MACRO (clusters
 """
 
 import logging
+import math
 from typing import Dict, List, Tuple, Optional, Any, Set
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -87,7 +88,7 @@ class DimensionScore:
         assert 0.0 <= self.score <= 1.0
         assert self.policy in DIMENSION_WEIGHTS
         assert self.dimension in DIMENSION_WEIGHTS[self.policy]
-        if self.weight == 0.0:
+        if math.isclose(self.weight, 0.0, rel_tol=1e-9, abs_tol=1e-12):  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
             self.weight = DIMENSION_WEIGHTS[self.policy][self.dimension]
 
 
@@ -112,7 +113,7 @@ class ClusterScore:
     def __post_init__(self):
         assert 0.0 <= self.score <= 1.0
         assert self.cluster_name in CLUSTER_WEIGHTS
-        if self.weight == 0.0:
+        if math.isclose(self.weight, 0.0, rel_tol=1e-9, abs_tol=1e-12):  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
             self.weight = CLUSTER_WEIGHTS[self.cluster_name]
 
 
@@ -198,7 +199,7 @@ class ScoringEngine:
             if low <= score < high:
                 return category
         
-        if score == 1.0:
+        if math.isclose(score, 1.0, rel_tol=1e-9, abs_tol=1e-12):  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
             return "excelente"
         
         return "insuficiente"

@@ -335,13 +335,13 @@ class TestEvidenceStream:
         """Test progress calculation."""
         stream = EvidenceStream(sample_chunks)
 
-        assert stream.progress() == 0.0
+        assert stream.progress() == pytest.approx(0.0, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
 
         stream.current_idx = 2
-        assert stream.progress() == 0.4
+        assert stream.progress() == pytest.approx(0.4, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
 
         stream.current_idx = 5
-        assert stream.progress() == 1.0
+        assert stream.progress() == pytest.approx(1.0, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
 
     def test_remaining(self, sample_chunks):
         """Test remaining count."""
@@ -366,9 +366,9 @@ class TestMechanismPrior:
         )
 
         assert prior.mechanism_name == "test_mechanism"
-        assert prior.prior_mean == 0.6
-        assert prior.prior_std == 0.15
-        assert prior.confidence == 0.7
+        assert prior.prior_mean == pytest.approx(0.6, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
+        assert prior.prior_std == pytest.approx(0.15, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
+        assert prior.confidence == pytest.approx(0.7, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
 
     def test_to_dict(self):
         """Test converting to dictionary."""
@@ -376,8 +376,8 @@ class TestMechanismPrior:
         d = prior.to_dict()
 
         assert d["mechanism_name"] == "test"
-        assert d["prior_mean"] == 0.5
-        assert d["prior_std"] == 0.2
+        assert d["prior_mean"] == pytest.approx(0.5, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
+        assert d["prior_std"] == pytest.approx(0.2, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
 
 
 class TestPosteriorDistribution:
@@ -393,7 +393,7 @@ class TestPosteriorDistribution:
         )
 
         assert posterior.mechanism_name == "test"
-        assert posterior.posterior_mean == 0.7
+        assert posterior.posterior_mean == pytest.approx(0.7, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
         assert posterior.evidence_count == 5
 
     def test_confidence_computation(self):
@@ -423,7 +423,7 @@ class TestStreamingBayesianUpdater:
         updater = StreamingBayesianUpdater()
 
         assert updater.event_bus is None
-        assert updater.relevance_threshold == 0.6
+        assert updater.relevance_threshold == pytest.approx(0.6, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
 
     def test_initialization_with_bus(self, event_bus):
         """Test updater with event bus."""
