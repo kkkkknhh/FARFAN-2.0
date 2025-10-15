@@ -574,46 +574,113 @@ class IndustrialPolicyProcessor:
         if not pattern:
             return {}
 
-        # Find relevant sentences
-        relevant_sentences = [s for s in sentences if pattern.search(s)]
+        relevant_sentences = self._filter_relevant_sentences(sentences, pattern)
         if not relevant_sentences:
             return {}
 
-        # Search for dimensional evidence within relevant context
+        return self._build_dimensional_evidence(text, relevant_sentences)
+
+    def _filter_relevant_sentences(
+        self, sentences: List[str], pattern: re.Pattern
+    ) -> List[str]:
+        """Filter sentences matching the point pattern."""
+        return [s for s in sentences if pattern.search(s)]
+
+    def _build_dimensional_evidence(
+        self, text: str, relevant_sentences: List[str]
+    ) -> Dict[str, Any]:
+        """Build evidence dictionary across all causal dimensions."""
         evidence_by_dimension = {}
+        
         for dimension, categories in self._pattern_registry.items():
-            dimension_evidence = []
-
-            for category, compiled_patterns in categories.items():
-                matches = []
-                positions = []
-
-                for compiled_pattern in compiled_patterns:
-                    for sentence in relevant_sentences:
-                        for match in compiled_pattern.finditer(sentence):
-                            matches.append(match.group(0))
-                            positions.append(match.start())
-
-                if matches:
-                    # Compute confidence score
-                    confidence = self.scorer.compute_evidence_score(
-                        matches, len(text), pattern_specificity=0.85
-                    )
-
-                    if confidence >= self.config.confidence_threshold:
-                        bundle = EvidenceBundle(
-                            dimension=dimension,
-                            category=category,
-                            matches=matches[: self.config.max_evidence_per_pattern],
-                            confidence=confidence,
-                            match_positions=positions[: self.config.max_evidence_per_pattern],
-                        )
-                        dimension_evidence.append(bundle.to_dict())
-
+            dimension_evidence = self._process_dimension_categories(
+                text, relevant_sentences, dimension, categories
+            )
+            
             if dimension_evidence:
                 evidence_by_dimension[dimension.value] = dimension_evidence
 
         return evidence_by_dimension
+
+    def _process_dimension_categories(
+        self,
+        text: str,
+        relevant_sentences: List[str],
+        dimension: CausalDimension,
+        categories: Dict[str, List[re.Pattern]],
+    ) -> List[Dict[str, Any]]:
+        """Process all categories within a dimension, returning validated evidence bundles."""
+        dimension_evidence = []
+        
+        for category, compiled_patterns in categories.items():
+            evidence_bundle = self._extract_category_evidence(
+                text, relevant_sentences, dimension, category, compiled_patterns
+            )
+            
+            if evidence_bundle:
+                dimension_evidence.append(evidence_bundle)
+        
+        return dimension_evidence
+
+    def _extract_category_evidence(
+        self,
+        text: str,
+        relevant_sentences: List[str],
+        dimension: CausalDimension,
+        category: str,
+        compiled_patterns: List[re.Pattern],
+    ) -> Optional[Dict[str, Any]]:
+        """Extract and validate evidence for a specific category."""
+        matches, positions = self._collect_pattern_matches(
+            relevant_sentences, compiled_patterns
+        )
+        
+        if not matches:
+            return None
+        
+        confidence = self.scorer.compute_evidence_score(
+            matches, len(text), pattern_specificity=0.85
+        )
+        
+        if confidence < self.config.confidence_threshold:
+            return None
+        
+        return self._create_evidence_bundle(
+            dimension, category, matches, confidence, positions
+        )
+
+    def _collect_pattern_matches(
+        self, relevant_sentences: List[str], compiled_patterns: List[re.Pattern]
+    ) -> Tuple[List[str], List[int]]:
+        """Collect all pattern matches and their positions from sentences."""
+        matches = []
+        positions = []
+        
+        for compiled_pattern in compiled_patterns:
+            for sentence in relevant_sentences:
+                for match in compiled_pattern.finditer(sentence):
+                    matches.append(match.group(0))
+                    positions.append(match.start())
+        
+        return matches, positions
+
+    def _create_evidence_bundle(
+        self,
+        dimension: CausalDimension,
+        category: str,
+        matches: List[str],
+        confidence: float,
+        positions: List[int],
+    ) -> Dict[str, Any]:
+        """Create an evidence bundle dictionary with truncated matches."""
+        bundle = EvidenceBundle(
+            dimension=dimension,
+            category=category,
+            matches=matches[: self.config.max_evidence_per_pattern],
+            confidence=confidence,
+            match_positions=positions[: self.config.max_evidence_per_pattern],
+        )
+        return bundle.to_dict()
 
     def _analyze_causal_dimensions(
         self, text: str, sentences: List[str]
