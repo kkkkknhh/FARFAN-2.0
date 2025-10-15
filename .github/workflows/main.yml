@@ -1,0 +1,24 @@
+            - name: ChartDB Database Sync
+  # You may pin to the exact commit or the version.
+  # uses: chartdb/chartdb-action@bf0d5213ffaae65d356cfb042b1b0b06e8581c12
+  uses: chartdb/chartdb-action@v1.0.0
+  with:
+    # Database host address
+    db-host: 
+    # Database port
+    db-port: # optional, default is 5432
+    # Database name
+    db-database: 
+    # Database username
+    db-username: 
+    # Database password (use secrets!)
+    db-password: # optional
+    # Database type (postgresql, mysql, mariadb, mssql)
+    db-type: 
+    # ChartDB API token (use secrets!)
+    chartdb-api-token: 
+    # ChartDB diagram ID to sync with
+    chartdb-diagram-id: 
+    # Docker network mode
+    network: # optional, default is host
+          

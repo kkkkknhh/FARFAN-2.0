@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Report Generator for FARFAN 2.0
 Generación de reportes a tres niveles: Micro, Meso y Macro
@@ -6,6 +7,12 @@ Generación de reportes a tres niveles: Micro, Meso y Macro
 NIVEL MICRO: Reporte individual de las 300 preguntas
 NIVEL MESO: Agrupación en 4 clústeres por 6 dimensiones analíticas
 NIVEL MACRO: Evaluación global de alineación con el decálogo (retrospectiva y prospectiva)
+
+Enhanced with:
+- Doctoral-level quality argumentation
+- SMART recommendations with AHP prioritization
+- Full evidence traceability
+- Narrative coherence validation between levels
 """
 
 import json
@@ -15,6 +22,18 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from enum import Enum
+
+# Import SMART recommendations framework
+try:
+    from smart_recommendations import (
+        SMARTRecommendation, SMARTCriteria, SuccessMetric,
+        Priority, ImpactLevel, RecommendationPrioritizer,
+        AHPWeights, Dependency
+    )
+    SMART_AVAILABLE = True
+except ImportError:
+    SMART_AVAILABLE = False
+    logging.warning("SMART recommendations module not available")
 
 logger = logging.getLogger("report_generator")
 
@@ -51,7 +70,7 @@ class ReportGenerator:
         }
     
     def generate_micro_report(self, question_responses: Dict[str, Any], 
-                             policy_code: str) -> Dict[str, Any]:
+                             policy_code: str) -> Dict:
         """
         Genera reporte nivel MICRO: 300 respuestas individuales
         
@@ -107,20 +126,16 @@ class ReportGenerator:
         
         # Save to file
         output_file = self.output_dir / f"micro_report_{policy_code}.json"
-        try:
-            with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(micro_report, f, indent=2, ensure_ascii=False)
-            logger.info(f"✓ Reporte MICRO guardado: {output_file}")
-        except Exception as e:
-            logger.error(f"Error guardando reporte MICRO: {e}")
-            raise
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(micro_report, f, indent=2, ensure_ascii=False)
         
+        logger.info(f"✓ Reporte MICRO guardado: {output_file}")
         logger.info(f"  Promedio general: {micro_report['statistics']['promedio_general']:.3f}")
         
         return micro_report
     
     def generate_meso_report(self, question_responses: Dict[str, Any],
-                            policy_code: str) -> Dict[str, Any]:
+                            policy_code: str) -> Dict:
         """
         Genera reporte nivel MESO: 4 clústeres × 6 dimensiones
         
@@ -173,8 +188,8 @@ class ReportGenerator:
                 
                 # Calculate dimension score for this cluster
                 if dim_responses:
-                    dim_notas = [r.nota_cuantitativa for r in dim_responses if hasattr(r, 'nota_cuantitativa')]
-                    dim_score = sum(dim_notas) / len(dim_notas) if dim_notas else 0
+                    dim_notas = [r.nota_cuantitativa for r in dim_responses]
+                    dim_score = sum(dim_notas) / len(dim_notas)
                     
                     cluster_data["dimensiones"][dim_id] = {
                         "dimension_nombre": self._get_dimension_name(dim_id),
@@ -209,28 +224,30 @@ class ReportGenerator:
         
         # Save to file
         output_file = self.output_dir / f"meso_report_{policy_code}.json"
-        try:
-            with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(meso_report, f, indent=2, ensure_ascii=False)
-            logger.info(f"✓ Reporte MESO guardado: {output_file}")
-        except Exception as e:
-            logger.error(f"Error guardando reporte MESO: {e}")
-            raise
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(meso_report, f, indent=2, ensure_ascii=False)
         
+        logger.info(f"✓ Reporte MESO guardado: {output_file}")
         logger.info(f"  Promedio clústeres: {meso_report['statistics']['promedio_clusters']:.3f}")
         
         return meso_report
     
     def generate_macro_report(self, question_responses: Dict[str, Any],
-                             compliance_score: float, policy_code: str) -> Dict[str, Any]:
+                             compliance_score: float, policy_code: str) -> Dict:
         """
         Genera reporte nivel MACRO: Alineación global con el decálogo
+        
+        Enhanced with:
+        - SMART recommendations with AHP prioritization
+        - Narrative coherence validation
+        - Full evidence traceability
         
         Incluye:
         1. Evaluación retrospectiva (¿qué tan lejos/cerca está?)
         2. Evaluación prospectiva (¿qué se debe mejorar?)
         3. Score global basado en promedio de las 300 preguntas
-        4. Recomendaciones prioritarias
+        4. Recomendaciones prioritarias SMART
+        5. Validación de coherencia narrativa
         """
         logger.info("Generando reporte MACRO (alineación con decálogo)...")
         
@@ -241,11 +258,26 @@ class ReportGenerator:
         # Determine alignment level
         alignment_level = self._get_alignment_level(global_score)
         
+        # Generate SMART recommendations
+        recommendations = self._generate_priority_recommendations(
+            question_responses, compliance_score
+        )
+        
+        # Serialize recommendations
+        if SMART_AVAILABLE and recommendations and hasattr(recommendations[0], 'to_dict'):
+            recommendations_data = [r.to_dict() for r in recommendations]
+            recommendations_summary = [f"{r.id}: {r.title} (Prioridad: {r.priority.value}, AHP: {r.ahp_score}/10)" 
+                                      for r in recommendations]
+        else:
+            recommendations_data = recommendations
+            recommendations_summary = recommendations
+        
         macro_report = {
             "metadata": {
                 "policy_code": policy_code,
                 "generated_at": datetime.now().isoformat(),
-                "report_level": "MACRO"
+                "report_level": "MACRO",
+                "smart_recommendations_enabled": SMART_AVAILABLE
             },
             "evaluacion_global": {
                 "score_global": global_score,
@@ -259,15 +291,15 @@ class ReportGenerator:
             "analisis_prospectivo": self._generate_prospective_analysis(
                 global_score, question_responses
             ),
-            "recomendaciones_prioritarias": self._generate_priority_recommendations(
-                question_responses, compliance_score
-            ),
+            "recomendaciones_prioritarias": recommendations_data,
+            "recomendaciones_summary": recommendations_summary,
             "fortalezas_identificadas": self._identify_strengths(question_responses),
-            "debilidades_criticas": self._identify_critical_weaknesses(question_responses)
+            "debilidades_criticas": self._identify_critical_weaknesses(question_responses),
+            "coherencia_narrativa": self._validate_narrative_coherence(
+                global_score, question_responses
+            )
         }
         
-<<<<<<< HEAD
-=======
         # Generate implementation roadmap if SMART recommendations available
         if SMART_AVAILABLE and recommendations and hasattr(recommendations[0], 'to_dict'):
             prioritizer = RecommendationPrioritizer()
@@ -275,35 +307,26 @@ class ReportGenerator:
             
             # Save roadmap
             roadmap_file = self.output_dir / f"roadmap_{policy_code}.md"
-            try:
-                with open(roadmap_file, 'w', encoding='utf-8') as f:
-                    f.write(roadmap_md)
-                logger.info(f"✓ Roadmap de implementación guardado: {roadmap_file}")
-                macro_report["roadmap_file"] = str(roadmap_file)
-            except Exception as e:
-                logger.error(f"Error guardando roadmap: {e}")
-                # Continue execution - roadmap is optional
+            with open(roadmap_file, 'w', encoding='utf-8') as f:
+                f.write(roadmap_md)
+            
+            logger.info(f"✓ Roadmap de implementación guardado: {roadmap_file}")
+            macro_report["roadmap_file"] = str(roadmap_file)
         
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         # Generate Markdown report
         self._generate_macro_markdown(macro_report, policy_code)
         
         # Save JSON version
         output_file = self.output_dir / f"macro_report_{policy_code}.json"
-        try:
-            with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(macro_report, f, indent=2, ensure_ascii=False)
-            logger.info(f"✓ Reporte MACRO guardado: {output_file}")
-        except Exception as e:
-            logger.error(f"Error guardando reporte MACRO JSON: {e}")
-            raise
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(macro_report, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"✓ Reporte MACRO guardado: {output_file}")
         logger.info(f"  Nivel de alineación: {alignment_level}")
         logger.info(f"  Score global: {global_score:.3f}")
         
         return macro_report
     
-<<<<<<< HEAD
-=======
     def _validate_narrative_coherence(self, global_score: float, 
                                      responses: Dict) -> Dict[str, Any]:
         """
@@ -350,17 +373,9 @@ class ReportGenerator:
         }
         
         # Validation 3: Dimension consistency
-        dim_scores = {}
-        for qid, r in responses.items():
-            parts = qid.split('-')
-            if len(parts) >= 2:
-                dim = parts[1]
-                if dim not in dim_scores:
-                    dim_scores[dim] = []
-                if hasattr(r, 'nota_cuantitativa'):
-                    dim_scores[dim].append(r.nota_cuantitativa)
+        dim_scores = self._extract_dimension_scores(responses)
         
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
+        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
         dim_avg_global = sum(dim_averages.values()) / len(dim_averages) if dim_averages else 0
         
         coherence["validations"]["dimension_consistency"] = {
@@ -378,24 +393,43 @@ class ReportGenerator:
         
         return coherence
     
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
+    def _extract_dimension_scores(self, responses: Dict) -> Dict[str, List[float]]:
+        """
+        Private helper: Extract dimension scores from question responses.
+        
+        Args:
+            responses: Dictionary of question responses keyed by question_id
+            
+        Returns:
+            Dictionary mapping dimension IDs (e.g., 'D1') to lists of scores
+        """
+        dim_scores = {}
+        for qid, r in responses.items():
+            parts = qid.split('-')
+            if len(parts) >= 2:
+                dim = parts[1]
+                if dim not in dim_scores:
+                    dim_scores[dim] = []
+                dim_scores[dim].append(r.nota_cuantitativa)
+        return dim_scores
+    
     def _get_cluster_name(self, cluster: ClusterMeso) -> str:
         """Retorna el nombre descriptivo del clúster"""
         names = {
-            ClusterMeso.C1_SEGURIDAD_PAZ: "Seguridad, Paz y Protección",
-            ClusterMeso.C2_DERECHOS_SOCIALES: "Derechos Sociales y Poblaciones Vulnerables",
-            ClusterMeso.C3_TERRITORIO_AMBIENTE: "Territorio, Ambiente y Desarrollo Rural",
-            ClusterMeso.C4_POBLACIONES_ESPECIALES: "Poblaciones en Contextos Especiales"
+            ClusterMeso.C1_SEGURIDAD_PAZ: "Derechos de las Mujeres, Prevención de Violencia y Protección de Líderes",
+            ClusterMeso.C2_DERECHOS_SOCIALES: "Derechos Económicos, Sociales, Culturales y Poblaciones Vulnerables",
+            ClusterMeso.C3_TERRITORIO_AMBIENTE: "Ambiente, Cambio Climático, Tierras y Territorios",
+            ClusterMeso.C4_POBLACIONES_ESPECIALES: "Personas Privadas de Libertad y Migración"
         }
         return names[cluster]
     
     def _get_cluster_puntos(self, cluster: ClusterMeso) -> List[str]:
         """Retorna los puntos del decálogo incluidos en el clúster"""
         punto_lists = {
-            ClusterMeso.C1_SEGURIDAD_PAZ: ["P1-Seguridad", "P2-Alertas", "P8-Líderes"],
-            ClusterMeso.C2_DERECHOS_SOCIALES: ["P4-Derechos", "P5-Víctimas", "P6-Niñez"],
-            ClusterMeso.C3_TERRITORIO_AMBIENTE: ["P3-Ambiente", "P7-Rural"],
-            ClusterMeso.C4_POBLACIONES_ESPECIALES: ["P9-Cárcel", "P10-Migración"]
+            ClusterMeso.C1_SEGURIDAD_PAZ: ["P1-Mujeres/Género", "P2-Prevención Violencia", "P8-Líderes DDHH"],
+            ClusterMeso.C2_DERECHOS_SOCIALES: ["P4-Derechos ESC", "P5-Víctimas/Paz", "P6-Niñez/Juventud"],
+            ClusterMeso.C3_TERRITORIO_AMBIENTE: ["P3-Ambiente/Clima", "P7-Tierras"],
+            ClusterMeso.C4_POBLACIONES_ESPECIALES: ["P9-PPL", "P10-Migración"]
         }
         return punto_lists[cluster]
     
@@ -423,7 +457,7 @@ class ReportGenerator:
             return "Insuficiente"
     
     def _generate_dimension_observations(self, cluster: ClusterMeso, dim_id: str,
-                                        responses: List[Any], score: float) -> str:
+                                        responses: List, score: float) -> str:
         """Genera observaciones cualitativas para una dimensión en un clúster"""
         nivel = self._get_nivel_from_score(score)
         
@@ -437,12 +471,12 @@ class ReportGenerator:
             return f"La dimensión {dim_id} muestra debilidades críticas en {cluster.value} que deben ser atendidas prioritariamente."
     
     def _generate_cluster_evaluation(self, cluster: ClusterMeso, 
-                                    dimensiones: Dict[str, Any]) -> str:
+                                    dimensiones: Dict) -> str:
         """Genera evaluación general del clúster"""
         if not dimensiones:
             return "Sin información suficiente para evaluar este clúster."
         
-        avg_score = sum(d["score"] for d in dimensiones.values()) / len(dimensiones) if dimensiones else 0
+        avg_score = sum(d["score"] for d in dimensiones.values()) / len(dimensiones)
         cluster_name = self._get_cluster_name(cluster)
         
         evaluation = f"""
@@ -462,102 +496,68 @@ sostenibles en el territorio.
 """
         return evaluation.strip()
     
-    def _identify_top_dimensions(self, dimensiones: Dict[str, Any], n: int) -> str:
+    def _identify_top_dimensions(self, dimensiones: Dict, n: int) -> str:
         """Identifica las n mejores dimensiones"""
         sorted_dims = sorted(dimensiones.items(), key=lambda x: x[1]["score"], reverse=True)
         top_dims = sorted_dims[:n]
         return ", ".join([f"{d[0]} ({d[1]['score']:.2f})" for d in top_dims])
     
-    def _identify_weak_dimensions(self, dimensiones: Dict[str, Any], n: int) -> str:
+    def _identify_weak_dimensions(self, dimensiones: Dict, n: int) -> str:
         """Identifica las n dimensiones más débiles"""
         sorted_dims = sorted(dimensiones.items(), key=lambda x: x[1]["score"])
         weak_dims = sorted_dims[:n]
         return ", ".join([f"{d[0]} ({d[1]['score']:.2f})" for d in weak_dims])
     
-    def _find_best_cluster(self, clusters: Dict[str, Any]) -> str:
+    def _find_best_cluster(self, clusters: Dict) -> str:
         """Encuentra el clúster con mejor desempeño"""
         best_cluster = None
         best_score = 0
         
         for cluster_id, cluster_data in clusters.items():
-            if cluster_data.get("dimensiones"):
-                avg = sum(d.get("score", 0) for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
+            if cluster_data["dimensiones"]:
+                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"])
                 if avg > best_score:
                     best_score = avg
                     best_cluster = cluster_id
         
         return f"{best_cluster} ({best_score:.2f})" if best_cluster else "N/A"
     
-    def _find_weakest_cluster(self, clusters: Dict[str, Any]) -> str:
+    def _find_weakest_cluster(self, clusters: Dict) -> str:
         """Encuentra el clúster más débil"""
         weak_cluster = None
         weak_score = 1.0
         
         for cluster_id, cluster_data in clusters.items():
-            if cluster_data.get("dimensiones"):
-                avg = sum(d.get("score", 0) for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"]) if cluster_data["dimensiones"] else 0
+            if cluster_data["dimensiones"]:
+                avg = sum(d["score"] for d in cluster_data["dimensiones"].values()) / len(cluster_data["dimensiones"])
                 if avg < weak_score:
                     weak_score = avg
                     weak_cluster = cluster_id
         
         return f"{weak_cluster} ({weak_score:.2f})" if weak_cluster else "N/A"
     
-    def _find_best_dimension(self, clusters: Dict[str, Any]) -> str:
-        """Encuentra la dimensión con mejor desempeño global"""
+    def _extract_dimension_scores_from_clusters(self, clusters: Dict) -> Dict[str, List[float]]:
+        """Helper: extrae scores de dimensiones desde clusters"""
         dim_scores = {}
-        
         for cluster_data in clusters.values():
-<<<<<<< HEAD
             for dim_id, dim_data in cluster_data["dimensiones"].items():
                 if dim_id not in dim_scores:
                     dim_scores[dim_id] = []
                 dim_scores[dim_id].append(dim_data["score"])
-        
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
-=======
-            if cluster_data.get("dimensiones"):
-                for dim_id, dim_data in cluster_data["dimensiones"].items():
-                    if dim_id not in dim_scores:
-                        dim_scores[dim_id] = []
-                    score = dim_data.get("score", 0)
-                    dim_scores[dim_id].append(score)
         return dim_scores
     
     def _find_best_dimension(self, clusters: Dict) -> str:
         """Encuentra la dimensión con mejor desempeño global"""
         dim_scores = self._extract_dimension_scores_from_clusters(clusters)
-        if not dim_scores:
-            return "N/A"
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
-        if not dim_averages:
-            return "N/A"
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
+        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
         best_dim = max(dim_averages.items(), key=lambda x: x[1])
-        
         return f"{best_dim[0]} ({best_dim[1]:.2f})"
     
-    def _find_weakest_dimension(self, clusters: Dict[str, Any]) -> str:
+    def _find_weakest_dimension(self, clusters: Dict) -> str:
         """Encuentra la dimensión más débil globalmente"""
-<<<<<<< HEAD
-        dim_scores = {}
-        
-        for cluster_data in clusters.values():
-            for dim_id, dim_data in cluster_data["dimensiones"].items():
-                if dim_id not in dim_scores:
-                    dim_scores[dim_id] = []
-                dim_scores[dim_id].append(dim_data["score"])
-        
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
-=======
         dim_scores = self._extract_dimension_scores_from_clusters(clusters)
-        if not dim_scores:
-            return "N/A"
-        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items() if scores}
-        if not dim_averages:
-            return "N/A"
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
+        dim_averages = {d: sum(scores)/len(scores) for d, scores in dim_scores.items()}
         weak_dim = min(dim_averages.items(), key=lambda x: x[1])
-        
         return f"{weak_dim[0]} ({weak_dim[1]:.2f})"
     
     def _get_alignment_level(self, score: float) -> str:
@@ -572,7 +572,7 @@ sostenibles en el territorio.
             return "No Alineado"
     
     def _generate_retrospective_analysis(self, global_score: float, 
-                                        responses: Dict[str, Any]) -> str:
+                                        responses: Dict) -> str:
         """Genera análisis retrospectivo: ¿qué tan lejos/cerca está?"""
         nivel = self._get_alignment_level(global_score)
         distancia = (1.0 - global_score) * 100  # Porcentaje de distancia al óptimo
@@ -603,7 +603,7 @@ rigurosidad metodológica en el diseño de intervenciones.
         return analysis.strip()
     
     def _generate_prospective_analysis(self, global_score: float,
-                                      responses: Dict[str, Any]) -> str:
+                                      responses: Dict) -> str:
         """Genera análisis prospectivo: ¿qué se debe mejorar?"""
         analysis = f"""
 ANÁLISIS PROSPECTIVO: Ruta de Mejoramiento
@@ -648,29 +648,9 @@ La implementación de estas mejoras debe priorizarse según:
 """
         return analysis.strip()
     
-<<<<<<< HEAD
-    def _generate_priority_recommendations(self, responses: Dict[str, Any],
-                                          compliance_score: float) -> List[str]:
-        """Genera recomendaciones prioritarias"""
-=======
     def _extract_dimension_scores_from_responses(self, responses: Dict) -> Dict[str, List[float]]:
         """Helper: extrae scores de dimensiones desde respuestas de preguntas"""
-        dim_scores = {}
-        for qid, r in responses.items():
-            try:
-                # Extract dimension from question_id (e.g., "P1-D1-Q1" -> "D1")
-                parts = qid.split('-')
-                if len(parts) >= 2:
-                    dim = parts[1]
-                    if dim not in dim_scores:
-                        dim_scores[dim] = []
-                    # Safely get nota_cuantitativa
-                    if hasattr(r, 'nota_cuantitativa'):
-                        dim_scores[dim].append(r.nota_cuantitativa)
-            except (AttributeError, IndexError, TypeError) as e:
-                logger.warning(f"Error extracting dimension score for {qid}: {e}")
-                continue
-        return dim_scores
+        return self._extract_dimension_scores(responses)
     
     def _generate_priority_recommendations(self, responses: Dict,
                                           compliance_score: float) -> List[Any]:
@@ -693,14 +673,7 @@ La implementación de estas mejoras debe priorizarse según:
         ]
         
         # Dimension-specific analysis
-        dim_scores = {}
-        for qid, r in responses.items():
-            parts = qid.split('-')
-            if len(parts) >= 2:
-                dim = parts[1]
-                if dim not in dim_scores:
-                    dim_scores[dim] = []
-                dim_scores[dim].append(r.nota_cuantitativa)
+        dim_scores = self._extract_dimension_scores(responses)
         
         rec_counter = 1
         
@@ -801,7 +774,7 @@ La implementación de estas mejoras debe priorizarse según:
         
         # Dimension-specific recommendations
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores) if scores else 0
+            avg = sum(scores) / len(scores)
             if avg < 0.60:
                 rec_id = f"REC-{rec_counter:03d}"
                 rec_counter += 1
@@ -869,10 +842,8 @@ La implementación de estas mejoras debe priorizarse según:
     def _generate_simple_recommendations(self, responses: Dict, 
                                         compliance_score: float) -> List[str]:
         """Fallback method for simple text recommendations (when SMART module unavailable)"""
->>>>>>> 34712eae95af3cfd0b7b7675438a2e3258572c46
         recommendations = []
         
-        # Identify critical gaps
         critical_questions = [
             (qid, r) for qid, r in responses.items() 
             if r.nota_cuantitativa < 0.40
@@ -891,18 +862,10 @@ La implementación de estas mejoras debe priorizarse según:
             )
         
         # Dimension-specific recommendations
-        dim_scores = {}
-        for qid, r in responses.items():
-            # Extract dimension from question_id (e.g., "P1-D1-Q1" -> "D1")
-            parts = qid.split('-')
-            if len(parts) >= 2:
-                dim = parts[1]
-                if dim not in dim_scores:
-                    dim_scores[dim] = []
-                dim_scores[dim].append(r.nota_cuantitativa)
+        dim_scores = self._extract_dimension_scores_from_responses(responses)
         
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores) if scores else 0
+            avg = sum(scores) / len(scores)
             if avg < 0.60:
                 recommendations.append(
                     f"Fortalecer Dimensión {dim} ({self._get_dimension_name(dim)}): "
@@ -917,7 +880,19 @@ La implementación de estas mejoras debe priorizarse según:
         
         return recommendations
     
-    def _identify_strengths(self, responses: Dict[str, Any]) -> List[str]:
+    def _get_ods_for_dimension(self, dim_id: str) -> List[str]:
+        """Map dimension to relevant ODS"""
+        mapping = {
+            "D1": ["ODS-16", "ODS-17"],
+            "D2": ["ODS-16", "ODS-17"],
+            "D3": ["ODS-16", "ODS-17"],
+            "D4": ["ODS-16", "ODS-17"],
+            "D5": ["ODS-16", "ODS-17"],
+            "D6": ["ODS-16", "ODS-17"]
+        }
+        return mapping.get(dim_id, ["ODS-16"])
+    
+    def _identify_strengths(self, responses: Dict) -> List[str]:
         """Identifica fortalezas del plan"""
         strengths = []
         
@@ -931,17 +906,10 @@ La implementación de estas mejoras debe priorizarse según:
             )
         
         # Identify strong dimensions
-        dim_scores = {}
-        for qid, r in responses.items():
-            parts = qid.split('-')
-            if len(parts) >= 2:
-                dim = parts[1]
-                if dim not in dim_scores:
-                    dim_scores[dim] = []
-                dim_scores[dim].append(r.nota_cuantitativa)
+        dim_scores = self._extract_dimension_scores_from_responses(responses)
         
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores) if scores else 0
+            avg = sum(scores) / len(scores)
             if avg >= 0.80:
                 strengths.append(
                     f"Dimensión {dim} ({self._get_dimension_name(dim)}) "
@@ -950,7 +918,7 @@ La implementación de estas mejoras debe priorizarse según:
         
         return strengths if strengths else ["Se requiere fortalecimiento general"]
     
-    def _identify_critical_weaknesses(self, responses: Dict[str, Any]) -> List[str]:
+    def _identify_critical_weaknesses(self, responses: Dict) -> List[str]:
         """Identifica debilidades críticas"""
         weaknesses = []
         
@@ -965,17 +933,10 @@ La implementación de estas mejoras debe priorizarse según:
             )
         
         # Identify weak dimensions
-        dim_scores = {}
-        for qid, r in responses.items():
-            parts = qid.split('-')
-            if len(parts) >= 2:
-                dim = parts[1]
-                if dim not in dim_scores:
-                    dim_scores[dim] = []
-                dim_scores[dim].append(r.nota_cuantitativa)
+        dim_scores = self._extract_dimension_scores_from_responses(responses)
         
         for dim, scores in dim_scores.items():
-            avg = sum(scores) / len(scores) if scores else 0
+            avg = sum(scores) / len(scores)
             if avg < 0.50:
                 weaknesses.append(
                     f"Dimensión {dim} ({self._get_dimension_name(dim)}) "
@@ -984,12 +945,13 @@ La implementación de estas mejoras debe priorizarse según:
         
         return weaknesses if weaknesses else ["Sin debilidades críticas identificadas"]
     
-    def _generate_macro_markdown(self, macro_report: Dict[str, Any], policy_code: str):
-        """Genera versión Markdown del reporte macro"""
+    def _generate_macro_markdown(self, macro_report: Dict, policy_code: str):
+        """Genera versión Markdown del reporte macro con SMART recommendations"""
         md_content = f"""# Reporte Macro - Evaluación de Plan de Desarrollo
 ## {policy_code}
 
-**Fecha de Generación:** {macro_report['metadata']['generated_at']}
+**Fecha de Generación:** {macro_report['metadata']['generated_at']}  
+**SMART Recommendations Enabled:** {macro_report['metadata'].get('smart_recommendations_enabled', False)}
 
 ---
 
@@ -1014,11 +976,62 @@ La implementación de estas mejoras debe priorizarse según:
 
 ---
 
-## Recomendaciones Prioritarias
+## Recomendaciones Prioritarias (SMART)
 
 """
-        for i, rec in enumerate(macro_report['recomendaciones_prioritarias'], 1):
-            md_content += f"{i}. {rec}\n"
+        
+        # Handle SMART recommendations
+        if SMART_AVAILABLE and 'recomendaciones_summary' in macro_report:
+            for i, rec_summary in enumerate(macro_report['recomendaciones_summary'], 1):
+                md_content += f"{i}. {rec_summary}\n"
+            
+            # Add detailed SMART recommendations if available
+            if isinstance(macro_report['recomendaciones_prioritarias'], list) and \
+               macro_report['recomendaciones_prioritarias'] and \
+               isinstance(macro_report['recomendaciones_prioritarias'][0], dict):
+                
+                md_content += "\n### Detalle de Recomendaciones SMART\n\n"
+                
+                for rec_data in macro_report['recomendaciones_prioritarias']:
+                    md_content += f"""
+#### {rec_data['title']} (Prioridad: {rec_data['priority']})
+
+**ID:** {rec_data['id']}  
+**Score AHP:** {rec_data['scoring']['ahp_total']}/10  
+**Impacto Esperado:** {rec_data['impact_level']}
+
+**Criterios SMART:**
+- **Específico:** {rec_data['smart_criteria']['specific']}
+- **Medible:** {rec_data['smart_criteria']['measurable']}
+- **Alcanzable:** {rec_data['smart_criteria']['achievable']}
+- **Relevante:** {rec_data['smart_criteria']['relevant']}
+- **Temporal:** {rec_data['smart_criteria']['time_bound']}
+
+**Métricas de Éxito:**
+"""
+                    for metric in rec_data['success_metrics']:
+                        md_content += f"""
+- **{metric['name']}**: {metric['description']}
+  - Línea Base: {metric['baseline']} {metric['unit']}
+  - Meta: {metric['target']} {metric['unit']}
+  - Cambio Esperado: {metric['expected_change_percent']:+.1f}%
+"""
+                    
+                    if rec_data.get('dependencies'):
+                        md_content += "\n**Dependencias:**\n"
+                        for dep in rec_data['dependencies']:
+                            md_content += f"- Depende de: {dep['depends_on']} ({dep['dependency_type']})\n"
+                    
+                    md_content += f"""
+**Duración Estimada:** {rec_data['timeline']['estimated_duration_months']} meses  
+**Entidad Responsable:** {rec_data['responsible_entity']}
+
+---
+"""
+        else:
+            # Fallback for simple recommendations
+            for i, rec in enumerate(macro_report['recomendaciones_prioritarias'], 1):
+                md_content += f"{i}. {rec}\n"
         
         md_content += f"""
 ---
@@ -1038,17 +1051,65 @@ La implementación de estas mejoras debe priorizarse según:
         for weakness in macro_report['debilidades_criticas']:
             md_content += f"- ⚠️ {weakness}\n"
         
+        # Add narrative coherence validation
+        if 'coherencia_narrativa' in macro_report:
+            coherence = macro_report['coherencia_narrativa']
+            md_content += f"""
+---
+
+## Validación de Coherencia Narrativa
+
+**Estado:** {'✓ COHERENTE' if coherence['is_coherent'] else '⚠️ INCONSISTENCIAS DETECTADAS'}
+
+"""
+            if coherence['warnings']:
+                md_content += "**Advertencias:**\n"
+                for warning in coherence['warnings']:
+                    md_content += f"- {warning}\n"
+                md_content += "\n"
+            
+            # Score consistency
+            if 'score_consistency' in coherence['validations']:
+                sc = coherence['validations']['score_consistency']
+                md_content += f"""**Consistencia de Score:**
+- Esperado (promedio): {sc['expected']:.3f}
+- Actual: {sc['actual']:.3f}
+- Diferencia: {sc['difference']:.3f}
+- Estado: {'✓ PASS' if sc['passed'] else '✗ FAIL'}
+
+"""
+            
+            # Distribution
+            if 'distribution' in coherence['validations']:
+                dist = coherence['validations']['distribution']
+                md_content += f"""**Distribución de Respuestas:**
+- Excelente (≥0.85): {dist['excelente']} ({dist['excelente']/dist['total']*100:.1f}%)
+- Bueno (0.70-0.85): {dist['bueno']} ({dist['bueno']/dist['total']*100:.1f}%)
+- Aceptable (0.55-0.70): {dist['aceptable']} ({dist['aceptable']/dist['total']*100:.1f}%)
+- Insuficiente (<0.55): {dist['insuficiente']} ({dist['insuficiente']/dist['total']*100:.1f}%)
+
+"""
+        
+        # Add roadmap reference if available
+        if 'roadmap_file' in macro_report:
+            md_content += f"""
+---
+
+## Roadmap de Implementación
+
+Ver archivo de roadmap detallado: `{macro_report['roadmap_file']}`
+
+"""
+        
         md_content += """
 ---
 
-*Generado por FARFAN 2.0 - Framework Avanzado de Reconstrucción y Análisis de Formulaciones de Acción Nacional*
+*Generado por FARFAN 2.0 - Framework Avanzado de Reconstrucción y Análisis de Formulaciones de Acción Nacional*  
+*Con calidad doctoral, precisión causal y coherencia narrativa total*
 """
         
         output_file = self.output_dir / f"macro_report_{policy_code}.md"
-        try:
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(md_content)
-            logger.info(f"✓ Reporte MACRO (Markdown) guardado: {output_file}")
-        except Exception as e:
-            logger.error(f"Error guardando reporte MACRO Markdown: {e}")
-            # Continue - markdown is supplementary to JSON
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+        
+        logger.info(f"✓ Reporte MACRO (Markdown) guardado: {output_file}")
