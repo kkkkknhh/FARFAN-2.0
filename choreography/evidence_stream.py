@@ -269,7 +269,7 @@ class StreamingBayesianUpdater:
     - Real-time feedback on analysis progress
     - Early stopping if strong evidence is found
     - Publishing of intermediate results for monitoring
-    
+
     Memory Footprint Analysis:
     - Streaming mode: O(1) memory - processes one chunk at a time
     - Batch mode alternative: O(n) memory - loads all chunks
@@ -284,7 +284,7 @@ class StreamingBayesianUpdater:
         - θ: mechanism parameters
         - Dᵢ: evidence chunk i
         - Each chunk updates the posterior, which becomes the prior for next chunk
-    
+
     SIN_CARRETA Compliance:
     - Deterministic updates with fixed random seed
     - Contract validation on all inputs
@@ -319,7 +319,9 @@ class StreamingBayesianUpdater:
         self.track_memory = track_memory
         self._memory_snapshots: List[Dict[str, float]] = []
         self._peak_memory_mb = 0.0
-        logger.info("StreamingBayesianUpdater initialized (memory_tracking=%s)", track_memory)
+        logger.info(
+            "StreamingBayesianUpdater initialized (memory_tracking=%s)", track_memory
+        )
 
     async def update_from_stream(
         self,
@@ -373,7 +375,7 @@ class StreamingBayesianUpdater:
         logger.info(f"Starting streaming Bayesian update for '{prior.mechanism_name}'")
 
         evidence_count = 0
-        
+
         # Track memory if enabled
         if self.track_memory:
             self._track_memory_snapshot("start")
@@ -418,7 +420,7 @@ class StreamingBayesianUpdater:
             f"Streaming update complete: {evidence_count} relevant chunks processed, "
             f"final mean={current_posterior.posterior_mean:.3f}"
         )
-        
+
         # Log memory statistics
         if self.track_memory:
             self._track_memory_snapshot("end")
@@ -545,55 +547,53 @@ class StreamingBayesianUpdater:
             posterior_std=posterior_std,
             evidence_count=current_posterior.evidence_count,
         )
-    
+
     def _track_memory_snapshot(self, label: str):
         """
         Track memory usage at specific point.
-        
+
         SIN_CARRETA Compliance:
         - Deterministic memory tracking
         - Immutable snapshots for audit trail
         """
         try:
-            import psutil
             import os
-            
+
+            import psutil
+
             process = psutil.Process(os.getpid())
             memory_mb = process.memory_info().rss / 1024 / 1024
-            
-            self._memory_snapshots.append({
-                'label': label,
-                'memory_mb': memory_mb,
-                'update_count': self.update_count
-            })
-            
+
+            self._memory_snapshots.append(
+                {
+                    "label": label,
+                    "memory_mb": memory_mb,
+                    "update_count": self.update_count,
+                }
+            )
+
             if memory_mb > self._peak_memory_mb:
                 self._peak_memory_mb = memory_mb
-                
+
         except ImportError:
             # psutil not available - skip tracking
             pass
-    
+
     def get_memory_stats(self) -> Dict[str, Any]:
         """
         Get memory usage statistics.
-        
+
         Returns:
             Dictionary with peak_mb, avg_mb, samples, and snapshots
         """
         if not self._memory_snapshots:
-            return {
-                'peak_mb': 0.0,
-                'avg_mb': 0.0,
-                'samples': 0,
-                'snapshots': []
-            }
-        
-        memory_values = [s['memory_mb'] for s in self._memory_snapshots]
-        
+            return {"peak_mb": 0.0, "avg_mb": 0.0, "samples": 0, "snapshots": []}
+
+        memory_values = [s["memory_mb"] for s in self._memory_snapshots]
+
         return {
-            'peak_mb': self._peak_memory_mb,
-            'avg_mb': sum(memory_values) / len(memory_values),
-            'samples': len(memory_values),
-            'snapshots': self._memory_snapshots
+            "peak_mb": self._peak_memory_mb,
+            "avg_mb": sum(memory_values) / len(memory_values),
+            "samples": len(memory_values),
+            "snapshots": self._memory_snapshots,
         }

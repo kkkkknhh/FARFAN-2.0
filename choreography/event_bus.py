@@ -108,7 +108,7 @@ class EventBus:
     def __init__(self, enable_persistence: bool = True, storm_threshold: int = 100):
         """
         Initialize the event bus with empty subscribers and event log.
-        
+
         Args:
             enable_persistence: Enable event log persistence to disk
             storm_threshold: Max events per second before storm detection triggers
@@ -117,14 +117,19 @@ class EventBus:
         self.event_log: List[PDMEvent] = []
         self._lock = asyncio.Lock()
         self._sequence_number = 0
-        self._event_counts: Dict[str, List[float]] = defaultdict(list)  # Track event timestamps
+        self._event_counts: Dict[str, List[float]] = defaultdict(
+            list
+        )  # Track event timestamps
         self._enable_persistence = enable_persistence
         self._storm_threshold = storm_threshold
         self._circuit_breaker_active = False
         self._failed_handler_count: Dict[str, int] = defaultdict(int)
         self._max_handler_failures = 3
-        logger.info("EventBus initialized (persistence=%s, storm_threshold=%d)", 
-                   enable_persistence, storm_threshold)
+        logger.info(
+            "EventBus initialized (persistence=%s, storm_threshold=%d)",
+            enable_persistence,
+            storm_threshold,
+        )
 
     def subscribe(self, event_type: str, handler: Callable) -> None:
         """
@@ -213,9 +218,7 @@ class EventBus:
         """
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                handler_name = (
-                    handlers[i].__name__ if i < len(handlers) else "unknown"
-                )
+                handler_name = handlers[i].__name__ if i < len(handlers) else "unknown"
                 logger.error(
                     f"Handler {handler_name} raised exception: {result}",
                     exc_info=result,
@@ -257,18 +260,18 @@ class EventBus:
                 f"due to excessive handler failures. Manual intervention required."
             )
             raise RuntimeError("Circuit breaker active - event bus suspended")
-        
+
         # Event storm detection
         await self._check_event_storm(event.event_type)
-        
+
         async with self._lock:
             self._sequence_number += 1
             # Add sequence number to payload for determinism
-            if 'sequence_number' not in event.payload:
-                event.payload['_sequence_number'] = self._sequence_number
-            
+            if "sequence_number" not in event.payload:
+                event.payload["_sequence_number"] = self._sequence_number
+
             self.event_log.append(event)
-            
+
             # Persist event if enabled
             if self._enable_persistence:
                 await self._persist_event(event)
@@ -294,14 +297,18 @@ class EventBus:
                     f"Skipping handler {handler.__name__} - exceeded failure threshold"
                 )
                 continue
-            
+
             try:
                 # Support both sync and async handlers with tracking
                 if asyncio.iscoroutinefunction(handler):
-                    tasks.append(self._execute_handler_with_tracking(handler, event, handler_key))
+                    tasks.append(
+                        self._execute_handler_with_tracking(handler, event, handler_key)
+                    )
                 else:
                     tasks.append(
-                        self._execute_sync_handler_with_tracking(handler, event, handler_key)
+                        self._execute_sync_handler_with_tracking(
+                            handler, event, handler_key
+                        )
                     )
             except Exception as e:
                 logger.error(
@@ -324,7 +331,7 @@ class EventBus:
                         exc_info=result,
                     )
                     failure_count += 1
-            
+
             # Activate circuit breaker if too many failures
             if failure_count >= len(handlers) * 0.5:  # 50% failure rate
                 logger.critical(
@@ -332,8 +339,10 @@ class EventBus:
                     f"handlers failed for event {event.event_type}"
                 )
                 self._circuit_breaker_active = True
-    
-    async def _execute_handler_with_tracking(self, handler: Callable, event: PDMEvent, handler_key: str):
+
+    async def _execute_handler_with_tracking(
+        self, handler: Callable, event: PDMEvent, handler_key: str
+    ):
         """Execute async handler with failure tracking"""
         try:
             await handler(event)
@@ -346,11 +355,15 @@ class EventBus:
                 f"Handler {handler.__name__} failed ({self._failed_handler_count[handler_key]}/{self._max_handler_failures}): {e}"
             )
             raise
-    
-    async def _execute_sync_handler_with_tracking(self, handler: Callable, event: PDMEvent, handler_key: str):
+
+    async def _execute_sync_handler_with_tracking(
+        self, handler: Callable, event: PDMEvent, handler_key: str
+    ):
         """Execute sync handler with failure tracking"""
         try:
-            result = await asyncio.get_event_loop().run_in_executor(None, handler, event)
+            result = await asyncio.get_event_loop().run_in_executor(
+                None, handler, event
+            )
             # Reset failure count on success
             if handler_key in self._failed_handler_count:
                 self._failed_handler_count[handler_key] = 0
@@ -361,27 +374,27 @@ class EventBus:
                 f"Sync handler {handler.__name__} failed ({self._failed_handler_count[handler_key]}/{self._max_handler_failures}): {e}"
             )
             raise
-    
+
     async def _check_event_storm(self, event_type: str):
         """
         Check for event storm conditions.
-        
+
         SIN_CARRETA Compliance:
         - Deterministic storm detection based on event rate
         - Hard failure on storm detection to prevent cascading issues
         """
         import time
+
         current_time = time.time()
-        
+
         # Clean old timestamps (older than 1 second)
         self._event_counts[event_type] = [
-            ts for ts in self._event_counts[event_type] 
-            if current_time - ts < 1.0
+            ts for ts in self._event_counts[event_type] if current_time - ts < 1.0
         ]
-        
+
         # Add current event
         self._event_counts[event_type].append(current_time)
-        
+
         # Check if storm threshold exceeded
         if len(self._event_counts[event_type]) > self._storm_threshold:
             logger.error(
@@ -393,11 +406,11 @@ class EventBus:
                 f"Event storm detected for {event_type} - "
                 f"exceeded {self._storm_threshold} events/second"
             )
-    
+
     async def _persist_event(self, event: PDMEvent):
         """
         Persist event to audit trail.
-        
+
         SIN_CARRETA Compliance:
         - Deterministic serialization for replay
         - Immutable audit trail
@@ -442,11 +455,11 @@ class EventBus:
         """Clear the event log. Useful for testing or memory management."""
         self.event_log.clear()
         logger.debug("Event log cleared")
-    
+
     def reset_circuit_breaker(self) -> None:
         """
         Reset circuit breaker after manual intervention.
-        
+
         SIN_CARRETA Compliance:
         - Requires explicit manual reset for safety
         - Logs reset action to audit trail
@@ -454,14 +467,14 @@ class EventBus:
         self._circuit_breaker_active = False
         self._failed_handler_count.clear()
         logger.warning("Circuit breaker manually reset - event bus reactivated")
-    
+
     def get_circuit_breaker_status(self) -> Dict[str, Any]:
         """Get circuit breaker status and failure counts"""
         return {
-            'active': self._circuit_breaker_active,
-            'failed_handlers': dict(self._failed_handler_count),
-            'total_events': len(self.event_log),
-            'sequence_number': self._sequence_number
+            "active": self._circuit_breaker_active,
+            "failed_handlers": dict(self._failed_handler_count),
+            "total_events": len(self.event_log),
+            "sequence_number": self._sequence_number,
         }
 
 
@@ -531,20 +544,21 @@ class ContradictionDetectorV2:
             event: Event containing edge data in payload
         """
         # Contract validation
-        assert event.event_type == "graph.edge_added", \
+        assert event.event_type == "graph.edge_added", (
             f"Expected graph.edge_added, got {event.event_type}"
-        
+        )
+
         edge_data = event.payload
-        
+
         # Validate required fields
-        required_fields = ['source', 'target']
+        required_fields = ["source", "target"]
         for field in required_fields:
             if field not in edge_data:
                 logger.error(
                     f"CONTRACT_VIOLATION: graph.edge_added missing required field '{field}'"
                 )
                 return
-        
+
         logger.debug(
             f"Checking edge: {edge_data.get('source')} -> {edge_data.get('target')}"
         )
@@ -557,7 +571,7 @@ class ContradictionDetectorV2:
                     "severity": "high",
                     "type": "causal_inconsistency",
                     "timestamp": datetime.utcnow().isoformat(),
-                    "sequence_number": edge_data.get('_sequence_number', -1)
+                    "sequence_number": edge_data.get("_sequence_number", -1),
                 }
 
                 self.detected_contradictions.append(contradiction)
@@ -579,47 +593,48 @@ class ContradictionDetectorV2:
             logger.error(
                 f"Error in contradiction detection for edge {edge_data.get('source')} -> "
                 f"{edge_data.get('target')}: {e}",
-                exc_info=True
+                exc_info=True,
             )
             # Do not re-raise to prevent handler failure cascade
-    
+
     async def on_node_added(self, event: PDMEvent) -> None:
         """
         React to new node in the graph.
-        
+
         Validates node schema and checks for duplicates.
-        
+
         SIN_CARRETA Compliance:
         - Contract validation on input event
         - Schema validation for node data
-        
+
         Args:
             event: Event containing node data in payload
         """
         # Contract validation
-        assert event.event_type == "graph.node_added", \
+        assert event.event_type == "graph.node_added", (
             f"Expected graph.node_added, got {event.event_type}"
-        
+        )
+
         node_data = event.payload
-        
+
         # Validate required fields
-        if 'node_id' not in node_data:
+        if "node_id" not in node_data:
             logger.error(
                 "CONTRACT_VIOLATION: graph.node_added missing required field 'node_id'"
             )
             return
-        
-        node_id = node_data.get('node_id')
+
+        node_id = node_data.get("node_id")
         logger.debug(f"Validating node: {node_id}")
-        
+
         # Schema validation
-        expected_fields = ['node_id', 'node_type']
+        expected_fields = ["node_id", "node_type"]
         for field in expected_fields:
             if field not in node_data:
                 logger.warning(
                     f"SCHEMA_WARNING: Node {node_id} missing recommended field '{field}'"
                 )
-        
+
         # Check for duplicate nodes (placeholder - would track in actual implementation)
         logger.debug(f"Node {node_id} validated successfully")
 
