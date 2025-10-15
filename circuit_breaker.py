@@ -19,6 +19,9 @@ from typing import Any, Callable, List, Optional
 
 logger = logging.getLogger("circuit_breaker")
 
+# Module-level constants
+CIRCUIT_BREAKER_OPEN = 'Circuit breaker is OPEN'
+
 
 class CircuitState(Enum):
     """Estados del circuit breaker"""
@@ -106,7 +109,7 @@ class CircuitBreaker:
                 )
             else:
                 raise CircuitBreakerError(
-                    f"CircuitBreaker '{self.name}' is OPEN. "
+                    f"CircuitBreaker '{self.name}' {CIRCUIT_BREAKER_OPEN}. "
                     f"Opened {(datetime.now() - self.opened_at).seconds}s ago. "
                     f"Will retry in {self.config.timeout - (datetime.now() - self.opened_at).total_seconds():.1f}s"
                 )

@@ -28,6 +28,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Module-level constants
+CLOUD_BACKUP_DISABLED = 'Cloud backup not enabled'
+
 
 class CheckpointVersion:
     """Checkpoint format version for backward compatibility"""
@@ -644,7 +647,7 @@ class PipelineCheckpoint:
             checkpoint_ids: List of checkpoint IDs to sync (None = sync all)
         """
         if not self.cloud_backup_config.enabled:
-            logger.warning("Cloud backup not enabled")
+            logger.warning(CLOUD_BACKUP_DISABLED)
             return
 
         if checkpoint_ids is None:
@@ -666,7 +669,7 @@ class PipelineCheckpoint:
             Restored state dictionary
         """
         if not self.cloud_backup_config.enabled:
-            raise RuntimeError("Cloud backup not enabled")
+            raise RuntimeError(CLOUD_BACKUP_DISABLED)
 
         logger.info(f"Restoring checkpoint from cloud (stub): {checkpoint_id}")
 
@@ -689,7 +692,7 @@ class PipelineCheckpoint:
             List of checkpoint IDs in cloud storage
         """
         if not self.cloud_backup_config.enabled:
-            raise RuntimeError("Cloud backup not enabled")
+            raise RuntimeError(CLOUD_BACKUP_DISABLED)
 
         logger.info("Listing cloud checkpoints (stub)")
 

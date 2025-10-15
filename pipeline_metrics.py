@@ -20,6 +20,9 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("pipeline_metrics")
 
+# Module-level constants
+NO_ACTIVE_EXECUTION = 'No hay ejecución activa'
+
 
 class AlertLevel(Enum):
     """Niveles de alerta"""
@@ -112,7 +115,7 @@ class PipelineMetrics:
     def start_stage(self, stage_name: str):
         """Inicia tracking de una etapa"""
         if not self.current_trace:
-            raise RuntimeError("No hay ejecución activa")
+            raise RuntimeError(NO_ACTIVE_EXECUTION)
 
         self.current_stage = StageMetrics(
             stage_name=stage_name, start_time=datetime.now()
@@ -189,7 +192,7 @@ class PipelineMetrics:
     ):
         """Emite una alerta"""
         if not self.current_trace:
-            raise RuntimeError("No hay ejecución activa")
+            raise RuntimeError(NO_ACTIVE_EXECUTION)
 
         alert = Alert(level=level, message=message, context=context or {})
 
@@ -210,7 +213,7 @@ class PipelineMetrics:
     def end_execution(self, success: bool):
         """Finaliza tracking de ejecución"""
         if not self.current_trace:
-            raise RuntimeError("No hay ejecución activa")
+            raise RuntimeError(NO_ACTIVE_EXECUTION)
 
         self.current_trace.end_time = datetime.now()
         self.current_trace.success = success
@@ -236,7 +239,7 @@ class PipelineMetrics:
             Path al archivo exportado
         """
         if not self.current_trace:
-            raise RuntimeError("No hay ejecución activa")
+            raise RuntimeError(NO_ACTIVE_EXECUTION)
 
         # Collect stats from registries
         if risk_registry:
