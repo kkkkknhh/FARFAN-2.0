@@ -29,3 +29,6 @@ requests>=2.31.0
 # Uncomment if needed:
 # torch>=2.0.0
 # transformers>=4.30.0
+
+# Encryption (optional, for pipeline checkpoints)
+cryptography>=41.0.0

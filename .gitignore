@@ -62,6 +62,13 @@ prior_history.json
 
 # Pipeline artifacts (checkpoints, metrics, traces)
 checkpoints/
+checkpoints_*/
+*_checkpoints/
 metrics/
 *.pkl
 *_trace_*.json
+*.ckpt
+*.ckpt.gz
+checkpoint_index.json
+encryption.key
+*.key
