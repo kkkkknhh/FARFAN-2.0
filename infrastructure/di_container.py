@@ -187,6 +187,60 @@ class DIContainer:
 
         return instance
 
+    def _get_constructor_params(self, cls: Type) -> Dict[str, inspect.Parameter]:
+        """
+        Inspect and collect constructor parameters.
+
+        Args:
+            cls: Class to inspect
+
+        Returns:
+            Dictionary of parameter names to Parameter objects
+
+        Raises:
+            ValueError: If constructor signature cannot be inspected
+        """
+        try:
+            sig = inspect.signature(cls.__init__)
+            return {
+                name: param
+                for name, param in sig.parameters.items()
+                if name != "self"
+            }
+        except (ValueError, AttributeError) as e:
+            raise ValueError(f"Cannot inspect constructor for {cls}") from e
+
+    def _resolve_parameter(self, param_name: str, param: inspect.Parameter) -> tuple[bool, Any]:
+        """
+        Resolve a single constructor parameter.
+
+        Args:
+            param_name: Name of the parameter
+            param: Parameter object from signature inspection
+
+        Returns:
+            Tuple of (should_include, resolved_value)
+        """
+        # Check if parameter type is registered
+        if (
+            param.annotation != inspect.Parameter.empty
+            and param.annotation in self._registry
+        ):
+            logger.debug(
+                f"Resolving dependency: {param_name} -> {param.annotation.__name__}"
+            )
+            return (True, self.resolve(param.annotation))
+
+        # If parameter has default, skip it
+        if param.default != inspect.Parameter.empty:
+            return (False, None)
+
+        # If it's the config parameter, inject our config
+        if param_name == "config" and self.config is not None:
+            return (True, self.config)
+
+        return (False, None)
+
     def _instantiate_with_deps(self, cls: Type | Callable) -> Any:
         """
         Instantiate a class with automatic dependency resolution.
@@ -205,37 +259,20 @@ class DIContainer:
             logger.debug(f"Calling factory function: {cls}")
             return cls()
 
-        # Get constructor signature
+        # Get constructor parameters
         try:
-            sig = inspect.signature(cls.__init__)
-        except (ValueError, AttributeError):
+            params = self._get_constructor_params(cls)
+        except ValueError:
             # No __init__ or can't inspect, try to instantiate directly
             logger.debug(f"No inspectable __init__, instantiating directly: {cls}")
             return cls()
 
         # Resolve dependencies
         kwargs = {}
-        for param_name, param in sig.parameters.items():
-            if param_name == "self":
-                continue
-
-            # Check if parameter type is registered
-            if (
-                param.annotation != inspect.Parameter.empty
-                and param.annotation in self._registry
-            ):
-                logger.debug(
-                    f"Resolving dependency: {param_name} -> {param.annotation.__name__}"
-                )
-                kwargs[param_name] = self.resolve(param.annotation)
-
-            # If parameter has default, skip it
-            elif param.default != inspect.Parameter.empty:
-                continue
-
-            # If it's the config parameter, inject our config
-            elif param_name == "config" and self.config is not None:
-                kwargs["config"] = self.config
+        for param_name, param in params.items():
+            should_include, value = self._resolve_parameter(param_name, param)
+            if should_include:
+                kwargs[param_name] = value
 
         logger.debug(
             f"Instantiating {cls.__name__} with dependencies: {list(kwargs.keys())}"
