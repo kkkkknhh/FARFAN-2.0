@@ -1,0 +1,183 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    F1.2 BAYESIAN ENGINE ARCHITECTURE                         ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           BEFORE REFACTORING                                 │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │         BayesianMechanismInference (MONOLITHIC)                    │    │
+│  │                                                                     │    │
+│  │  - Prior construction logic                                        │    │
+│  │  - MCMC sampling logic                                             │    │
+│  │  - Necessity testing logic                                         │    │
+│  │  - Type inference                                                  │    │
+│  │  - Coherence calculation                                           │    │
+│  │  - Gap detection                                                   │    │
+│  │                                                                     │    │
+│  │  ❌ Mixed responsibilities                                         │    │
+│  │  ❌ Hard to test                                                   │    │
+│  │  ❌ Tight coupling                                                 │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+                                      ↓
+                              REFACTORING F1.2
+                                      ↓
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           AFTER REFACTORING                                  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐        │
+│  │  BayesianPriorBuilder (AGUJA I)                                 │        │
+│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │        │
+│  │  Responsibility: Build adaptive priors                          │        │
+│  │                                                                 │        │
+│  │  Methods:                                                       │        │
+│  │  • build_mechanism_prior()                                     │        │
+│  │  • _apply_independence_proxy()        [Front B.3]             │        │
+│  │  • _validate_mechanism_type_coherence() [Front C.2]           │        │
+│  │  • _calculate_semantic_distance()                             │        │
+│  │  • _compute_beta_params()                                     │        │
+│  │                                                                 │        │
+│  │  ✓ Single responsibility                                       │        │
+│  │  ✓ Easy to test                                               │        │
+│  │  ✓ Front compliant                                            │        │
+│  └─────────────────────────────────────────────────────────────────┘        │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐        │
+│  │  BayesianSamplingEngine (AGUJA II)                              │        │
+│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │        │
+│  │  Responsibility: Execute MCMC sampling                          │        │
+│  │                                                                 │        │
+│  │  Methods:                                                       │        │
+│  │  • sample_mechanism_posterior()                                │        │
+│  │  • _similarity_to_probability()       [Front B.2]             │        │
+│  │  • _check_convergence_simple()                                │        │
+│  │  • _extract_hdi()                                             │        │
+│  │  • _initialize_rng_complete()                                 │        │
+│  │                                                                 │        │
+│  │  ✓ Reproducible                                               │        │
+│  │  ✓ Observable                                                 │        │
+│  │  ✓ Calibrated                                                 │        │
+│  └─────────────────────────────────────────────────────────────────┘        │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐        │
+│  │  NecessitySufficiencyTester (AGUJA III)                         │        │
+│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │        │
+│  │  Responsibility: Execute deterministic Hoop Tests               │        │
+│  │                                                                 │        │
+│  │  Methods:                                                       │        │
+│  │  • test_necessity()                   [Front C.3]             │        │
+│  │  • test_sufficiency()                                         │        │
+│  │  • _generate_hoop_failure_text()                              │        │
+│  │  • _generate_sufficiency_failure_text()                       │        │
+│  │                                                                 │        │
+│  │  ✓ Deterministic                                              │        │
+│  │  ✓ Clear failure modes                                        │        │
+│  │  ✓ Actionable remediation                                     │        │
+│  └─────────────────────────────────────────────────────────────────┘        │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐        │
+│  │  BayesianEngineAdapter                                          │        │
+│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │        │
+│  │  Responsibility: Integration & backward compatibility           │        │
+│  │                                                                 │        │
+│  │  Methods:                                                       │        │
+│  │  • test_necessity_from_observations()                          │        │
+│  │  • build_prior_from_node()                                     │        │
+│  │  • get_component_status()                                      │        │
+│  │                                                                 │        │
+│  │  ✓ Zero breaking changes                                       │        │
+│  │  ✓ Gradual migration                                           │        │
+│  └─────────────────────────────────────────────────────────────────┘        │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              DATA FLOW                                       │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Input: CausalLink + MechanismEvidence + Context                            │
+│     │                                                                        │
+│     ├─────► BayesianPriorBuilder.build_mechanism_prior()                    │
+│     │           │                                                            │
+│     │           ├─► Semantic distance                                       │
+│     │           ├─► Type transition prior                                   │
+│     │           ├─► Independence proxy [B.3]                                │
+│     │           └─► Type coherence [C.2]                                    │
+│     │           │                                                            │
+│     │           └──────► MechanismPrior (alpha, beta)                       │
+│     │                        │                                               │
+│     │                        │                                               │
+│     ├─────► BayesianSamplingEngine.sample_mechanism_posterior()             │
+│     │           │                                                            │
+│     │           ├─► Calibrated likelihood [B.2]                             │
+│     │           ├─► Beta-Binomial conjugate update                          │
+│     │           ├─► Convergence check                                       │
+│     │           └─► HDI extraction                                          │
+│     │           │                                                            │
+│     │           └──────► PosteriorDistribution                              │
+│     │                                                                        │
+│     │                                                                        │
+│     └─────► NecessitySufficiencyTester.test_necessity()                     │
+│                 │                                                            │
+│                 ├─► Check entity presence                                   │
+│                 ├─► Check activity sequence                                 │
+│                 ├─► Check budget allocation                                 │
+│                 ├─► Check timeline [C.3]                                    │
+│                 │                                                            │
+│                 └──────► NecessityTestResult                                │
+│                                                                              │
+│  Output: Prior + Posterior + Necessity Result                               │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          TESTING ARCHITECTURE                                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  test_bayesian_engine.py                                                     │
+│  ├─► TestBayesianPriorBuilder (8 tests)                                     │
+│  │   ├─ test_builder_initialization()                                       │
+│  │   ├─ test_build_mechanism_prior()                                        │
+│  │   ├─ test_semantic_distance_calculation()                                │
+│  │   └─ ...                                                                  │
+│  │                                                                           │
+│  ├─► TestBayesianSamplingEngine (6 tests)                                   │
+│  │   ├─ test_sample_mechanism_posterior_with_evidence()                     │
+│  │   ├─ test_reproducibility()                                              │
+│  │   ├─ test_hdi_extraction()                                               │
+│  │   └─ ...                                                                  │
+│  │                                                                           │
+│  ├─► TestNecessitySufficiencyTester (6 tests)                               │
+│  │   ├─ test_necessity_test_pass()                                          │
+│  │   ├─ test_necessity_test_fail()                                          │
+│  │   ├─ test_sufficiency_test_pass()                                        │
+│  │   └─ ...                                                                  │
+│  │                                                                           │
+│  └─► TestDataStructures (4 tests)                                           │
+│      ├─ test_mechanism_prior_validation()                                   │
+│      └─ ...                                                                  │
+│                                                                              │
+│  Total: 24 tests, 100% component coverage                                   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            KEY BENEFITS                                      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ✓ Separation of Concerns    Each class has ONE responsibility              │
+│  ✓ Testability               24 unit tests, easy to mock                    │
+│  ✓ Front Compliance          B.2, B.3, C.2, C.3 explicitly implemented      │
+│  ✓ Backward Compatibility    Zero breaking changes                          │
+│  ✓ Maintainability          Independent evolution of components             │
+│  ✓ Extensibility            Easy to add strategies, swap implementations    │
+│  ✓ Observability            Metrics, logging, diagnostics                   │
+│  ✓ Documentation            3 comprehensive docs + demo                     │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
