@@ -1,12 +1,12 @@
 # Core Dependencies
 numpy>=1.24.0
-scipy>=1.10.0
+scipy>=1.11.0
 pandas>=2.0.0
-networkx>=3.0
+networkx>=3.1
 pydantic>=2.0.0
 
 # NLP
-spacy>=3.5.0
+spacy>=3.7.0
 es-core-news-lg @ https://github.com/explosion/spacy-models/releases/download/es_core_news_lg-3.5.0/es_core_news_lg-3.5.0-py3-none-any.whl
 
 # Document Processing
@@ -23,6 +23,7 @@ pytest-asyncio>=0.21.0
 
 # Utilities
 python-dateutil>=2.8.2
+requests>=2.31.0
 
 # Optional: ML/Transformers (used in semantic_chunking_policy.py)
 # Uncomment if needed:
