@@ -579,8 +579,6 @@ class IndustrialPolicyProcessor:
         if not relevant_sentences:
             return {}
 
-        contextual_text = " ".join(relevant_sentences)
-
         # Search for dimensional evidence within relevant context
         evidence_by_dimension = {}
         for dimension, categories in self._pattern_registry.items():

@@ -846,7 +846,7 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # --- Comando: industrial-check ---
-    parser_industrial = subparsers.add_parser(
+    subparsers.add_parser(
         "industrial-check",
         help="Ejecuta la suite de certificación industrial sobre los motores de validación.",
     )
