@@ -184,9 +184,22 @@ Returns:
         }
 
         strength = 0.0
+        effect_text = effect.text.lower()
+        enriched_entities = [
+            entity
+            for entity in cause.entities
+            if isinstance(entity, dict) and entity.get('text')
+        ]
         for marker, weight in causal_markers.items():
             if marker in cause.text.lower():
-                if any(entity in effect.text for entity in cause.entities):
+                if any(
+                    entity['text'].lower() in effect_text
+                    or any(
+                        synonym in effect_text
+                        for synonym in entity.get('synonyms', [])
+                    )
+                    for entity in enriched_entities
+                ):
                     strength = max(strength, weight)
 
         temporal_ordering = self._check_temporal_precedence(cause, effect)
@@ -204,8 +217,16 @@ Returns:
         if not cause.temporal_markers or not effect.temporal_markers:
             return False
 
-        cause_timestamps = [m.get('timestamp') for m in cause.temporal_markers if m.get('timestamp') is not None]
-        effect_timestamps = [m.get('timestamp') for m in effect.temporal_markers if m.get('timestamp') is not None]
+        cause_timestamps = [
+            float(ts)
+            for ts in (marker.get('timestamp') for marker in cause.temporal_markers)
+            if isinstance(ts, (int, float))
+        ]
+        effect_timestamps = [
+            float(ts)
+            for ts in (marker.get('timestamp') for marker in effect.temporal_markers)
+            if isinstance(ts, (int, float))
+        ]
         cause_time = min(cause_timestamps) if cause_timestamps else float('inf')
         effect_time = min(effect_timestamps) if effect_timestamps else float('inf')
 
