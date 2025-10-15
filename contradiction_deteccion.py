@@ -51,6 +51,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Module-level constants
+YEAR_PATTERN_REGEX = r'20(\d{2})'
+NINGUN_LITERAL = 'ningún'
+
 
 class ContradictionType(Enum):
     """Taxonomía exhaustiva según análisis empírico de PDMs colombianos"""
@@ -303,7 +307,7 @@ Returns:
         """Parsea intervalo temporal con granularidad fina"""
         text = marker.get('text', '')
 
-        year_match = re.search(r'20(\d{2})', text)
+        year_match = re.search(YEAR_PATTERN_REGEX, text)
         if year_match:
             year = 2000 + int(year_match.group(1))
 
@@ -412,7 +416,7 @@ Returns:
             always_stmt: PolicyStatement
     ) -> bool:
         """Verifica contradicción con restricción 'always'"""
-        negation_patterns = ['no', 'nunca', 'ningún', 'sin', 'excepto', 'salvo']
+        negation_patterns = ['no', 'nunca', NINGUN_LITERAL, 'sin', 'excepto', 'salvo']
 
         has_negation = any(pattern in stmt.text.lower() 
                            for pattern in negation_patterns)
@@ -558,9 +562,9 @@ List of (stmt_a, stmt_b, contradiction_score, attention_weights)
         )
 
         has_negation_a = any(neg in stmt_a.text.lower() 
-                             for neg in ['no', 'nunca', 'ningún'])
+                             for neg in ['no', 'nunca', NINGUN_LITERAL])
         has_negation_b = any(neg in stmt_b.text.lower() 
-                             for neg in ['no', 'nunca', 'ningún'])
+                             for neg in ['no', 'nunca', NINGUN_LITERAL])
 
         negation_factor = 1.5 if has_negation_a != has_negation_b else 1.0
 
@@ -1488,7 +1492,7 @@ Análisis completo con contradicciones y métricas avanzadas
         markers = []
 
         patterns = {
-            'year': r'20(\d{2})',
+            'year': YEAR_PATTERN_REGEX,
             'quarter': r'(?:Q|trimestre\s+)([1-4])',
             'semester': r'(?:semestre\s+|S)([12])',
             'month': r'(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)',
@@ -1511,7 +1515,7 @@ Análisis completo con contradicciones y métricas avanzadas
     def _convert_to_timestamp(self, text: str, marker_type: str) -> Optional[float]:
         """Convierte marcador a timestamp numérico"""
         if marker_type == 'year':
-            year_match = re.search(r'20(\d{2})', text)
+            year_match = re.search(YEAR_PATTERN_REGEX, text)
             if year_match:
                 return 2000.0 + float(year_match.group(1))
 
