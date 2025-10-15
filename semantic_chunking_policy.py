@@ -13,6 +13,7 @@ Design Principles:
 - Production-grade error handling
 - Lazy loading for resource efficiency
 """
+
 from __future__ import annotations
 
 import json
@@ -23,22 +24,31 @@ from enum import Enum
 from typing import Any, Literal
 
 import numpy as np
-from numpy.typing import NDArray
 import scipy.stats as stats
+from numpy.typing import NDArray
 from scipy.spatial.distance import cosine
 from scipy.special import rel_entr
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 logger = logging.getLogger("policy_framework")
 
 # ========================
 # CALIBRATED CONSTANTS (SOTA)
 # ========================
-POSITION_WEIGHT_SCALE: float = 0.42  # Early sections exert stronger evidentiary leverage
+POSITION_WEIGHT_SCALE: float = (
+    0.42  # Early sections exert stronger evidentiary leverage
+)
 TABLE_WEIGHT_FACTOR: float = 1.35  # Tabular content is typically audited data
-NUMERICAL_WEIGHT_FACTOR: float = 1.18  # Numerical narratives reinforce credibility
-PLAN_SECTION_WEIGHT_FACTOR: float = 1.25  # Investment plans anchor execution feasibility
-DIAGNOSTIC_SECTION_WEIGHT_FACTOR: float = 0.92  # Diagnostics contextualize but do not commit resources
+# Numerical narratives reinforce credibility
+NUMERICAL_WEIGHT_FACTOR: float = 1.18
+PLAN_SECTION_WEIGHT_FACTOR: float = (
+    1.25  # Investment plans anchor execution feasibility
+)
+DIAGNOSTIC_SECTION_WEIGHT_FACTOR: float = (
+    0.92  # Diagnostics contextualize but do not commit resources
+)
 
 
 # ========================
@@ -108,10 +118,12 @@ class SemanticProcessor:
             return
 
         try:
-            from transformers import AutoModel, AutoTokenizer
             import torch
+            from transformers import AutoModel, AutoTokenizer
 
-            device = self.config.device or ("cuda" if torch.cuda.is_available() else "cpu")
+            device = self.config.device or (
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
             logger.info(f"Loading BGE-M3 model on {device}...")
             self._tokenizer = AutoTokenizer.from_pretrained(self.config.embedding_model)
             self._model = AutoModel.from_pretrained(
@@ -138,7 +150,9 @@ class SemanticProcessor:
                 f"Missing dependency: {missing}. Please install with 'pip install {missing}'"
             ) from exc
 
-    def chunk_text(self, text: str, preserve_structure: bool = True) -> list[dict[str, Any]]:
+    def chunk_text(
+        self, text: str, preserve_structure: bool = True
+    ) -> list[dict[str, Any]]:
         """
         Policy-aware semantic chunking:
         - Respects section boundaries (numbered lists, headers)
@@ -163,8 +177,10 @@ class SemanticProcessor:
             # Sliding window with overlap
             step = max(1, self.config.chunk_size - self.config.chunk_overlap)
             for index in range(0, len(tokens), step):
-                chunk_tokens = tokens[index:index + self.config.chunk_size]
-                chunk_text = self._tokenizer.decode(chunk_tokens, skip_special_tokens=True)
+                chunk_tokens = tokens[index : index + self.config.chunk_size]
+                chunk_text = self._tokenizer.decode(
+                    chunk_tokens, skip_special_tokens=True
+                )
                 chunks.append(
                     {
                         "text": chunk_text,
@@ -245,7 +261,7 @@ class SemanticProcessor:
         self._lazy_load()
         embeddings: list[NDArray[np.floating[Any]]] = []
         for start in range(0, len(texts), self.config.batch_size):
-            batch = texts[start:start + self.config.batch_size]
+            batch = texts[start : start + self.config.batch_size]
             # Tokenize batch
             encoded = self._tokenizer(
                 batch,
@@ -260,11 +276,15 @@ class SemanticProcessor:
                 # Mean pooling over sequence
                 attention_mask = encoded["attention_mask"]
                 token_embeddings = outputs.last_hidden_state
-                input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+                input_mask_expanded = (
+                    attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+                )
                 sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
                 sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
                 batch_embeddings = (sum_embeddings / sum_mask).cpu().numpy()
-            embeddings.extend([embedding.astype(np.float32) for embedding in batch_embeddings])
+            embeddings.extend(
+                [embedding.astype(np.float32) for embedding in batch_embeddings]
+            )
         return embeddings
 
     def embed_single(self, text: str) -> NDArray[np.floating[Any]]:
@@ -365,7 +385,9 @@ class BayesianEvidenceIntegrator:
             "n_chunks": len(similarities),
         }
 
-    def _similarity_to_probability(self, sims: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _similarity_to_probability(
+        self, sims: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
         """
         Calibrated transform from cosine similarity [-1,1] to probability [0,1]
         Using sigmoid with temperature=2.0 (calibrated on policy corpus)
@@ -376,7 +398,9 @@ class BayesianEvidenceIntegrator:
         # Sigmoid with temperature=2.0 (calibrated on policy corpus)
         return 1.0 / (1.0 + np.exp(-x / 2.0))
 
-    def _compute_reliability_weights(self, metadata: list[dict[str, Any]]) -> NDArray[np.float64]:
+    def _compute_reliability_weights(
+        self, metadata: list[dict[str, Any]]
+    ) -> NDArray[np.float64]:
         """
         Evidence reliability based on:
         - Position in document (early sections more diagnostic)
@@ -397,7 +421,10 @@ class BayesianEvidenceIntegrator:
                 content_weight *= NUMERICAL_WEIGHT_FACTOR
             # Section type weight (plan sections > diagnostic)
             section_type = meta.get("section_type")
-            if section_type in [PDMSection.PLAN_PLURIANUAL, PDMSection.PLAN_INVERSIONES]:
+            if section_type in [
+                PDMSection.PLAN_PLURIANUAL,
+                PDMSection.PLAN_INVERSIONES,
+            ]:
                 content_weight *= PLAN_SECTION_WEIGHT_FACTOR
             elif section_type == PDMSection.DIAGNOSTICO:
                 content_weight *= DIAGNOSTIC_SECTION_WEIGHT_FACTOR
@@ -409,7 +436,9 @@ class BayesianEvidenceIntegrator:
         """Return prior state (no evidence)"""
 
         prior_mean = 0.5
-        prior_var = self.prior_alpha / ((2 * self.prior_alpha) ** 2 * (2 * self.prior_alpha + 1))
+        prior_var = self.prior_alpha / (
+            (2 * self.prior_alpha) ** 2 * (2 * self.prior_alpha + 1)
+        )
         return {
             "posterior_mean": prior_mean,
             "posterior_std": float(np.sqrt(prior_var)),
@@ -463,7 +492,9 @@ class PolicyDocumentAnalyzer:
         # Initialize dimension embeddings
         self.dimension_embeddings = self._init_dimension_embeddings()
 
-    def _init_dimension_embeddings(self) -> dict[CausalDimension, NDArray[np.floating[Any]]]:
+    def _init_dimension_embeddings(
+        self,
+    ) -> dict[CausalDimension, NDArray[np.floating[Any]]]:
         """
         Canonical embeddings for Marco Lógico dimensions
         Using Colombian policy-specific terminology
@@ -495,7 +526,10 @@ class PolicyDocumentAnalyzer:
                 "viabilidad política sostenibilidad financiera apropiación comunitaria"
             ),
         }
-        return {dim: self.semantic.embed_single(description) for dim, description in descriptions.items()}
+        return {
+            dim: self.semantic.embed_single(description)
+            for dim, description in descriptions.items()
+        }
 
     def analyze(self, text: str) -> dict[str, Any]:
         """
@@ -510,15 +544,14 @@ class PolicyDocumentAnalyzer:
         dimension_results: dict[str, dict[str, Any]] = {}
         for dimension, dim_embedding in self.dimension_embeddings.items():
             similarities = np.array(
-                [
-                    1.0 - cosine(chunk["embedding"], dim_embedding)
-                    for chunk in chunks
-                ]
+                [1.0 - cosine(chunk["embedding"], dim_embedding) for chunk in chunks]
             )
             # Filter by threshold
             relevant_mask = similarities >= self.config.similarity_threshold
             relevant_sims = similarities[relevant_mask]
-            relevant_chunks = [chunk for chunk, mask in zip(chunks, relevant_mask) if mask]
+            relevant_chunks = [
+                chunk for chunk, mask in zip(chunks, relevant_mask) if mask
+            ]
 
             # Bayesian integration
             if len(relevant_sims) >= self.config.min_evidence_chunks:
