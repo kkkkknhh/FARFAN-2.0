@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Infrastructure Module for FARFAN 2.0
+====================================
+
+Provides dependency injection, configuration management, and robust wiring
+for all CDAF components.
+"""
+
+from .di_container import (
+    DIContainer,
+    DeviceConfig,
+    configure_container,
+    IExtractor,
+    ICausalBuilder,
+    IBayesianEngine,
+)
+
+__all__ = [
+    'DIContainer',
+    'DeviceConfig',
+    'configure_container',
+    'IExtractor',
+    'ICausalBuilder',
+    'IBayesianEngine',
+]
