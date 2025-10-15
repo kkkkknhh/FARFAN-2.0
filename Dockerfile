@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Instalar dependencias del sistema y compiladores, luego setuptools
+# Install system dependencies, Python packages, and spaCy model in single layer
 RUN apt-get update && apt-get install -y \
     g++ \
     gcc \
@@ -11,17 +11,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir setuptools wheel
 
-# Copiar requirements
+# Copy requirements and install Python dependencies + spaCy model
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && python -m spacy download es_core_news_lg
 
-# Instalar dependencias Python
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Descargar modelo spaCy
-RUN python -m spacy download es_core_news_lg
-
-# Copiar código
+# Copy application code
 COPY . .
 
-# Comando por defecto
+# Default command
 CMD ["python", "orchestrator.py", "--help"]
