@@ -330,7 +330,7 @@ class BayesianPriorBuilder:
             return 0.5  # Neutral when no verbs
         
         # Score each verb against mechanism types
-        type_scores = {mech_type: 0.0 for mech_type in self.mechanism_type_verbs.keys()}
+        type_scores = {mech_type: 0.0 for mech_type in self.mechanism_type_verbs}
         
         for verb in verb_sequence:
             verb_lower = verb.lower()
