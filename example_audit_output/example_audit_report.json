@@ -1,0 +1,157 @@
+{
+  "timestamp": "2025-10-15T13:53:22.316298",
+  "overall_valid": false,
+  "total_issues": 1,
+  "critical_issues": 1,
+  "matrix": {
+    "valid": true,
+    "expected": 300,
+    "found": 300,
+    "policies": [
+      "P1",
+      "P10",
+      "P2",
+      "P3",
+      "P4",
+      "P5",
+      "P6",
+      "P7",
+      "P8",
+      "P9"
+    ],
+    "dimensions": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6"
+    ]
+  },
+  "micro": {
+    "valid": true,
+    "issues": []
+  },
+  "meso": {
+    "valid": true,
+    "weight_issues": [],
+    "convergence_gaps": []
+  },
+  "macro": {
+    "valid": true,
+    "issues": []
+  },
+  "rubric": {
+    "valid": true,
+    "issues": [
+      {
+        "category": "d6_theory_of_change",
+        "severity": "CRITICAL",
+        "description": "D6 scores below threshold (0.55)",
+        "location": "D6",
+        "expected": "≥0.55",
+        "actual": "15 below",
+        "recommendation": "Strengthen Theory of Change framework"
+      }
+    ]
+  },
+  "d6_theory_of_change": {
+    "scores_below_threshold": [
+      {
+        "question_id": "P3-D6-Q1",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P3-D6-Q2",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P3-D6-Q3",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P3-D6-Q4",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P3-D6-Q5",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P6-D6-Q1",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P6-D6-Q2",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P6-D6-Q3",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P6-D6-Q4",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P6-D6-Q5",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P9-D6-Q1",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P9-D6-Q2",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P9-D6-Q3",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P9-D6-Q4",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      },
+      {
+        "question_id": "P9-D6-Q5",
+        "score": 0.5,
+        "threshold": 0.55,
+        "gap": 0.050000000000000044
+      }
+    ],
+    "threshold": 0.55
+  },
+  "dnp": {
+    "valid": true,
+    "issues": []
+  }
+}
