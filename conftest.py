@@ -12,7 +12,7 @@ def assert_close(actual, expected, *, rtol=1e-6, atol=1e-9):
     """
     Uniform assertion for floats or numpy arrays used across tests.
     Scalars -> pytest.approx; arrays -> numpy.testing.assert_allclose.
-    
+
     Args:
         actual: The actual value to test
         expected: The expected value
