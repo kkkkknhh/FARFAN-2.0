@@ -661,6 +661,7 @@ class PolicyCrossEncoderReranker:
         self,
         model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
         max_length: int = 512,
+        retry_handler=None,
     ):
         """
         Initialize cross-encoder reranker.
@@ -668,9 +669,32 @@ class PolicyCrossEncoderReranker:
         Args:
             model_name: HuggingFace model name (multilingual preferred)
             max_length: Maximum sequence length for cross-encoder
+            retry_handler: Optional RetryHandler for model loading
         """
-        self.model = CrossEncoder(model_name, max_length=max_length)
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.retry_handler = retry_handler
+        
+        # Load model with retry logic if available
+        if retry_handler:
+            try:
+                from retry_handler import DependencyType
+                
+                @retry_handler.with_retry(
+                    DependencyType.EMBEDDING_SERVICE,
+                    operation_name="load_cross_encoder",
+                    exceptions=(OSError, IOError, ConnectionError, RuntimeError)
+                )
+                def load_model():
+                    return CrossEncoder(model_name, max_length=max_length)
+                
+                self.model = load_model()
+                self._logger.info(f"Cross-encoder loaded with retry protection: {model_name}")
+            except Exception as e:
+                self._logger.error(f"Failed to load cross-encoder: {e}")
+                raise
+        else:
+            self.model = CrossEncoder(model_name, max_length=max_length)
+            self._logger.info(f"Cross-encoder loaded: {model_name}")
 
     def rerank(
         self,
@@ -759,16 +783,39 @@ class PolicyAnalysisEmbedder:
     Thread-safe, production-grade, fully typed.
     """
 
-    def __init__(self, config: PolicyEmbeddingConfig):
+    def __init__(self, config: PolicyEmbeddingConfig, retry_handler=None):
         self.config = config
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.retry_handler = retry_handler
 
-        # Initialize components
-        self._logger.info("Initializing embedding model: %s", config.embedding_model)
-        self.embedding_model = SentenceTransformer(config.embedding_model)
+        # Initialize embedding model with retry logic
+        if retry_handler:
+            try:
+                from retry_handler import DependencyType
+                
+                @retry_handler.with_retry(
+                    DependencyType.EMBEDDING_SERVICE,
+                    operation_name="load_sentence_transformer",
+                    exceptions=(OSError, IOError, ConnectionError, RuntimeError)
+                )
+                def load_embedding_model():
+                    return SentenceTransformer(config.embedding_model)
+                
+                self._logger.info("Initializing embedding model with retry: %s", config.embedding_model)
+                self.embedding_model = load_embedding_model()
+            except Exception as e:
+                self._logger.error(f"Failed to load embedding model: {e}")
+                raise
+        else:
+            self._logger.info("Initializing embedding model: %s", config.embedding_model)
+            self.embedding_model = SentenceTransformer(config.embedding_model)
 
+        # Initialize cross-encoder with retry logic
         self._logger.info("Initializing cross-encoder: %s", config.cross_encoder_model)
-        self.cross_encoder = PolicyCrossEncoderReranker(config.cross_encoder_model)
+        self.cross_encoder = PolicyCrossEncoderReranker(
+            config.cross_encoder_model,
+            retry_handler=retry_handler
+        )
 
         self.chunker = AdvancedSemanticChunker(
             ChunkingConfig(
@@ -1031,7 +1078,7 @@ class PolicyAnalysisEmbedder:
     # ========================================================================
 
     def _embed_texts(self, texts: list[str]) -> NDArray[np.float32]:
-        """Generate embeddings with caching."""
+        """Generate embeddings with caching and retry logic."""
         uncached_texts = []
         uncached_indices = []
 
@@ -1047,15 +1094,38 @@ class PolicyAnalysisEmbedder:
                 uncached_indices.append((i, text_hash))
                 embeddings_list.append(None)  # Placeholder
 
-        # Generate embeddings for uncached texts
+        # Generate embeddings for uncached texts with retry logic
         if uncached_texts:
-            new_embeddings = self.embedding_model.encode(
-                uncached_texts,
-                batch_size=self.config.batch_size,
-                normalize_embeddings=self.config.normalize_embeddings,
-                show_progress_bar=False,
-                convert_to_numpy=True,
-            )
+            if self.retry_handler:
+                try:
+                    from retry_handler import DependencyType
+                    
+                    @self.retry_handler.with_retry(
+                        DependencyType.EMBEDDING_SERVICE,
+                        operation_name="encode_texts",
+                        exceptions=(ConnectionError, TimeoutError, RuntimeError, OSError)
+                    )
+                    def encode_with_retry():
+                        return self.embedding_model.encode(
+                            uncached_texts,
+                            batch_size=self.config.batch_size,
+                            normalize_embeddings=self.config.normalize_embeddings,
+                            show_progress_bar=False,
+                            convert_to_numpy=True,
+                        )
+                    
+                    new_embeddings = encode_with_retry()
+                except Exception as e:
+                    self._logger.error(f"Failed to encode texts with retry: {e}")
+                    raise
+            else:
+                new_embeddings = self.embedding_model.encode(
+                    uncached_texts,
+                    batch_size=self.config.batch_size,
+                    normalize_embeddings=self.config.normalize_embeddings,
+                    show_progress_bar=False,
+                    convert_to_numpy=True,
+                )
 
             # Cache and insert
             for (orig_idx, text_hash), emb in zip(uncached_indices, new_embeddings):

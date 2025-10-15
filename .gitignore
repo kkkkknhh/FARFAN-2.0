@@ -49,6 +49,7 @@ Thumbs.db
 
 # Temporary files
 *.tmp
+*.bak
 
 # Resilience config outputs
 resilience_dev_default.yaml
@@ -72,3 +73,7 @@ metrics/
 checkpoint_index.json
 encryption.key
 *.key
+
+# Demo outputs
+demo_resultados/
+resultados/

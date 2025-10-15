@@ -32,6 +32,9 @@ from circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitBreaker
 from pipeline_checkpoint import PipelineCheckpoint
 from pipeline_metrics import PipelineMetrics, AlertLevel
 
+# Import retry handler
+from retry_handler import RetryHandler, DependencyType, RetryConfig
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -108,7 +111,8 @@ class FARFANOrchestrator:
     4. Se genera un reporte completo a tres niveles
     """
     
-    def __init__(self, output_dir: Path, log_level: str = "INFO"):
+    def __init__(self, output_dir: Path, log_level: str = "INFO", 
+                 retry_handler: Optional[RetryHandler] = None):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -121,10 +125,66 @@ class FARFANOrchestrator:
         self.checkpoint = PipelineCheckpoint(self.output_dir / "checkpoints")
         self.metrics = PipelineMetrics(self.output_dir / "metrics")
         
+        # Initialize retry handler with specific configurations
+        self.retry_handler = retry_handler or RetryHandler()
+        self._configure_retry_handler()
+        
         # Initialize all modules
         self._init_modules()
         
         logger.info("FARFANOrchestrator inicializado con sistemas de resiliencia")
+    
+    def _configure_retry_handler(self):
+        """Configure retry handler for different dependencies"""
+        # PDF Parser: More retries for file I/O issues
+        self.retry_handler.configure(DependencyType.PDF_PARSER, RetryConfig(
+            base_delay=1.0,
+            max_retries=4,
+            exponential_base=2.0,
+            jitter_factor=0.2,
+            max_delay=30.0,
+            failure_threshold=5,
+            recovery_timeout=60.0,
+            success_threshold=2
+        ))
+        
+        # spaCy Model: Longer delays for large model loading
+        self.retry_handler.configure(DependencyType.SPACY_MODEL, RetryConfig(
+            base_delay=2.0,
+            max_retries=3,
+            exponential_base=2.0,
+            jitter_factor=0.1,
+            max_delay=60.0,
+            failure_threshold=3,
+            recovery_timeout=120.0,
+            success_threshold=1
+        ))
+        
+        # DNP API: Network calls with standard retry pattern
+        self.retry_handler.configure(DependencyType.DNP_API, RetryConfig(
+            base_delay=1.5,
+            max_retries=5,
+            exponential_base=2.0,
+            jitter_factor=0.3,
+            max_delay=45.0,
+            failure_threshold=7,
+            recovery_timeout=90.0,
+            success_threshold=3
+        ))
+        
+        # Embedding Service: AI service with moderate retry
+        self.retry_handler.configure(DependencyType.EMBEDDING_SERVICE, RetryConfig(
+            base_delay=1.0,
+            max_retries=4,
+            exponential_base=2.0,
+            jitter_factor=0.2,
+            max_delay=40.0,
+            failure_threshold=6,
+            recovery_timeout=75.0,
+            success_threshold=2
+        ))
+        
+        logger.info("Retry handler configured for all dependencies")
     
     def _init_modules(self):
         """Inicializa todos los módulos del framework"""
@@ -148,12 +208,13 @@ class FARFANOrchestrator:
                 f.write(config_content)
                 temp_config = Path(f.name)
             
+            # Note: CDAFFramework now has retry_handler integrated
             self.cdaf = CDAFFramework(
                 config_path=temp_config,
                 output_dir=self.output_dir,
                 log_level="INFO"
             )
-            logger.info("✓ CDAF Framework cargado")
+            logger.info("✓ CDAF Framework cargado (with retry handler)")
         except Exception as e:
             logger.error(f"Error cargando CDAF Framework: {e}")
             self.cdaf = None
@@ -510,14 +571,47 @@ class FARFANOrchestrator:
             logger.warning("CDAF no disponible, saltando extracción")
             return ctx
         
-        # Use CDAF's PDF processor
-        success = self.cdaf.pdf_processor.load_document(ctx.pdf_path)
-        if not success:
-            raise RuntimeError(f"No se pudo cargar el documento: {ctx.pdf_path}")
+        # Wrap PDF operations with retry logic
+        @self.retry_handler.with_retry(
+            DependencyType.PDF_PARSER,
+            operation_name="load_document",
+            exceptions=(IOError, OSError, RuntimeError)
+        )
+        def load_pdf():
+            success = self.cdaf.pdf_processor.load_document(ctx.pdf_path)
+            if not success:
+                raise RuntimeError(f"No se pudo cargar el documento: {ctx.pdf_path}")
+            return success
         
-        ctx.raw_text = self.cdaf.pdf_processor.extract_text()
-        ctx.tables = self.cdaf.pdf_processor.extract_tables()
-        ctx.sections = self.cdaf.pdf_processor.extract_sections()
+        @self.retry_handler.with_retry(
+            DependencyType.PDF_PARSER,
+            operation_name="extract_text",
+            exceptions=(IOError, OSError, RuntimeError)
+        )
+        def extract_text():
+            return self.cdaf.pdf_processor.extract_text()
+        
+        @self.retry_handler.with_retry(
+            DependencyType.PDF_PARSER,
+            operation_name="extract_tables",
+            exceptions=(IOError, OSError, RuntimeError)
+        )
+        def extract_tables():
+            return self.cdaf.pdf_processor.extract_tables()
+        
+        @self.retry_handler.with_retry(
+            DependencyType.PDF_PARSER,
+            operation_name="extract_sections",
+            exceptions=(IOError, OSError, RuntimeError)
+        )
+        def extract_sections():
+            return self.cdaf.pdf_processor.extract_sections()
+        
+        # Execute with retry protection
+        load_pdf()
+        ctx.raw_text = extract_text()
+        ctx.tables = extract_tables()
+        ctx.sections = extract_sections()
         
         logger.info(f"  ✓ Texto extraído: {len(ctx.raw_text)} caracteres")
         logger.info(f"  ✓ Tablas extraídas: {len(ctx.tables)}")
@@ -613,8 +707,14 @@ class FARFANOrchestrator:
         # Update PDET status
         self.dnp_validator.es_municipio_pdet = es_municipio_pdet
         
-        # Validate each node as a project/goal
-        for node_id, node in ctx.nodes.items():
+        # Wrap DNP API calls with retry logic (if any external APIs are used)
+        # Note: Current implementation doesn't use external DNP API, but we prepare for it
+        @self.retry_handler.with_retry(
+            DependencyType.DNP_API,
+            operation_name="validar_proyecto",
+            exceptions=(ConnectionError, TimeoutError, IOError)
+        )
+        def validate_project(node_id, node):
             # Map node type to sector (simplified)
             sector = self._infer_sector(node.text)
             
@@ -627,10 +727,18 @@ class FARFANOrchestrator:
                 poblacion_victimas=False  # TODO: detect from context
             )
             
-            ctx.dnp_validation_results.append({
+            return {
                 'node_id': node_id,
                 'resultado': resultado
-            })
+            }
+        
+        # Validate each node as a project/goal
+        for node_id, node in ctx.nodes.items():
+            try:
+                result = validate_project(node_id, node)
+                ctx.dnp_validation_results.append(result)
+            except Exception as e:
+                logger.warning(f"Failed to validate node {node_id}: {e}")
         
         # Calculate compliance score
         if ctx.dnp_validation_results:

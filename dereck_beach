@@ -723,24 +723,47 @@ class ConfigLoader:
 class PDFProcessor:
     """Advanced PDF processing and extraction"""
     
-    def __init__(self, config: ConfigLoader) -> None:
+    def __init__(self, config: ConfigLoader, retry_handler=None) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
         self.document: Optional[fitz.Document] = None
         self.text_content: str = ""
         self.tables: List[pd.DataFrame] = []
         self.metadata: Dict[str, Any] = {}
+        self.retry_handler = retry_handler
     
     def load_document(self, pdf_path: Path) -> bool:
-        """Load PDF document"""
-        try:
-            self.document = fitz.open(str(pdf_path))
-            self.metadata = self.document.metadata
-            self.logger.info(f"PDF cargado: {pdf_path.name} ({len(self.document)} páginas)")
-            return True
-        except Exception as e:
-            self.logger.error(f"Error cargando PDF: {e}")
-            return False
+        """Load PDF document with retry logic"""
+        if self.retry_handler:
+            try:
+                from retry_handler import DependencyType
+                
+                @self.retry_handler.with_retry(
+                    DependencyType.PDF_PARSER,
+                    operation_name="open_pdf",
+                    exceptions=(IOError, OSError, RuntimeError)
+                )
+                def load_with_retry():
+                    doc = fitz.open(str(pdf_path))
+                    self.logger.info(f"PDF cargado: {pdf_path.name} ({len(doc)} páginas)")
+                    return doc
+                
+                self.document = load_with_retry()
+                self.metadata = self.document.metadata
+                return True
+            except Exception as e:
+                self.logger.error(f"Error cargando PDF: {e}")
+                return False
+        else:
+            # Fallback without retry
+            try:
+                self.document = fitz.open(str(pdf_path))
+                self.metadata = self.document.metadata
+                self.logger.info(f"PDF cargado: {pdf_path.name} ({len(self.document)} páginas)")
+                return True
+            except Exception as e:
+                self.logger.error(f"Error cargando PDF: {e}")
+                return False
     
     def extract_text(self) -> str:
         """Extract all text from PDF"""
@@ -3358,21 +3381,55 @@ class CDAFFramework:
         self.config = ConfigLoader(config_path)
         self.output_dir = output_dir
         
-        # Load spaCy model
+        # Initialize retry handler for external dependencies
         try:
-            self.nlp = spacy.load("es_core_news_lg")
-            self.logger.info("Modelo spaCy cargado: es_core_news_lg")
-        except OSError:
-            self.logger.warning("Modelo es_core_news_lg no encontrado. Intentando es_core_news_sm...")
+            from retry_handler import get_retry_handler, DependencyType
+            self.retry_handler = get_retry_handler()
+            retry_enabled = True
+        except ImportError:
+            self.logger.warning("RetryHandler no disponible, funcionando sin retry logic")
+            self.retry_handler = None
+            retry_enabled = False
+        
+        # Load spaCy model with retry logic
+        if retry_enabled and self.retry_handler:
+            @self.retry_handler.with_retry(
+                DependencyType.SPACY_MODEL,
+                operation_name="load_spacy_model",
+                exceptions=(OSError, IOError, ImportError)
+            )
+            def load_spacy_with_retry():
+                try:
+                    nlp = spacy.load("es_core_news_lg")
+                    self.logger.info("Modelo spaCy cargado: es_core_news_lg")
+                    return nlp
+                except OSError:
+                    self.logger.warning("Modelo es_core_news_lg no encontrado. Intentando es_core_news_sm...")
+                    nlp = spacy.load("es_core_news_sm")
+                    return nlp
+            
             try:
-                self.nlp = spacy.load("es_core_news_sm")
+                self.nlp = load_spacy_with_retry()
             except OSError:
                 self.logger.error("No se encontró ningún modelo de spaCy en español. "
                                 "Ejecute: python -m spacy download es_core_news_lg")
                 sys.exit(1)
+        else:
+            # Fallback to original logic without retry
+            try:
+                self.nlp = spacy.load("es_core_news_lg")
+                self.logger.info("Modelo spaCy cargado: es_core_news_lg")
+            except OSError:
+                self.logger.warning("Modelo es_core_news_lg no encontrado. Intentando es_core_news_sm...")
+                try:
+                    self.nlp = spacy.load("es_core_news_sm")
+                except OSError:
+                    self.logger.error("No se encontró ningún modelo de spaCy en español. "
+                                    "Ejecute: python -m spacy download es_core_news_lg")
+                    sys.exit(1)
         
-        # Initialize modules
-        self.pdf_processor = PDFProcessor(self.config)
+        # Initialize modules (pass retry_handler to PDF processor)
+        self.pdf_processor = PDFProcessor(self.config, retry_handler=self.retry_handler if retry_enabled else None)
         self.causal_extractor = CausalExtractor(self.config, self.nlp)
         self.mechanism_extractor = MechanismPartExtractor(self.config, self.nlp)
         self.bayesian_mechanism = BayesianMechanismInference(self.config, self.nlp)
