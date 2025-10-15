@@ -29,10 +29,9 @@ import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, Optional
-from datetime import datetime
-
 
 # ============================================================================
 # Exceptions
@@ -203,9 +202,7 @@ class AsyncOrchestrator:
             worker = asyncio.create_task(self._worker_loop(i))
             self.workers.append(worker)
 
-        self.logger.info(
-            f"Orchestrator started with {self.config.max_workers} workers"
-        )
+        self.logger.info(f"Orchestrator started with {self.config.max_workers} workers")
 
     async def shutdown(self):
         """
@@ -336,7 +333,9 @@ class AsyncOrchestrator:
                 self.metrics.current_queue_size = len(self.job_queue)
                 job_metric = self.job_metrics[job_id]
                 job_metric.started_at = time.time()
-                job_metric.queue_wait_time = job_metric.started_at - job_metric.queued_at
+                job_metric.queue_wait_time = (
+                    job_metric.started_at - job_metric.queued_at
+                )
                 job_metric.status = JobStatus.RUNNING
 
                 self.logger.info(
@@ -379,9 +378,7 @@ class AsyncOrchestrator:
 
                     self.metrics.total_jobs_timeout += 1
 
-                    self.logger.error(
-                        f"Job {job_id} timeout after {job['timeout']}s"
-                    )
+                    self.logger.error(f"Job {job_id} timeout after {job['timeout']}s")
 
                     job["result_future"].set_exception(
                         JobTimeoutError(job_metric.error)

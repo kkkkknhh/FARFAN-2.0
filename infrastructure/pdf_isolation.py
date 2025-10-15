@@ -28,14 +28,13 @@ Version: 1.0.0
 import asyncio
 import logging
 import multiprocessing as mp
+import os
 import signal
 import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional
-import os
-
 
 # ============================================================================
 # Exceptions
@@ -236,9 +235,7 @@ class IsolatedPDFProcessor:
         """
         if not Path(pdf_path).exists():
             self.logger.error(f"PDF file not found: {pdf_path}")
-            return ProcessingResult(
-                success=False, error=f"File not found: {pdf_path}"
-            )
+            return ProcessingResult(success=False, error=f"File not found: {pdf_path}")
 
         self.metrics.total_executions += 1
         start_time = time.time()
@@ -279,9 +276,7 @@ class IsolatedPDFProcessor:
                 isolation_failures=1,
             )
 
-    async def _process_with_multiprocessing(
-        self, pdf_path: str
-    ) -> ProcessingResult:
+    async def _process_with_multiprocessing(self, pdf_path: str) -> ProcessingResult:
         """
         Process PDF using multiprocessing isolation.
 
@@ -385,14 +380,17 @@ class IsolatedPDFProcessor:
         # Check if Docker is available
         try:
             proc = await asyncio.create_subprocess_exec(
-                "docker", "--version",
+                "docker",
+                "--version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             await proc.communicate()
 
             if proc.returncode != 0:
-                self.logger.warning("Docker not available, falling back to process isolation")
+                self.logger.warning(
+                    "Docker not available, falling back to process isolation"
+                )
                 return await self._process_with_multiprocessing(pdf_path)
 
         except FileNotFoundError:
@@ -430,9 +428,8 @@ class IsolatedPDFProcessor:
         """Update average metrics"""
         if self.metrics.total_executions > 0:
             self.metrics.uptime_percentage = (
-                (self.metrics.successful_executions / self.metrics.total_executions)
-                * 100.0
-            )
+                self.metrics.successful_executions / self.metrics.total_executions
+            ) * 100.0
 
     def get_metrics(self) -> IsolationMetrics:
         """

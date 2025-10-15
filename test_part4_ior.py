@@ -15,41 +15,36 @@ Version: 1.0.0
 
 import asyncio
 import logging
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
-from infrastructure import (
-    # Audit Point 4.2
+from infrastructure import (  # Audit Point 4.2; Audit Point 4.1; Audit Point 4.3
+    DNP_AVAILABLE,
     AsyncOrchestrator,
-    OrchestratorConfig,
-    QueueFullError,
-    JobTimeoutError,
-    create_orchestrator,
-    # Audit Point 4.1
+    CDAFValidationError,
+    ComponentConfig,
+    ComponentType,
+    CoreValidationError,
+    FailOpenPolicyManager,
     IsolatedPDFProcessor,
     IsolationConfig,
     IsolationStrategy,
+    JobTimeoutError,
+    OrchestratorConfig,
     PDFProcessingTimeoutError,
-    create_isolated_processor,
-    # Audit Point 4.3
-    FailOpenPolicyManager,
-    ComponentConfig,
-    ComponentType,
-    CDAFValidationError,
-    CoreValidationError,
-    DNP_AVAILABLE,
-    set_dnp_available,
-    is_dnp_available,
-    create_policy_manager,
+    QueueFullError,
     create_default_components,
+    create_isolated_processor,
+    create_orchestrator,
+    create_policy_manager,
+    is_dnp_available,
+    set_dnp_available,
 )
 
 
 # ============================================================================
 # Test Utilities
 # ============================================================================
-
-
 async def quick_job(*args, **kwargs):
     """Mock job that completes quickly"""
     await asyncio.sleep(0.1)
@@ -143,7 +138,9 @@ async def test_job_submission_and_completion():
         metrics = orchestrator.get_metrics()
         assert metrics.total_jobs_submitted == 1
         assert metrics.total_jobs_completed == 1
-        print(f"✓ Metrics: submitted={metrics.total_jobs_submitted}, completed={metrics.total_jobs_completed}")
+        print(
+            f"✓ Metrics: submitted={metrics.total_jobs_submitted}, completed={metrics.total_jobs_completed}"
+        )
 
     finally:
         await orchestrator.shutdown()
@@ -182,7 +179,9 @@ async def test_backpressure_http503():
         metrics = orchestrator.get_metrics()
         assert metrics.total_jobs_rejected > 0
         assert metrics.backpressure_events > 0
-        print(f"✓ Metrics: rejected={metrics.total_jobs_rejected}, backpressure_events={metrics.backpressure_events}")
+        print(
+            f"✓ Metrics: rejected={metrics.total_jobs_rejected}, backpressure_events={metrics.backpressure_events}"
+        )
 
     finally:
         await orchestrator.shutdown()
@@ -214,7 +213,9 @@ async def test_queue_management_deque():
         queue_info = orchestrator.get_queue_info()
         assert queue_info["max_size"] == 100
         assert queue_info["current_size"] == 0  # All jobs completed
-        print(f"✓ Queue info: size={queue_info['current_size']}/{queue_info['max_size']}")
+        print(
+            f"✓ Queue info: size={queue_info['current_size']}/{queue_info['max_size']}"
+        )
 
     finally:
         await orchestrator.shutdown()
@@ -297,7 +298,9 @@ async def test_pdf_processing_success():
         metrics = processor.get_metrics()
         assert metrics.total_executions == 1
         assert metrics.successful_executions == 1
-        print(f"✓ Metrics: total={metrics.total_executions}, success={metrics.successful_executions}")
+        print(
+            f"✓ Metrics: total={metrics.total_executions}, success={metrics.successful_executions}"
+        )
 
     finally:
         Path(pdf_path).unlink()
@@ -409,8 +412,12 @@ async def test_policy_manager_initialization():
     assert manager.components["core_validator"].fail_closed
     assert not manager.components["dnp_validator"].fail_closed
     print("✓ Policy manager initialized with core and enrichment components")
-    print(f"✓ Core validator: fail_closed={manager.components['core_validator'].fail_closed}")
-    print(f"✓ DNP validator: fail_closed={manager.components['dnp_validator'].fail_closed}")
+    print(
+        f"✓ Core validator: fail_closed={manager.components['core_validator'].fail_closed}"
+    )
+    print(
+        f"✓ DNP validator: fail_closed={manager.components['dnp_validator'].fail_closed}"
+    )
 
     print("✅ Test PASSED: Policy Manager Initialization\n")
 

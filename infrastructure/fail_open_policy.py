@@ -25,12 +25,11 @@ Author: AI Systems Architect
 Version: 1.0.0
 """
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, Optional
-import asyncio
-
 
 # ============================================================================
 # Exceptions
@@ -112,9 +111,7 @@ class ComponentConfig:
                 f"max_retries must be non-negative, got {self.max_retries}"
             )
         if self.timeout_secs <= 0:
-            raise ValueError(
-                f"timeout_secs must be positive, got {self.timeout_secs}"
-            )
+            raise ValueError(f"timeout_secs must be positive, got {self.timeout_secs}")
 
 
 @dataclass
@@ -146,7 +143,6 @@ class FailOpenMetrics:
 # ============================================================================
 # DNP Availability Flag
 # ============================================================================
-
 
 # Global flag to indicate DNP service availability
 # In production, this would be set based on service health checks
@@ -270,8 +266,7 @@ class FailOpenPolicyManager:
         self.metrics.total_validations += 1
 
         self.logger.info(
-            f"Executing validation: {component_name} "
-            f"(fail_closed={config.fail_closed})"
+            f"Executing validation: {component_name} (fail_closed={config.fail_closed})"
         )
 
         try:
