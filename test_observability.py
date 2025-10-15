@@ -126,7 +126,9 @@ def test_observability_stack():
     # Verify specific metrics
     assert "pdm.pipeline.duration_seconds" in metrics_summary["histograms"]
     assert "pdm.memory.peak_mb" in metrics_summary["gauges"]
-    assert metrics_summary["gauges"]["pdm.dimension.avg_score_D6"] == pytest.approx(0.50, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
+    assert metrics_summary["gauges"]["pdm.dimension.avg_score_D6"] == pytest.approx(
+        0.50, rel=1e-9, abs=1e-12
+    )  # replaced float equality with pytest.approx
 
     print("✓ ObservabilityStack tests passed")
 

@@ -53,7 +53,9 @@ class TestInputSchemaEnforcement:
             row_count=2,
         )
         assert valid_table.page_number == 1
-        assert valid_table.confidence_score == pytest.approx(0.95, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
+        assert valid_table.confidence_score == pytest.approx(
+            0.95, rel=1e-9, abs=1e-12
+        )  # replaced float equality with pytest.approx
         assert len(valid_table.data) == 2
         logger.info("✓ Valid ExtractedTable passed validation")
 
@@ -635,7 +637,9 @@ class TestIoRIntegration:
         )
 
         # Step 2: Validate schemas
-        assert table.confidence_score == pytest.approx(0.95, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
+        assert table.confidence_score == pytest.approx(
+            0.95, rel=1e-9, abs=1e-12
+        )  # replaced float equality with pytest.approx
         assert chunk.doc_id == "abc123def456"
 
         # Step 3: Verify provenance

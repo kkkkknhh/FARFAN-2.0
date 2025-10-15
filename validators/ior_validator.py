@@ -419,7 +419,9 @@ class IoRValidator:
                 "total_checks_performed": all_checks,
                 "checks_passed": all_passed,
                 "checks_failed": all_checks - all_passed,
-                "sota_mmr_compliant": math.isclose(overall_compliance, 100.0, rel_tol=1e-9, abs_tol=1e-12),  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
+                "sota_mmr_compliant": math.isclose(
+                    overall_compliance, 100.0, rel_tol=1e-9, abs_tol=1e-12
+                ),  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
             },
             "audit_point_1_1_schema_enforcement": {
                 "total_validations": total_validations,

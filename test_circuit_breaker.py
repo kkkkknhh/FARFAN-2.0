@@ -250,7 +250,9 @@ async def test_resilient_validator_success():
 
     assert result.status == "passed"
     assert result.score > 0.0
-    assert result.score_penalty == pytest.approx(0.0, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
+    assert result.score_penalty == pytest.approx(
+        0.0, rel=1e-9, abs=1e-12
+    )  # replaced float equality with pytest.approx
     assert result.circuit_state == CircuitState.CLOSED.value
     print(f"✓ Validation passed: score={result.score}, status={result.status}")
 
@@ -283,8 +285,12 @@ async def test_resilient_validator_fail_open_policy():
     # Third call should get skipped (fail-open)
     result = await validator.validate(data)
     assert result.status == "skipped"
-    assert result.score == pytest.approx(1.0 - 0.05, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
-    assert result.score_penalty == pytest.approx(0.05, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
+    assert result.score == pytest.approx(
+        1.0 - 0.05, rel=1e-9, abs=1e-12
+    )  # replaced float equality with pytest.approx
+    assert result.score_penalty == pytest.approx(
+        0.05, rel=1e-9, abs=1e-12
+    )  # replaced float equality with pytest.approx
     assert result.circuit_state == CircuitState.OPEN.value
     assert "circuit breaker OPEN" in result.reason
     print(
@@ -321,7 +327,9 @@ async def test_resilient_validator_recovery():
     result = await validator.validate(data)
     assert result.status == "passed"
     assert result.score > 0.0
-    assert result.score_penalty == pytest.approx(0.0, rel=1e-9, abs=1e-12)  # replaced float equality with pytest.approx
+    assert result.score_penalty == pytest.approx(
+        0.0, rel=1e-9, abs=1e-12
+    )  # replaced float equality with pytest.approx
     print(f"✓ Recovery successful: status={result.status}, score={result.score}")
 
     print("✅ Resilient Validator Recovery: PASSED\n")

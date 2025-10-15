@@ -331,7 +331,9 @@ def demonstrate_ior_audit():
     logger.info(f"OVERALL IoR COMPLIANCE: {overall_compliance:.1f}%")
     logger.info(f"Passed: {total_passed}/{total_checks} audit points")
 
-    if math.isclose(overall_compliance, 100.0, rel_tol=1e-9, abs_tol=1e-12):  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
+    if math.isclose(
+        overall_compliance, 100.0, rel_tol=1e-9, abs_tol=1e-12
+    ):  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
         logger.info("✓ SOTA MMR INPUT RIGOR ACHIEVED (Ragin 2008)")
         logger.info("✓ QCA-Level Calibration Verified (Schneider & Rohlfing 2013)")
     else:
@@ -347,7 +349,9 @@ def demonstrate_ior_audit():
             {
                 "ior_audit_results": audit_results,
                 "overall_compliance": overall_compliance,
-                "sota_mmr_compliant": math.isclose(overall_compliance, 100.0, rel_tol=1e-9, abs_tol=1e-12),  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
+                "sota_mmr_compliant": math.isclose(
+                    overall_compliance, 100.0, rel_tol=1e-9, abs_tol=1e-12
+                ),  # replaced float equality with isclose (tolerance from DEFAULT_FLOAT_TOLS)
                 "references": {
                     "mmr_input_rigor": "Ragin 2008",
                     "qca_calibration": "Schneider & Rohlfing 2013",
