@@ -7,15 +7,18 @@
 
 ## 📋 Tabla de Contenidos
 
-- [Descripción](#descripción)
+- [Descripción](#-descripción)
+- [Arquitectura de Resiliencia](#arquitectura-de-resiliencia-risk-driven-resilience-system)
 - [Características Principales](#características-principales)
-- [Arquitectura de Resiliencia](#arquitectura-de-resiliencia)
-- [Instalación](#instalación)
-- [Inicio Rápido](#inicio-rápido)
-- [Módulos del Sistema](#módulos-del-sistema)
-- [Documentación](#documentación)
-- [Contribuciones](#contribuciones)
-- [Licencia](#licencia)
+- [Instalación](#-instalación)
+- [Uso Avanzado y Configuración](#-uso-avanzado-y-configuración)
+- [Inicio Rápido](#-inicio-rápido)
+- [Módulos del Sistema](#-módulos-del-sistema)
+- [Documentación](#-documentación)
+- [Estándares y Normativa](#-estándares-y-normativa)
+- [Contribuciones](#-contribuciones)
+- [Licencia](#-licencia)
+- [Contacto y Soporte](#-contacto-y-soporte)
 
 ## 📖 Descripción
 
@@ -945,75 +948,6 @@ python -m pytest test_circuit_breaker.py -v
 - **Arquitectura de Resiliencia**: Ver sección [Arquitectura de Resiliencia](#arquitectura-de-resiliencia) arriba
 - **Patrones de Diseño**: Circuit Breaker, Retry Handler, Checkpoint Recovery
 - **Flujo de Datos**: Ver diagramas en [ORCHESTRATOR_README.md](ORCHESTRATOR_README.md)
-
-## 🎯 Características Principales
-
-### 1. Sistema de Evaluación de 300 Preguntas
-
-El orquestador implementa un sistema completo de evaluación mediante **300 preguntas causales**:
-
-- **30 Preguntas Base**: Organizadas en 6 dimensiones del Marco Lógico
-  - D1: Insumos (Diagnóstico y Líneas Base)
-  - D2: Actividades (Formalizadas)
-  - D3: Productos (Verificables)
-  - D4: Resultados (Medibles)
-  - D5: Impactos (Largo Plazo)
-  - D6: Causalidad (Teoría de Cambio)
-
-- **10 Áreas de Política** (Decálogo):
-  - P1: Derechos de las mujeres e igualdad de género
-  - P2: Prevención de la violencia y protección frente al conflicto
-  - P3: Ambiente sano, cambio climático, prevención y atención a desastres
-  - P4: Derechos económicos, sociales y culturales
-  - P5: Derechos de las víctimas y construcción de paz
-  - P6: Derecho al buen futuro de la niñez, adolescencia, juventud
-  - P7: Tierras y territorios
-  - P8: Líderes y defensores de derechos humanos
-  - P9: Crisis de derechos de personas privadas de la libertad
-  - P10: Migración transfronteriza
-
-**Cada respuesta incluye**:
-- Texto de respuesta directa
-- Argumento de nivel doctoral (2+ párrafos)
-- Nota cuantitativa (0.0-1.0)
-- Evidencia del documento
-- Módulos que contribuyeron
-
-**Reportes a 3 Niveles**:
-1. **MICRO**: 300 respuestas individuales
-2. **MESO**: 4 clústeres × 6 dimensiones
-3. **MACRO**: Alineación global + análisis retrospectivo/prospectivo
-
-### 2. Framework CDAF (Causal Deconstruction and Audit Framework)
-
-- Extracción automática de jerarquías causales desde PDFs
-- Análisis de mecanismos causales (Entidad-Actividad)
-- Trazabilidad financiera
-- Auditoría de operacionalización
-- Generación de diagramas causales y matrices de responsabilidad
-
-### 3. Cumplimiento Integral de Estándares DNP
-
-#### Competencias Municipales
-- **17 competencias** catalogadas según normativa colombiana
-- Validación automática de competencias propias y concurrentes
-- Base legal completa (Ley 136/1994, Ley 715/2001, Ley 1551/2012)
-- 14 sectores de intervención cubiertos
-
-#### Indicadores MGA
-- **51 indicadores** del catálogo oficial MGA
-  - 28 indicadores de producto
-  - 23 indicadores de resultado
-- Fórmulas de cálculo oficiales
-- Fuentes de información verificadas
-- Alineación con ODS (Objetivos de Desarrollo Sostenible)
-
-#### Lineamientos PDET
-- **17 lineamientos** para los 170 municipios PDET
-- **8 pilares** del Acuerdo de Paz implementados
-- Validación especial de participación comunitaria
-- Requisitos de inversión rural (>60%)
-- Alineación con PATR subregionales
 
 ## 📜 Estándares y Normativa
 
