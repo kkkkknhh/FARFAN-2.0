@@ -143,7 +143,7 @@ while [ $# -gt 0 ]; do
 			shift
 			;;
 		--*)
-			echo "Illegal option $1"
+			echo "Illegal option $1" >&2
 			;;
 		*)
 			;;
@@ -570,9 +570,9 @@ do_install() {
 					echo "INFO: Searching repository for VERSION '$VERSION'"
 					echo "INFO: $search_command"
 					if [ -z "$pkg_version" ]; then
-						echo
-						echo "ERROR: '$VERSION' not found amongst apt-cache madison results"
-						echo
+						echo >&2
+						echo "ERROR: '$VERSION' not found amongst apt-cache madison results" >&2
+						echo >&2
 						exit 1
 					fi
 					if version_gte "18.09"; then
@@ -608,7 +608,7 @@ do_install() {
 			;;
 		centos|fedora|rhel)
 			if [ "$(uname -m)" = "s390x" ]; then
-				echo "Effective v27.5, please consult RHEL distro statement for s390x support."
+				echo "Effective v27.5, please consult RHEL distro statement for s390x support." >&2
 				exit 1
 			fi
 			repo_file_url="$DOWNLOAD_URL/linux/$lsb_dist/$REPO_FILE"
@@ -675,9 +675,9 @@ do_install() {
 					echo "INFO: Searching repository for VERSION '$VERSION'"
 					echo "INFO: $search_command"
 					if [ -z "$pkg_version" ]; then
-						echo
-						echo "ERROR: '$VERSION' not found amongst $pkg_manager list results"
-						echo
+						echo >&2
+						echo "ERROR: '$VERSION' not found amongst $pkg_manager list results" >&2
+						echo >&2
 						exit 1
 					fi
 					if version_gte "18.09"; then
@@ -714,22 +714,22 @@ do_install() {
 			exit 0
 			;;
 		sles)
-			echo "Effective v27.5, please consult SLES distro statement for s390x support."
+			echo "Effective v27.5, please consult SLES distro statement for s390x support." >&2
 			exit 1
 			;;
 		*)
 			if [ -z "$lsb_dist" ]; then
 				if is_darwin; then
-					echo
-					echo "ERROR: Unsupported operating system 'macOS'"
-					echo "Please get Docker Desktop from https://www.docker.com/products/docker-desktop"
-					echo
+					echo >&2
+					echo "ERROR: Unsupported operating system 'macOS'" >&2
+					echo "Please get Docker Desktop from https://www.docker.com/products/docker-desktop" >&2
+					echo >&2
 					exit 1
 				fi
 			fi
-			echo
-			echo "ERROR: Unsupported distribution '$lsb_dist'"
-			echo
+			echo >&2
+			echo "ERROR: Unsupported distribution '$lsb_dist'" >&2
+			echo >&2
 			exit 1
 			;;
 	esac
