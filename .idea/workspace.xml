@@ -4,7 +4,29 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7de8b31-8538-410c-a7ce-0996291ccd2d" name="Changes" comment="" />
+    <list default="true" id="b7de8b31-8538-410c-a7ce-0996291ccd2d" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/IOR_ADAPTIVE_LEARNING_LOOP_GUIDE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IOR_QUICKREF.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/audits/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/audits/causal_mechanism_auditor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example_ior_audit.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ior_audit_report.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test_adaptive_learning_loop.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test_causal_mechanism_auditor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test_ior_audit.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/validators/ior_validator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IOR_AUDIT_IMPLEMENTATION.md" beforeDir="false" afterPath="$PROJECT_DIR$/IOR_AUDIT_IMPLEMENTATION.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/canonical_notation.py" beforeDir="false" afterPath="$PROJECT_DIR$/canonical_notation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo_orchestration_complete.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo_orchestration_complete.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/emebedding_policy.py" beforeDir="false" afterPath="$PROJECT_DIR$/emebedding_policy.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/example_convergence.py" beforeDir="false" afterPath="$PROJECT_DIR$/example_convergence.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/example_di_integration.py" beforeDir="false" afterPath="$PROJECT_DIR$/example_di_integration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/extraction/extraction_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/extraction/extraction_pipeline.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/financiero_viabilidad_tablas.py" beforeDir="false" afterPath="$PROJECT_DIR$/financiero_viabilidad_tablas.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/get-docker.sh" beforeDir="false" afterPath="$PROJECT_DIR$/get-docker.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/orchestrator.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -33,34 +55,34 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.check_dependencies.executor&quot;: &quot;Run&quot;,
-    &quot;Python.competencias_municipales.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dereck_beach.executor&quot;: &quot;Run&quot;,
-    &quot;Python.scratch_2.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/recovered/PycharmProjects/FLUX/FARFAN-2.0&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.check_dependencies.executor": "Run",
+    "Python.competencias_municipales.executor": "Run",
+    "Python.dereck_beach.executor": "Run",
+    "Python.scratch_2.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "Merging main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "/Users/recovered/PycharmProjects/FLUX/FARFAN-2.0",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
-      &quot;Python&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "Python"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -85,7 +107,7 @@
       <workItem from="1760466237985" duration="679000" />
       <workItem from="1760486480473" duration="5044000" />
       <workItem from="1760540245919" duration="422000" />
-      <workItem from="1760546115571" duration="1017000" />
+      <workItem from="1760546115571" duration="1662000" />
     </task>
     <servers />
   </component>
