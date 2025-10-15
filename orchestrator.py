@@ -306,16 +306,66 @@ class AnalyticalOrchestrator:
         Phase 3: Analyze regulatory constraints and compliance.
         
         Applies REGULATORY_DEPTH_FACTOR calibration constant.
+        Integrates evidence quality auditors for D1, D3, D4, D5 compliance.
         """
         timestamp = datetime.now().isoformat()
         
-        # Placeholder: In real implementation, call actual regulatory analysis
-        regulatory_analysis = {
-            "regulatory_references_count": 0,
-            "constraint_types_mentioned": 0,
-            "is_consistent": len(temporal_conflicts) == 0,
-            "d1_q5_quality": "insuficiente"
-        }
+        # Import evidence quality auditors
+        try:
+            from evidence_quality_auditors import (
+                run_all_audits,
+                IndicatorMetadata
+            )
+            
+            # Run evidence quality audits
+            audit_results = run_all_audits(
+                text=text,
+                indicators=None,  # Would be extracted in production
+                pdm_tables=None,  # Would be extracted in production
+                structured_claims=None,
+                causal_graph=None,
+                counterfactual_audit=None
+            )
+            
+            # Extract key metrics from audits
+            regulatory_analysis = {
+                "regulatory_references_count": 0,
+                "constraint_types_mentioned": 0,
+                "is_consistent": len(temporal_conflicts) == 0,
+                "d1_q5_quality": "insuficiente",
+                "evidence_quality_audits": {
+                    audit_type: {
+                        "severity": result.severity.value,
+                        "sota_compliance": result.sota_compliance,
+                        "metrics": result.metrics,
+                        "recommendation_count": len(result.recommendations)
+                    }
+                    for audit_type, result in audit_results.items()
+                }
+            }
+            
+            # Determine overall d1_q5_quality based on audit results
+            all_compliant = all(
+                result.sota_compliance 
+                for result in audit_results.values()
+            )
+            
+            if all_compliant:
+                regulatory_analysis["d1_q5_quality"] = "excelente"
+            elif any(result.sota_compliance for result in audit_results.values()):
+                regulatory_analysis["d1_q5_quality"] = "bueno"
+            else:
+                regulatory_analysis["d1_q5_quality"] = "insuficiente"
+                
+        except ImportError as e:
+            self.logger.warning(f"Could not import evidence_quality_auditors: {e}")
+            # Fallback to basic analysis
+            regulatory_analysis = {
+                "regulatory_references_count": 0,
+                "constraint_types_mentioned": 0,
+                "is_consistent": len(temporal_conflicts) == 0,
+                "d1_q5_quality": "insuficiente"
+            }
         
         return PhaseResult(
             phase_name="analyze_regulatory_constraints",
