@@ -654,7 +654,7 @@ class AdvancedStatisticalTesting:
             p_values.append(p_value)
 
         if p_values:
-            reject, adjusted_p_values, _, _ = multipletests(
+            _, adjusted_p_values, _, _ = multipletests(
                 p_values,
                 alpha=0.05,
                 method='fdr_bh'
@@ -978,7 +978,7 @@ Análisis completo con contradicciones y métricas avanzadas
                 if nli_result['label'] == 'contradiction' and nli_result['score'] > 0.75:
                     similarity = self._calculate_contextual_similarity(stmt_a, stmt_b)
 
-                    confidence, credible_interval = self.bayesian_engine.calculate_posterior(
+                    confidence, _ = self.bayesian_engine.calculate_posterior(
                         evidence_strength=nli_result['score'],
                         observations=len(stmt_a.entities) + len(stmt_b.entities),
                         domain_weight=self._get_ontology_weight(stmt_a),
@@ -1101,7 +1101,7 @@ Análisis completo con contradicciones y métricas avanzadas
         if len(temporal_statements) < 2:
             return contradictions
 
-        is_consistent, conflicts, consistency_score = \
+        _, conflicts, _ = \
             self.temporal_verifier.verify_temporal_consistency(temporal_statements)
 
         for conflict in conflicts:
