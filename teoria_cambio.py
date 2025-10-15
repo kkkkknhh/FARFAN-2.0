@@ -49,8 +49,6 @@ import logging
 import random
 import sys
 import time
-
-STATUS_PASSED = "✅ PASÓ"
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -58,10 +56,13 @@ from enum import Enum, auto
 from functools import lru_cache
 from typing import Any, Dict, FrozenSet, List, Optional, Set, Tuple, Type
 
-# --- Dependencias de Terceros ---
 import networkx as nx
 import numpy as np
 import scipy.stats as stats
+
+STATUS_PASSED = "✅ PASÓ"
+
+# --- Dependencias de Terceros ---
 
 
 # --- Configuración de Logging ---

@@ -185,9 +185,7 @@ class AdvancedSemanticChunker:
 
         for idx, (chunk_text, chunk_start, chunk_end) in enumerate(raw_chunks):
             # Infer P-D-Q context from surrounding text
-            pdq_context = self._infer_pdq_context(
-                chunk_text
-            )
+            pdq_context = self._infer_pdq_context(chunk_text)
 
             # Count tokens (approximation: Spanish has ~1.3 chars/token)
             AVG_CHARS_PER_TOKEN = 1.3  # Source: Spanish language statistics
@@ -241,7 +239,7 @@ class AdvancedSemanticChunker:
         Recursive character splitting with semantic boundary respect.
 
         Priority: Paragraph > Sentence > Word > Character
-        
+
         Returns: List of (chunk_text, start_pos, end_pos) tuples
         """
         if len(text) <= target_size:
@@ -389,9 +387,7 @@ class AdvancedSemanticChunker:
 
         return None
 
-    def _contains_table(
-        self, chunk_text: str, tables: list[dict[str, Any]]
-    ) -> bool:
+    def _contains_table(self, chunk_text: str, tables: list[dict[str, Any]]) -> bool:
         """Check if chunk contains table markers."""
         return any(table["marker"][:20] in chunk_text for table in tables)
 
@@ -1357,7 +1353,7 @@ def create_policy_embedder(
             - "fast": Lightweight, low latency
             - "balanced": Good performance/accuracy balance (default)
             - "accurate": Maximum accuracy, higher latency
-        
+
     Returns:
         Configured PolicyAnalysisEmbedder instance
     """
