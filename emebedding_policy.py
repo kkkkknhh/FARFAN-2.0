@@ -32,6 +32,13 @@ from sentence_transformers import CrossEncoder, SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ============================================================================
+# DESIGN CONSTANTS - Model Configuration
+# ============================================================================
+
+# Cross-encoder model for semantic reranking
+DEFAULT_CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+# ============================================================================
 # TYPE SYSTEM - Python 3.10+ Type Safety
 # ============================================================================
 
@@ -651,7 +658,7 @@ class PolicyCrossEncoderReranker:
 
     def __init__(
         self,
-        model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        model_name: str = DEFAULT_CROSS_ENCODER_MODEL,
         max_length: int = 512,
     ):
         """
@@ -714,7 +721,7 @@ class PolicyEmbeddingConfig:
 
     # Model selection
     embedding_model: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
-    cross_encoder_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    cross_encoder_model: str = DEFAULT_CROSS_ENCODER_MODEL
 
     # Chunking parameters
     chunk_size: int = 512
@@ -1280,7 +1287,7 @@ def create_policy_embedder(
     model_configs = {
         "fast": PolicyEmbeddingConfig(
             embedding_model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-            cross_encoder_model="cross-encoder/ms-marco-MiniLM-L-6-v2",
+            cross_encoder_model=DEFAULT_CROSS_ENCODER_MODEL,
             chunk_size=256,
             chunk_overlap=64,
             top_k_candidates=30,
@@ -1289,7 +1296,7 @@ def create_policy_embedder(
         ),
         "balanced": PolicyEmbeddingConfig(
             embedding_model="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
-            cross_encoder_model="cross-encoder/ms-marco-MiniLM-L-6-v2",
+            cross_encoder_model=DEFAULT_CROSS_ENCODER_MODEL,
             chunk_size=512,
             chunk_overlap=128,
             top_k_candidates=50,

@@ -63,6 +63,26 @@ from transformers import AutoModel, AutoTokenizer, pipeline
 # === ANÁLISIS FINANCIERO Y ECONÓMICO ===
 
 # ============================================================================
+# DESIGN CONSTANTS - Common Strings and Keywords
+# ============================================================================
+
+# Table field names
+FIELD_NAME = "name"
+FIELD_TYPE = "type"
+FIELD_META = "meta"
+FIELD_PRESUPUESTO = "presupuesto"
+FIELD_FUENTE = "fuente"
+
+# Administrative unit types
+ADMIN_SECRETARIA = "secretaría"
+ADMIN_DIRECCION = "dirección"
+ADMIN_OFICINA = "oficina"
+
+# PDET-related constants
+PDET_KEYWORD = "pdet"
+PDET_TRANSFORMACION_REGIONAL = "transformación regional"
+
+# ============================================================================
 # CONFIGURACIÓN ESPECÍFICA PARA COLOMBIA Y PDET
 # ============================================================================
 
