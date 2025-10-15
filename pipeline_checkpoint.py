@@ -263,9 +263,7 @@ class PipelineCheckpoint:
 
         # Find added or modified keys
         for key, value in current_state.items():
-            if key not in previous_state:
-                delta[key] = value
-            elif previous_state[key] != value:
+            if key not in previous_state or previous_state[key] != value:
                 delta[key] = value
 
         # Mark deleted keys

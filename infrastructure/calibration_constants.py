@@ -163,7 +163,7 @@ class CalibrationConstants:
             raise ValueError("Severity thresholds must be strictly ordered")
         
         # Validate audit grade ordering
-        if not self.EXCELLENT_CONTRADICTION_LIMIT < self.GOOD_CONTRADICTION_LIMIT:
+        if self.EXCELLENT_CONTRADICTION_LIMIT >= self.GOOD_CONTRADICTION_LIMIT:
             raise ValueError("Audit grade limits must be strictly ordered")
         
         # Validate non-negative constraints

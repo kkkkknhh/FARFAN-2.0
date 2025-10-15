@@ -67,12 +67,9 @@ class IntegratedOrchestrator:
         timestamp = datetime.now().isoformat()
         
         try:
-            if self.detector:
-                # Example integration (actual module would be called here)
-                # statements = self.detector._extract_policy_statements(text, dimension)
-                statements = []  # Placeholder
-            else:
-                statements = []  # Fallback
+            # Example integration (actual module would be called here)
+            # statements = self.detector._extract_policy_statements(text, dimension)
+            statements = []  # Placeholder
             
             return PhaseResult(
                 phase_name="extract_statements",
