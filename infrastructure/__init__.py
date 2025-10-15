@@ -7,6 +7,9 @@ Provides infrastructure components for resilient external service integration:
 - Resilient DNP Validator with fail-open policy
 - Service health monitoring and metrics
 - Resource pool management and computational infrastructure
+- Async orchestrator with backpressure signaling (Audit Point 4.2)
+- PDF processing isolation (Audit Point 4.1)
+- Fail-open policy framework (Audit Point 4.3)
 
 Author: AI Systems Architect
 Version: 1.0.0
@@ -34,6 +37,40 @@ from infrastructure.resource_pool import (
     WorkerMemoryError,
     WorkerTimeoutError,
 )
+from infrastructure.async_orchestrator import (
+    AsyncOrchestrator,
+    OrchestratorConfig,
+    OrchestratorMetrics,
+    QueueFullError,
+    JobTimeoutError,
+    JobStatus,
+    create_orchestrator,
+)
+from infrastructure.pdf_isolation import (
+    IsolatedPDFProcessor,
+    IsolationConfig,
+    IsolationStrategy,
+    PDFProcessingTimeoutError,
+    PDFProcessingIsolationError,
+    ProcessingResult,
+    IsolationMetrics,
+    create_isolated_processor,
+)
+from infrastructure.fail_open_policy import (
+    FailOpenPolicyManager,
+    ComponentConfig,
+    ComponentType,
+    FailureMode,
+    CDAFValidationError,
+    CoreValidationError,
+    EnrichmentValidationWarning,
+    FailOpenMetrics,
+    DNP_AVAILABLE,
+    set_dnp_available,
+    is_dnp_available,
+    create_policy_manager,
+    create_default_components,
+)
 
 __all__ = [
     # Circuit Breaker
@@ -55,6 +92,37 @@ __all__ = [
     "WorkerTimeoutError",
     "WorkerMemoryError",
     "BayesianInferenceEngine",
+    # Async Orchestrator (Audit Point 4.2)
+    "AsyncOrchestrator",
+    "OrchestratorConfig",
+    "OrchestratorMetrics",
+    "QueueFullError",
+    "JobTimeoutError",
+    "JobStatus",
+    "create_orchestrator",
+    # PDF Isolation (Audit Point 4.1)
+    "IsolatedPDFProcessor",
+    "IsolationConfig",
+    "IsolationStrategy",
+    "PDFProcessingTimeoutError",
+    "PDFProcessingIsolationError",
+    "ProcessingResult",
+    "IsolationMetrics",
+    "create_isolated_processor",
+    # Fail-Open Policy (Audit Point 4.3)
+    "FailOpenPolicyManager",
+    "ComponentConfig",
+    "ComponentType",
+    "FailureMode",
+    "CDAFValidationError",
+    "CoreValidationError",
+    "EnrichmentValidationWarning",
+    "FailOpenMetrics",
+    "DNP_AVAILABLE",
+    "set_dnp_available",
+    "is_dnp_available",
+    "create_policy_manager",
+    "create_default_components",
 ]
 
 __version__ = "1.0.0"
