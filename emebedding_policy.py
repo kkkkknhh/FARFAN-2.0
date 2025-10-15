@@ -180,7 +180,7 @@ class AdvancedSemanticChunker:
         # Enrich chunks with metadata and P-D-Q context
         semantic_chunks: list[SemanticChunk] = []
 
-        for idx, chunk_text in enumerate(raw_chunks):
+        for idx, (chunk_text, chunk_start, chunk_end) in enumerate(raw_chunks):
             # Infer P-D-Q context from surrounding text
             pdq_context = self._infer_pdq_context(
                 chunk_text, sections, document_metadata
@@ -204,14 +204,14 @@ class AdvancedSemanticChunker:
                 "metadata": {
                     "document_id": document_metadata.get("doc_id"),
                     "chunk_index": idx,
-                    "has_table": self._contains_table(chunk_text, tables),
+                    "has_table": self._contains_table(chunk_start, chunk_end, tables),
                     "has_list": self._contains_list(chunk_text, lists),
                     "has_numbers": bool(self.NUMERIC_INDICATORS.search(chunk_text)),
                     "section_title": self._find_section(chunk_text, sections),
                 },
                 "pdq_context": pdq_context,
                 "token_count": token_count,
-                "position": (0, len(chunk_text)),  # Updated during splitting
+                "position": (chunk_start, chunk_end),
             }
 
             semantic_chunks.append(semantic_chunk)
@@ -231,14 +231,18 @@ class AdvancedSemanticChunker:
         text = re.sub(r"\n{3,}", "\n\n", text)
         return text.strip()
 
-    def _recursive_split(self, text: str, target_size: int, overlap: int) -> list[str]:
+    def _recursive_split(
+        self, text: str, target_size: int, overlap: int
+    ) -> list[tuple[str, int, int]]:
         """
         Recursive character splitting with semantic boundary respect.
 
         Priority: Paragraph > Sentence > Word > Character
+        
+        Returns: List of (chunk_text, start_pos, end_pos) tuples
         """
         if len(text) <= target_size:
-            return [text]
+            return [(text, 0, len(text))]
 
         chunks = []
         current_pos = 0
@@ -262,7 +266,7 @@ class AdvancedSemanticChunker:
 
             chunk = text[current_pos:end_pos].strip()
             if len(chunk) >= self.config.min_chunk_size:
-                chunks.append(chunk)
+                chunks.append((chunk, current_pos, end_pos))
 
             # Move position with overlap
             current_pos = end_pos - overlap if overlap > 0 else end_pos
