@@ -1,20 +1,39 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Unified Analytical Orchestrator for FARFAN 2.0
-==============================================
+DEPRECATED: Legacy Analytical Orchestrator
+==========================================
 
-Orchestrates the execution of all analytical modules (regulatory, contradiction,
-audit, coherence, causal) with deterministic behavior, complete data flow integrity,
-and auditable metrics.
+⚠️  DEPRECATION WARNING ⚠️
+This orchestrator is DEPRECATED and will be removed in a future version.
 
-Design Principles:
+Please migrate to:
+    from orchestration.deterministic_unified_orchestrator import (
+        DeterministicUnifiedOrchestrator,
+        create_unified_orchestrator
+    )
+
+This legacy file is maintained for backward compatibility only.
+All new code should use DeterministicUnifiedOrchestrator.
+
+Original Design Principles (now superseded):
 - Sequential phase execution with enforced dependencies
 - Deterministic mathematical calibration (no drift)
 - Complete audit trail with immutable logs
 - Structured data contracts for all phases
 - Error handling with fallback mechanisms
 """
+
+import warnings
+
+# Issue deprecation warning when module is imported
+warnings.warn(
+    "orchestrator.py (AnalyticalOrchestrator) is DEPRECATED. "
+    "Use orchestration.deterministic_unified_orchestrator.DeterministicUnifiedOrchestrator instead. "
+    "This legacy orchestrator will be removed in FARFAN 3.0.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from __future__ import annotations
 
