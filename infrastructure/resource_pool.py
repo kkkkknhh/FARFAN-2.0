@@ -259,7 +259,8 @@ class ResourcePool:
                 try:
                     await monitor_task
                 except asyncio.CancelledError:
-                    pass
+                    # Re-raise CancelledError after cleanup
+                    raise
 
             # Remove from tracking
             if task_id in self.active_tasks:

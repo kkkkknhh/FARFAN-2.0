@@ -716,14 +716,12 @@ class BayesianSamplingEngine:
             return self._prior_as_posterior(prior, config)
 
         # Calibrated likelihood using sigmoid transformation
-        total_likelihood = 0.0
         evidence_count = 0
 
         for ev in evidence:
             likelihood = self._similarity_to_probability(
                 ev.cosine_similarity, tau=config.sigmoid_tau
             )
-            total_likelihood += likelihood
             evidence_count += 1
 
         # Beta-Binomial conjugate update
@@ -859,7 +857,7 @@ class BayesianSamplingEngine:
         Returns:
             InferenceExplainabilityPayload with full traceability
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         # Extract evidence snippets (top 5 by similarity)
         evidence_snippets = []
@@ -903,7 +901,7 @@ class BayesianSamplingEngine:
             necessity_severity=necessity_result.severity,
             evidence_snippets=evidence_snippets,
             source_chunk_hashes=source_hashes,
-            timestamp=timestamp or datetime.utcnow().isoformat() + "Z",
+            timestamp=timestamp or datetime.now(timezone.utc).isoformat() + "Z",
         )
 
         # Compute quality score

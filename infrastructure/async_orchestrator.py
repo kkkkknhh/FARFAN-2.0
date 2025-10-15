@@ -184,7 +184,7 @@ class AsyncOrchestrator:
             f"max_workers={config.max_workers}, timeout={config.job_timeout_secs}s"
         )
 
-    async def start(self):
+    def start(self):
         """
         Start the orchestrator and worker pool.
 
