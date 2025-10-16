@@ -4,10 +4,13 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![CI Contract Enforcement](https://img.shields.io/badge/CI-Contract%20Enforced-critical)](CI_ENFORCEMENT_README.md)
+[![SIN_CARRETA Compliant](https://img.shields.io/badge/SIN__CARRETA-Compliant-success)](CONTRIBUTING.md)
 
 ## 📋 Tabla de Contenidos
 
 - [Descripción](#-descripción)
+- [CI Contract Enforcement](#-ci-contract-enforcement)
 - [Arquitectura de Resiliencia](#arquitectura-de-resiliencia-risk-driven-resilience-system)
 - [Características Principales](#características-principales)
 - [Instalación](#-instalación)
@@ -31,6 +34,52 @@ FARFAN-2.0 es un **framework de grado industrial** para la deconstrucción y aud
 - ✅ **Cumplimiento DNP**: Validación automática de competencias municipales, indicadores MGA y lineamientos PDET
 - ✅ **Resiliencia Distribuida**: Circuit breakers, retry handlers, y recovery checkpoints
 - ✅ **Auditoría Completa**: Trazabilidad financiera y generación de reportes multinivel (micro, meso, macro)
+
+## 🛡️ CI Contract Enforcement
+
+FARFAN 2.0 implementa un sistema de **CI Contract Enforcement** que bloquea automáticamente cualquier PR que introduzca ambiguedad, elimine contratos, o siga patrones mediocres.
+
+### Enforcement Gates (Automatic Merge Blocking)
+
+1. **Orchestrator Contract Validation**
+   - ❌ Bloquea si faltan aserciones en métodos de fase
+   - ❌ Bloquea si falta logging de auditoría
+   - ❌ Bloquea si falta PhaseResult estructurado
+
+2. **Git Diff Contract Analysis**
+   - ❌ Bloquea si se eliminan aserciones sin `SIN_CARRETA-RATIONALE`
+   - ❌ Bloquea si se elimina telemetría sin documentación
+   - ❌ Bloquea si se eliminan contratos sin alternativa más fuerte
+
+3. **Governance Standards Tests**
+   - ❌ Bloquea si fallan las pruebas metodológicas
+   - ❌ Bloquea si se viola la inmutabilidad del audit log
+   - ❌ Bloquea si no se cumplen estándares de aislamiento
+
+4. **Review Requirements**
+   - ❌ Bloquea cambios al orchestrator sin etiqueta `sin-carreta/approver`
+   - ❌ Bloquea cambios a infraestructura sin revisión requerida
+   - ❌ Bloquea cambios a calibración sin documentación
+
+### SIN_CARRETA Doctrine
+
+**SIN_CARRETA** (sin atajos) es nuestra filosofía fundamental:
+
+- ✅ **NO código best-effort silencioso** - Todos los errores deben ser explícitos
+- ✅ **NO magia o fallbacks implícitos** - Todo comportamiento debe ser determinista
+- ✅ **NO eliminación de contratos** - Deben reemplazarse con alternativas más fuertes
+- ✅ **NO ambigüedad** - Todo código debe tener comportamiento claro y verificable
+
+### Cómo Contribuir
+
+Ver [CONTRIBUTING.md](CONTRIBUTING.md) para guías completas sobre:
+- Desarrollo con enforcement activo
+- Documentación de rationale (SIN_CARRETA-RATIONALE)
+- Proceso de revisión y aprobación
+- Requisitos de testing
+
+Ver [CI_ENFORCEMENT_README.md](CI_ENFORCEMENT_README.md) para detalles del sistema de enforcement.
+
 
 ## Arquitectura de Resiliencia (Risk-Driven Resilience System)
 
