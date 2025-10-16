@@ -1,7 +1,49 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-PDM Orchestrator with Explicit State Machine
+DEPRECATED: PDM Orchestrator with Explicit State Machine
+=========================================================
+
+⚠️  DEPRECATION NOTICE ⚠️
+------------------------
+This module is DEPRECATED and maintained only for backward compatibility.
+
+**NEW CODE MUST USE:** orchestration.unified_orchestrator.UnifiedOrchestrator
+
+**MIGRATION PATH:**
+```python
+# OLD (DEPRECATED):
+from orchestration.pdm_orchestrator import PDMOrchestrator
+orch = PDMOrchestrator(config)
+result = await orch.analyze_pdm(pdf_path)
+
+# NEW (REQUIRED):
+from orchestration.unified_orchestrator import UnifiedOrchestrator
+orch = UnifiedOrchestrator(config)
+orch.inject_components(...)  # Inject all required components
+result = await orch.execute_pipeline(pdf_path)
+```
+
+**RATIONALE:**
+This orchestrator has been superseded by the unified 9-stage pipeline which:
+- Consolidates Phase 0-IV with analytical orchestrator phases
+- Eliminates overlapping responsibilities
+- Provides explicit contract enforcement (ComponentNotInjectedError)
+- Implements structured telemetry at all decision points
+- Resolves circular dependency via immutable prior snapshots
+
+**DEPRECATION TIMELINE:**
+- Current: Maintained for backward compatibility with deprecation warnings
+- Next release: Will raise DeprecationWarning on import
+- Future release: Will be removed entirely
+
+For details, see:
+- UNIFIED_ORCHESTRATOR_IMPLEMENTATION.md
+- orchestration/unified_orchestrator.py
+
+---
+
+Original Implementation (preserved for compatibility):
 Implements Phase 0-IV execution with observability, backpressure, and audit logging
 
 SIN_CARRETA Compliance:
@@ -13,6 +55,7 @@ SIN_CARRETA Compliance:
 import asyncio
 import logging
 import time
+import warnings
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
@@ -25,6 +68,15 @@ import pandas as pd
 from infrastructure.calibration_constants import CALIBRATION
 from infrastructure.metrics_collector import MetricsCollector
 from infrastructure.audit_logger import ImmutableAuditLogger
+
+# Emit deprecation warning on import
+warnings.warn(
+    "orchestration.pdm_orchestrator is DEPRECATED. Use orchestration.unified_orchestrator.UnifiedOrchestrator instead. "
+    "This module will be removed in a future release. "
+    "See UNIFIED_ORCHESTRATOR_IMPLEMENTATION.md for migration guide.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class PDMAnalysisState(str, Enum):
