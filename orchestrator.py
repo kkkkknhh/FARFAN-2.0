@@ -753,11 +753,11 @@ class AnalyticalOrchestrator:
                 sector=sector,
                 descripcion=phase_input.text[
                     :500
-                ],  # Use first 500 chars as description
-                indicadores_propuestos=[],  # Would be extracted from statements
-                presupuesto=0.0,  # Would be extracted from statements
-                es_rural=False,  # Would be detected from text
-                poblacion_victimas=False,  # Would be detected from text
+                ],  # First 500 chars as description
+                indicadores_propuestos=[],  # Future: extract from statements
+                presupuesto=0.0,  # Future: extract from statements
+                es_rural=False,  # Future: detect from text analysis
+                poblacion_victimas=False,  # Future: detect from text analysis
             )
 
             # Validate output contract
