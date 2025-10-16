@@ -5,6 +5,21 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+## 🎯 **UNIFIED ORCHESTRATOR - Production Ready**
+
+FARFAN-2.0 now features a **single deterministic orchestrator** that consolidates all analytical, validation, and scoring pipelines into one production-grade system with explicit contracts and complete audit trails.
+
+### Key Features
+
+✅ **Single Unified Pipeline** - All orchestration logic consolidated into `orchestration/unified_orchestrator.py`
+✅ **Explicit Contracts** - Runtime assertions for all component integrations
+✅ **Deterministic Execution** - Reproducible results with fixed calibration constants
+✅ **Structured Telemetry** - Complete observability at every decision point
+✅ **No Silent Failures** - All errors raise explicit exceptions with context
+✅ **Complete Audit Trail** - SHA-256 provenance tracking for governance
+
+See [UNIFIED_ORCHESTRATOR_IMPLEMENTATION.md](UNIFIED_ORCHESTRATOR_IMPLEMENTATION.md) for details.
+
 ## 📋 Tabla de Contenidos
 
 - [Descripción](#-descripción)

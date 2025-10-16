@@ -4,6 +4,16 @@
 Async Orchestrator with Backpressure Signaling - Audit Point 4.2
 ================================================================
 
+⚠️ DEPRECATION NOTICE ⚠️
+========================
+This orchestrator has been DEPRECATED and consolidated into:
+  orchestration/unified_orchestrator.py
+
+Migration Guide:
+- Async orchestration patterns are now built into UnifiedOrchestrator
+- Backpressure signaling is handled by infrastructure/async_orchestrator.py
+- Use UnifiedOrchestrator for all new orchestration needs
+
 Implements asynchronous orchestration with queue management and backpressure
 signaling for high-cost operations (Bayesian/GNN inference).
 
@@ -21,7 +31,7 @@ Audit Point 4.2 Compliance:
 - Flow control for scalable causal systems
 
 Author: AI Systems Architect
-Version: 1.0.0
+Version: 1.0.0 (DEPRECATED)
 """
 
 import asyncio
