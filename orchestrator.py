@@ -365,10 +365,10 @@ class AnalyticalOrchestrator:
 
             # Extract MGA indicators mentioned in text (simplified)
             indicadores_propuestos = self._extract_mga_indicators_from_text(text)
-            
+
             # Determine if this is a PDET municipality (default: False, configured per municipality)
             es_municipio_pdet = False
-            
+
             # Determine rural focus from text
             es_rural = any(
                 term in text.lower()
@@ -693,16 +693,72 @@ class AnalyticalOrchestrator:
 
         # Define sector keywords (ordered by priority)
         sector_keywords = {
-            "educacion": ["educación", "educacion", "educativa", "escolar", "colegio", "institución educativa", "escuela", "estudiante", "aula"],
-            "salud": ["salud", "hospital", "centro de salud", "médico", "sanitaria", "clínica", "consultorio"],
-            "agua_potable": ["acueducto", "agua potable", "alcantarillado", "saneamiento", "agua", "potable"],
+            "educacion": [
+                "educación",
+                "educacion",
+                "educativa",
+                "escolar",
+                "colegio",
+                "institución educativa",
+                "escuela",
+                "estudiante",
+                "aula",
+            ],
+            "salud": [
+                "salud",
+                "hospital",
+                "centro de salud",
+                "médico",
+                "sanitaria",
+                "clínica",
+                "consultorio",
+            ],
+            "agua_potable": [
+                "acueducto",
+                "agua potable",
+                "alcantarillado",
+                "saneamiento",
+                "agua",
+                "potable",
+            ],
             "vivienda": ["vivienda", "habitacional", "vis", "casa", "hogar"],
-            "transporte": ["transporte", "vial", "carretera", "movilidad", "vía", "pavimentación"],
-            "agricultura": ["agricultura", "agropecuario", "rural", "cultivo", "agrícola", "campo"],
-            "ambiente": ["ambiente", "ambiental", "reforestación", "conservación", "ecológico"],
+            "transporte": [
+                "transporte",
+                "vial",
+                "carretera",
+                "movilidad",
+                "vía",
+                "pavimentación",
+            ],
+            "agricultura": [
+                "agricultura",
+                "agropecuario",
+                "rural",
+                "cultivo",
+                "agrícola",
+                "campo",
+            ],
+            "ambiente": [
+                "ambiente",
+                "ambiental",
+                "reforestación",
+                "conservación",
+                "ecológico",
+            ],
             "cultura": ["cultura", "cultural", "artística", "biblioteca", "patrimonio"],
-            "deporte": ["deporte", "deportivo", "recreación", "cancha", "polideportivo"],
-            "desarrollo_economico": ["desarrollo económico", "emprendimiento", "empresarial", "comercio"],
+            "deporte": [
+                "deporte",
+                "deportivo",
+                "recreación",
+                "cancha",
+                "polideportivo",
+            ],
+            "desarrollo_economico": [
+                "desarrollo económico",
+                "emprendimiento",
+                "empresarial",
+                "comercio",
+            ],
         }
 
         # Count matches for each sector

@@ -86,7 +86,7 @@ def test_orchestrator_execution():
         # Verify audit log was created (may have multiple from previous runs)
         log_files = list(Path(tmpdir).glob("audit_log_*.json"))
         assert len(log_files) >= 0  # At least the files should exist or be empty
-        
+
         # Note: ImmutableAuditLogger now uses a single audit_logs.jsonl file instead
         # so we check for that instead
         audit_jsonl = Path(tmpdir) / "audit_logs.jsonl"
