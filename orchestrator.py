@@ -4,6 +4,16 @@
 Unified Analytical Orchestrator for FARFAN 2.0
 ==============================================
 
+⚠️ DEPRECATION NOTICE ⚠️
+========================
+This orchestrator has been DEPRECATED in favor of the unified orchestrator at:
+  orchestration/unified_orchestrator.py
+
+Migration Guide:
+- Use UnifiedOrchestrator for all new code
+- See orchestration/unified_orchestrator.py for explicit contracts
+- Legacy code paths will be removed in next major version
+
 Orchestrates the execution of all analytical modules (regulatory, contradiction,
 audit, coherence, causal) with deterministic behavior, complete data flow integrity,
 and auditable metrics.

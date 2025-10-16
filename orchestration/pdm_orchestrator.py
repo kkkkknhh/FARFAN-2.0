@@ -4,6 +4,16 @@
 PDM Orchestrator with Explicit State Machine
 Implements Phase 0-IV execution with observability, backpressure, and audit logging
 
+⚠️ DEPRECATION NOTICE ⚠️
+========================
+This orchestrator has been DEPRECATED and consolidated into:
+  orchestration/unified_orchestrator.py
+
+Migration Guide:
+- Use UnifiedOrchestrator.execute_pipeline() for all new code
+- PDM-specific logic is now integrated into unified pipeline stages
+- See UNIFIED_ORCHESTRATOR_IMPLEMENTATION.md for migration examples
+
 SIN_CARRETA Compliance:
 - Uses centralized calibration constants
 - Immutable audit logging with SHA-256 provenance
