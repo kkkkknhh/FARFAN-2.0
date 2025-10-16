@@ -25,12 +25,12 @@ import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import lru_cache
+from itertools import chain
 from pathlib import Path
 from typing import Any, ClassVar, Dict, FrozenSet, List, Optional, Set, Tuple, Union
 
 import numpy as np
-from functools import lru_cache
-from itertools import chain
 
 # ============================================================================
 # LOGGING CONFIGURATION
@@ -43,10 +43,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 # ============================================================================
 # CAUSAL DIMENSION TAXONOMY (DECALOGO Framework)
 # ============================================================================
+
 
 class CausalDimension(Enum):
     """Six-dimensional causal framework taxonomy aligned with DECALOGO."""
@@ -206,10 +206,10 @@ CAUSAL_PATTERN_TAXONOMY: Dict[CausalDimension, Dict[str, List[str]]] = {
     },
 }
 
-
 # ============================================================================
 # CONFIGURATION ARCHITECTURE
 # ============================================================================
+
 
 @dataclass(frozen=True)
 class ProcessorConfig:
@@ -257,6 +257,7 @@ class ProcessorConfig:
 # ============================================================================
 # MATHEMATICAL SCORING ENGINE
 # ============================================================================
+
 
 class BayesianEvidenceScorer:
     """
@@ -332,6 +333,7 @@ class BayesianEvidenceScorer:
 # ADVANCED TEXT PROCESSOR
 # ============================================================================
 
+
 class PolicyTextProcessor:
     """
     Industrial-grade text processing with multi-scale segmentation and
@@ -399,6 +401,7 @@ class PolicyTextProcessor:
 # ============================================================================
 # CORE INDUSTRIAL PROCESSOR
 # ============================================================================
+
 
 @dataclass
 class EvidenceBundle:
@@ -471,9 +474,13 @@ class IndustrialPolicyProcessor:
             return data
         except Exception as e:
             logger.error(f"Failed to load questionnaire: {e}")
-            raise IOError(f"Questionnaire unavailable: {self.questionnaire_file_path}") from e
+            raise IOError(
+                f"Questionnaire unavailable: {self.questionnaire_file_path}"
+            ) from e
 
-    def _compile_pattern_registry(self) -> Dict[CausalDimension, Dict[str, List[re.Pattern]]]:
+    def _compile_pattern_registry(
+        self,
+    ) -> Dict[CausalDimension, Dict[str, List[re.Pattern]]]:
         """Compile all causal patterns into efficient regex objects."""
         registry = {}
         for dimension, categories in CAUSAL_PATTERN_TAXONOMY.items():
@@ -531,7 +538,9 @@ class IndustrialPolicyProcessor:
         normalized = self.text_processor.normalize_unicode(raw_text)
         sentences = self.text_processor.segment_into_sentences(normalized)
 
-        logger.info(f"Processing document: {len(normalized)} chars, {len(sentences)} sentences")
+        logger.info(
+            f"Processing document: {len(normalized)} chars, {len(sentences)} sentences"
+        )
 
         # Extract metadata
         metadata = self._extract_metadata(normalized)
@@ -539,9 +548,7 @@ class IndustrialPolicyProcessor:
         # Evidence extraction by policy point
         point_evidence = {}
         for point_code in sorted(self.point_patterns.keys()):
-            evidence = self._extract_point_evidence(
-                normalized, sentences, point_code
-            )
+            evidence = self._extract_point_evidence(normalized, sentences, point_code)
             if evidence:
                 point_evidence[point_code] = evidence
 
@@ -571,11 +578,11 @@ class IndustrialPolicyProcessor:
     ) -> Tuple[List[str], List[int]]:
         """
         Execute pattern matching across relevant sentences and collect matches with positions.
-        
+
         Args:
             compiled_patterns: List of compiled regex patterns to match
             relevant_sentences: Filtered sentences to search within
-            
+
         Returns:
             Tuple of (matched_strings, match_positions)
         """
@@ -595,12 +602,12 @@ class IndustrialPolicyProcessor:
     ) -> float:
         """
         Calculate confidence score for evidence based on pattern matches and contextual factors.
-        
+
         Args:
             matches: List of matched pattern strings
             text_length: Total length of the document text
             pattern_specificity: Specificity coefficient for pattern weighting
-            
+
         Returns:
             Computed confidence score
         """
@@ -619,14 +626,14 @@ class IndustrialPolicyProcessor:
     ) -> Dict[str, Any]:
         """
         Assemble evidence bundle from matched patterns and computed confidence.
-        
+
         Args:
             dimension: Causal dimension classification
             category: Specific category within dimension
             matches: List of matched pattern strings
             positions: List of match positions in text
             confidence: Computed confidence score
-            
+
         Returns:
             Serialized evidence bundle dictionary
         """
@@ -708,9 +715,11 @@ class IndustrialPolicyProcessor:
                 "categories": category_results,
                 "total_matches": total_matches,
                 "dimension_confidence": round(
-                    np.mean([c["confidence"] for c in category_results.values()])
-                    if category_results
-                    else 0.0,
+                    (
+                        np.mean([c["confidence"] for c in category_results.values()])
+                        if category_results
+                        else 0.0
+                    ),
                     4,
                 ),
             }
@@ -725,14 +734,18 @@ class IndustrialPolicyProcessor:
             r"(?i)plan\s+(?:de\s+)?desarrollo\s+(?:municipal|departamental|local)?\s*[:\-]?\s*([^\n]{10,150})",
             text[:2000],
         )
-        title = title_match.group(1).strip() if title_match else "Sin título identificado"
+        title = (
+            title_match.group(1).strip() if title_match else "Sin título identificado"
+        )
 
         # Entity extraction
         entity_match = re.search(
             r"(?i)(?:municipio|alcald[íi]a|gobernaci[óo]n|distrito)\s+(?:de\s+)?([A-ZÁÉÍÓÚÑ][a-záéíóúñ\s]+)",
             text[:3000],
         )
-        entity = entity_match.group(1).strip() if entity_match else "Entidad no especificada"
+        entity = (
+            entity_match.group(1).strip() if entity_match else "Entidad no especificada"
+        )
 
         # Period extraction
         period_match = re.search(r"(20\d{2})\s*[-–—]\s*(20\d{2})", text[:3000])
@@ -791,6 +804,7 @@ class IndustrialPolicyProcessor:
 # ENHANCED SANITIZER WITH STRUCTURE PRESERVATION
 # ============================================================================
 
+
 class AdvancedTextSanitizer:
     """
     Sophisticated text sanitization preserving semantic structure and
@@ -833,7 +847,8 @@ class AdvancedTextSanitizer:
 
         # Stage 4: Remove control characters (except newlines/tabs)
         text = "".join(
-            char for char in text
+            char
+            for char in text
             if unicodedata.category(char)[0] != "C" or char in "\n\t"
         )
 
@@ -886,6 +901,7 @@ class AdvancedTextSanitizer:
 # ============================================================================
 # INTEGRATED FILE HANDLING WITH RESILIENCE
 # ============================================================================
+
 
 class ResilientFileHandler:
     """
@@ -944,6 +960,7 @@ class ResilientFileHandler:
 # ============================================================================
 # UNIFIED ORCHESTRATOR
 # ============================================================================
+
 
 class PolicyAnalysisPipeline:
     """
@@ -1022,6 +1039,7 @@ class PolicyAnalysisPipeline:
 # FACTORY FUNCTIONS FOR BACKWARD COMPATIBILITY
 # ============================================================================
 
+
 def create_policy_processor(
     preserve_structure: bool = True,
     enable_semantic_tagging: bool = True,
@@ -1052,6 +1070,7 @@ def create_policy_processor(
 # ============================================================================
 # COMMAND-LINE INTERFACE
 # ============================================================================
+
 
 def main():
     """Command-line interface for policy plan analysis."""
@@ -1105,8 +1124,12 @@ def main():
         print(f"Document: {results['metadata'].get('title', 'N/A')}")
         print(f"Entity: {results['metadata'].get('entity', 'N/A')}")
         print(f"Period: {results['metadata'].get('period', {})}")
-        print(f"\nPolicy Points Covered: {results['document_statistics']['point_coverage']}")
-        print(f"Average Confidence: {results['document_statistics']['avg_confidence']:.2%}")
+        print(
+            f"\nPolicy Points Covered: {results['document_statistics']['point_coverage']}"
+        )
+        print(
+            f"Average Confidence: {results['document_statistics']['avg_confidence']:.2%}"
+        )
         print(f"Total Sentences: {results['document_statistics']['sentence_count']}")
         print("=" * 70 + "\n")
 

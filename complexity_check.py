@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 import re
 
+
 def count_complexity(code):
     """Simple complexity counter"""
     complexity = 1
-    complexity += len(re.findall(r'\bfor\b', code))
-    complexity += len(re.findall(r'\bif\b', code))
-    complexity += len(re.findall(r'\b(and|or)\b', code))
-    complexity += code.count('[') if 'for' in code and '[' in code else 0
+    complexity += len(re.findall(r"\bfor\b", code))
+    complexity += len(re.findall(r"\bif\b", code))
+    complexity += len(re.findall(r"\b(and|or)\b", code))
+    complexity += code.count("[") if "for" in code and "[" in code else 0
     return complexity
+
 
 original = """
     def _extract_point_evidence(self, text, sentences, point_code):
@@ -80,4 +82,6 @@ print("Cyclomatic Complexity Analysis")
 print("=" * 60)
 print(f"Original method:    {count_complexity(original)}")
 print(f"Refactored method:  {count_complexity(refactored)}")
-print(f"Reduction:          {count_complexity(original) - count_complexity(refactored)}")
+print(
+    f"Reduction:          {count_complexity(original) - count_complexity(refactored)}"
+)
