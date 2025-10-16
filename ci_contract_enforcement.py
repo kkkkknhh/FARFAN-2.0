@@ -31,65 +31,76 @@ from typing import List
 
 class ContractViolation:
     """Represents an orchestration contract violation"""
-    
+
     def __init__(self, file_path: str, line_num: int, rule: str, message: str):
         self.file_path = file_path
         self.line_num = line_num
         self.rule = rule
         self.message = message
-    
+
     def __str__(self):
         return f"{self.file_path}:{self.line_num} [{self.rule}] {message}"
 
 
 def check_orchestration_contracts(repo_root: Path) -> List[ContractViolation]:
     """Check orchestration contracts
-    
+
     Returns:
         List of violations found
     """
     violations = []
-    
+
     python_files = list(repo_root.glob("**/*.py"))
     source_files = [
-        f for f in python_files 
-        if not f.name.startswith("test_") 
+        f
+        for f in python_files
+        if not f.name.startswith("test_")
         and "test" not in f.parts
         and "__pycache__" not in str(f)
         and "ci_contract_enforcement.py" not in str(f)
     ]
-    
+
     for file_path in source_files:
         # Skip deprecated files
-        if "orchestrator.py" == file_path.name or "pdm_orchestrator.py" in str(file_path):
+        if "orchestrator.py" == file_path.name or "pdm_orchestrator.py" in str(
+            file_path
+        ):
             continue
-        
+
         # Skip the unified orchestrator itself
         if "unified_orchestrator.py" in str(file_path):
             continue
-        
+
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
         except Exception:
             continue
-        
+
         # Check for legacy orchestrator imports
         forbidden_patterns = [
-            (r'from orchestrator import', 'Legacy orchestrator import (use orchestration.unified_orchestrator)'),
-            (r'import orchestrator\b', 'Legacy orchestrator import (use orchestration.unified_orchestrator)'),
+            (
+                r"from orchestrator import",
+                "Legacy orchestrator import (use orchestration.unified_orchestrator)",
+            ),
+            (
+                r"import orchestrator\b",
+                "Legacy orchestrator import (use orchestration.unified_orchestrator)",
+            ),
         ]
-        
-        for line_num, line in enumerate(content.split('\n'), 1):
+
+        for line_num, line in enumerate(content.split("\n"), 1):
             for pattern, message in forbidden_patterns:
                 if re.search(pattern, line):
-                    violations.append(ContractViolation(
-                        str(file_path.relative_to(repo_root)),
-                        line_num,
-                        "LEGACY_IMPORT",
-                        message
-                    ))
-    
+                    violations.append(
+                        ContractViolation(
+                            str(file_path.relative_to(repo_root)),
+                            line_num,
+                            "LEGACY_IMPORT",
+                            message,
+                        )
+                    )
+
     return violations
 
 
@@ -104,12 +115,12 @@ def run_ci_contracts() -> int:
     print("CI CONTRACT ENFORCEMENT - Methodological Gates + Orchestration")
     print("=" * 70)
     print()
-    
+
     # Check orchestration contracts
     print("🔍 Checking orchestration contracts...")
     repo_root = Path(__file__).parent
     violations = check_orchestration_contracts(repo_root)
-    
+
     if violations:
         print(f"❌ Found {len(violations)} orchestration contract violations:\n")
         for v in violations:
