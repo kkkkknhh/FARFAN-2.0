@@ -221,7 +221,9 @@ class AnalyticalOrchestrator:
                     "causal_incoherence_limit": self.calibration.CAUSAL_INCOHERENCE_LIMIT,
                     "regulatory_depth_factor": self.calibration.REGULATORY_DEPTH_FACTOR,
                 },
-                "canonical_questionnaire_path": str(self.questionnaire_parser.get_canonical_path()),
+                "canonical_questionnaire_path": str(
+                    self.questionnaire_parser.get_canonical_path()
+                ),
                 "execution_start": None,
                 "execution_end": None,
             }
@@ -910,36 +912,36 @@ class AnalyticalOrchestrator:
     def get_dimension_description(self, dimension_id: str) -> Optional[str]:
         """
         Get canonical dimension description from questionnaire parser.
-        
+
         Args:
             dimension_id: Dimension identifier (e.g., "D1")
-        
+
         Returns:
             Dimension name or None if not found
         """
         dimension_names = self.questionnaire_parser.get_dimension_names()
         return dimension_names.get(dimension_id)
-    
+
     def get_policy_description(self, policy_id: str) -> Optional[str]:
         """
         Get canonical policy description from questionnaire parser.
-        
+
         Args:
             policy_id: Policy identifier (e.g., "P1")
-        
+
         Returns:
             Policy name or None if not found
         """
         policy_names = self.questionnaire_parser.get_policy_names()
         return policy_names.get(policy_id)
-    
+
     def get_question(self, full_id: str):
         """
         Get canonical question from questionnaire parser.
-        
+
         Args:
             full_id: Full question identifier (e.g., "P1-D1-Q1")
-        
+
         Returns:
             Question object or None if not found
         """
