@@ -137,8 +137,9 @@ class ValidadorDNP:
         # 3. Validate PDET requirements (if applicable)
         if self.es_municipio_pdet:
             self.logger.info("Validando lineamientos PDET...")
+            # For deterministic validation, pass empty list to evaluate against recommended lineamientos
             pdet_result = self._validar_lineamientos_pdet(
-                sector, es_rural, poblacion_victimas
+                sector, es_rural, poblacion_victimas, []
             )
             resultado.cumple_pdet = pdet_result["cumple"]
             resultado.lineamientos_pdet_cumplidos = pdet_result["cumplidos"]

@@ -15,22 +15,24 @@ import numpy as np
 import pytest
 
 from orchestrator import (
-    COHERENCE_THRESHOLD,
     AnalyticalOrchestrator,
     create_orchestrator,
 )
+from infrastructure.calibration_constants import CALIBRATION
 
 
 def test_orchestrator_creation():
     """Test that orchestrator can be created with default and custom calibration."""
     # Default calibration
     orch1 = create_orchestrator()
-    assert orch1.calibration["coherence_threshold"] == COHERENCE_THRESHOLD
-    assert orch1.calibration["causal_incoherence_limit"] == 5
+    assert orch1.calibration.COHERENCE_THRESHOLD == CALIBRATION.COHERENCE_THRESHOLD
+    assert orch1.calibration.CAUSAL_INCOHERENCE_LIMIT == 5
 
     # Custom calibration
-    orch2 = create_orchestrator(coherence_threshold=0.8)
-    assert orch2.calibration["coherence_threshold"] == pytest.approx(
+    from infrastructure.calibration_constants import override_calibration
+    custom_cal = override_calibration(COHERENCE_THRESHOLD=0.8)
+    orch2 = create_orchestrator(calibration=custom_cal)
+    assert orch2.calibration.COHERENCE_THRESHOLD == pytest.approx(
         0.8, rel=1e-6, abs=1e-9
     )
 
@@ -77,7 +79,7 @@ def test_orchestrator_execution():
         # Verify calibration is preserved
         assert (
             result["orchestration_metadata"]["calibration"]["coherence_threshold"]
-            == COHERENCE_THRESHOLD
+            == CALIBRATION.COHERENCE_THRESHOLD
         )
 
         # Verify audit log was created
@@ -152,13 +154,15 @@ def test_error_handling():
 
 def test_calibration_constants_usage():
     """Test that calibration constants are used throughout pipeline."""
-    orch = create_orchestrator(coherence_threshold=0.85, causal_incoherence_limit=3)
+    from infrastructure.calibration_constants import override_calibration
+    custom_cal = override_calibration(COHERENCE_THRESHOLD=0.85, CAUSAL_INCOHERENCE_LIMIT=3)
+    orch = create_orchestrator(calibration=custom_cal)
 
     # Verify custom calibration is set
-    assert orch.calibration["coherence_threshold"] == pytest.approx(
+    assert orch.calibration.COHERENCE_THRESHOLD == pytest.approx(
         0.85, rel=1e-6, abs=1e-9
     )
-    assert orch.calibration["causal_incoherence_limit"] == 3
+    assert orch.calibration.CAUSAL_INCOHERENCE_LIMIT == 3
 
     # Execute pipeline
     result = orch.orchestrate_analysis(
