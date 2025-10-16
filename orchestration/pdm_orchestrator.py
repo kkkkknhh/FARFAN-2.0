@@ -26,6 +26,12 @@ from infrastructure.calibration_constants import CALIBRATION
 from infrastructure.metrics_collector import MetricsCollector
 from infrastructure.audit_logger import ImmutableAuditLogger
 
+# Canonical questionnaire parser - single source of truth
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from questionnaire_parser import create_questionnaire_parser
+
 
 class PDMAnalysisState(str, Enum):
     """Analysis state machine states"""
@@ -144,6 +150,9 @@ class PDMOrchestrator:
         self.config = config
         self.state = PDMAnalysisState.INITIALIZED
         self.metrics = MetricsCollector()
+        
+        # Initialize canonical questionnaire parser (single source of truth)
+        self.questionnaire_parser = create_questionnaire_parser()
 
         # Audit logging
         audit_store_path = getattr(config, "audit_store_path", None)
@@ -170,7 +179,10 @@ class PDMOrchestrator:
         self.validator = None
         self.scorer = None
 
-        self.logger.info(f"PDMOrchestrator initialized with state: {self.state}")
+        self.logger.info(
+            f"PDMOrchestrator initialized with state: {self.state}, "
+            f"canonical questionnaire: {self.questionnaire_parser.get_canonical_path()}"
+        )
 
     def _generate_run_id(self) -> str:
         """Generate unique run ID"""

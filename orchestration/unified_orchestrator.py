@@ -31,6 +31,12 @@ from choreography.event_bus import EventBus, PDMEvent
 from choreography.evidence_stream import EvidenceStream, StreamingBayesianUpdater
 from orchestration.learning_loop import AdaptiveLearningLoop, PriorHistoryStore
 
+# Canonical questionnaire parser - single source of truth
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from questionnaire_parser import create_questionnaire_parser
+
 logger = logging.getLogger(__name__)
 
 
@@ -192,6 +198,9 @@ class UnifiedOrchestrator:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
         
+        # Initialize canonical questionnaire parser (single source of truth)
+        self.questionnaire_parser = create_questionnaire_parser()
+        
         # Event bus for inter-component communication
         self.event_bus = EventBus()
         
@@ -211,7 +220,7 @@ class UnifiedOrchestrator:
         self.scorer = None
         self.report_generator = None
         
-        self.logger.info("UnifiedOrchestrator initialized")
+        self.logger.info(f"UnifiedOrchestrator initialized with canonical questionnaire: {self.questionnaire_parser.get_canonical_path()}")
     
     def inject_components(
         self,
