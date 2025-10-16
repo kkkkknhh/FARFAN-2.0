@@ -1,5 +1,10 @@
 name: FARFAN 2.0 CI - Contract Enforcement
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
 on:
   pull_request:
     branches: [ main, develop ]
