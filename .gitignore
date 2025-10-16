@@ -1,45 +1,135 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
 *.py[cod]
 *$py.class
-.pytest_cache/
-.mypy_cache/
-*.egg-info/
-dist/
-build/
+
+# C extensions
 *.so
-.coverage
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
 htmlcov/
 .tox/
-venv/
-env/
-.env
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
 *.log
-index.html
-*.html
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
 
 # Orchestrator logs (keep directory, ignore log files)
 logs/orchestrator/*.json
 logs/orchestrator/audit_store/*.json
 !logs/orchestrator/.gitkeep
 
-# Virtual environment
-venv/
-.venv/
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
 env/
+venv/
 ENV/
+env.bak/
+venv.bak/
 
-# Python package requirements
-requirements.txt
+# Spyder project settings
+.spyderproject
+.spyproject
 
-# Python
-.Python
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
 
 # IDEs
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
@@ -48,33 +138,14 @@ requirements.txt
 .DS_Store
 Thumbs.db
 
-# Temporary files
-*.tmp
-*.bak
+# Project specific
+logs/
+*.pdf
+audits/
+example_audit_output/
 
-# Resilience config outputs
-resilience_dev_default.yaml
-resilience_prod_default.yaml
-resilience_*.yaml
-
-# Runtime data
-data/
-*.jsonl
-prior_history.json
-
-# Pipeline artifacts (checkpoints, metrics, traces)
-checkpoints/
-checkpoints_*/
-*_checkpoints/
-metrics/
-*.pkl
-*_trace_*.json
-*.ckpt
-*.ckpt.gz
-checkpoint_index.json
-encryption.key
-*.key
-
-# Demo outputs
-demo_resultados/
-resultados/
+# Test Batch Workflow - Generated artifacts
+test_batch_logs/
+test_batch_logs/*.json
+test_batch_logs/*.txt
+test_batch_logs/backups/
