@@ -1,14 +1,49 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Unified Analytical Orchestrator for FARFAN 2.0
-==============================================
+DEPRECATED: Unified Analytical Orchestrator for FARFAN 2.0
+===========================================================
 
-Orchestrates the execution of all analytical modules (regulatory, contradiction,
-audit, coherence, causal) with deterministic behavior, complete data flow integrity,
-and auditable metrics.
+⚠️  DEPRECATION NOTICE ⚠️
+------------------------
+This module is DEPRECATED and maintained only for backward compatibility.
 
-Design Principles:
+**NEW CODE MUST USE:** orchestration.unified_orchestrator.UnifiedOrchestrator
+
+**MIGRATION PATH:**
+```python
+# OLD (DEPRECATED):
+from orchestrator import AnalyticalOrchestrator, create_orchestrator
+orch = create_orchestrator()
+result = orch.orchestrate_analysis(text, plan_name, dimension)
+
+# NEW (REQUIRED):
+from orchestration.unified_orchestrator import UnifiedOrchestrator
+# See orchestration/unified_orchestrator.py for usage
+```
+
+**RATIONALE:**
+This orchestrator has been superseded by the unified 9-stage pipeline in
+orchestration/unified_orchestrator.py which:
+- Eliminates redundant orchestrator code paths
+- Provides explicit contract enforcement (no fallbacks)
+- Implements structured telemetry at all decision points
+- Ensures deterministic behavior with immutable prior snapshots
+- Integrates all analytical phases (Bayesian, validation, scoring, learning)
+
+**DEPRECATION TIMELINE:**
+- Current: Maintained for backward compatibility with deprecation warnings
+- Next release: Will raise DeprecationWarning on import
+- Future release: Will be removed entirely
+
+For details, see:
+- IMPLEMENTATION_SUMMARY_ORCHESTRATOR_UNIFICATION.md
+- UNIFIED_ORCHESTRATOR_IMPLEMENTATION.md
+- orchestration/unified_orchestrator.py
+
+---
+
+Original Design Principles (preserved for compatibility):
 - Sequential phase execution with enforced dependencies
 - Deterministic mathematical calibration (no drift)
 - Complete audit trail with immutable logs
@@ -20,6 +55,7 @@ from __future__ import annotations
 
 import json
 import logging
+import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
@@ -30,6 +66,15 @@ from infrastructure.audit_logger import ImmutableAuditLogger
 
 # SIN_CARRETA Compliance: Use centralized calibration constants
 from infrastructure.calibration_constants import CALIBRATION
+
+# Emit deprecation warning on import
+warnings.warn(
+    "orchestrator.py is DEPRECATED. Use orchestration.unified_orchestrator.UnifiedOrchestrator instead. "
+    "This module will be removed in a future release. "
+    "See IMPLEMENTATION_SUMMARY_ORCHESTRATOR_UNIFICATION.md for migration guide.",
+    DeprecationWarning,
+    stacklevel=2
+)
 from infrastructure.metrics_collector import MetricsCollector
 from infrastructure.telemetry import (
     ContractViolationError,

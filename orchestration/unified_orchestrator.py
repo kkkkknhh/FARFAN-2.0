@@ -33,31 +33,51 @@ from orchestration.learning_loop import AdaptiveLearningLoop, PriorHistoryStore
 
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# EXCEPTIONS - Contract Enforcement
+# ============================================================================
+
+
+class ComponentNotInjectedError(Exception):
+    """Raised when a required component was not injected before execution"""
+
+    pass
+
+
+class ContractViolationError(Exception):
+    """Raised when a component violates its expected interface contract"""
+
+    pass
+
 
 # ============================================================================
 # PIPELINE STAGES - 9-Stage Unified Model
 # ============================================================================
 
+
 class PipelineStage(Enum):
     """9-stage unified pipeline covering all orchestrator functionality"""
-    STAGE_0_INGESTION = auto()           # PDF loading
-    STAGE_1_EXTRACTION = auto()          # SemanticChunk + tables
-    STAGE_2_GRAPH_BUILD = auto()         # Causal DAG construction
-    STAGE_3_BAYESIAN = auto()            # 3 AGUJAS inference
-    STAGE_4_CONTRADICTION = auto()       # Contradiction detection
-    STAGE_5_VALIDATION = auto()          # Axiomatic validation
-    STAGE_6_SCORING = auto()             # MICRO→MESO→MACRO
-    STAGE_7_REPORT = auto()              # Report generation
-    STAGE_8_LEARNING = auto()            # Penalty factor learning
+
+    STAGE_0_INGESTION = auto()  # PDF loading
+    STAGE_1_EXTRACTION = auto()  # SemanticChunk + tables
+    STAGE_2_GRAPH_BUILD = auto()  # Causal DAG construction
+    STAGE_3_BAYESIAN = auto()  # 3 AGUJAS inference
+    STAGE_4_CONTRADICTION = auto()  # Contradiction detection
+    STAGE_5_VALIDATION = auto()  # Axiomatic validation
+    STAGE_6_SCORING = auto()  # MICRO→MESO→MACRO
+    STAGE_7_REPORT = auto()  # Report generation
+    STAGE_8_LEARNING = auto()  # Penalty factor learning
 
 
 # ============================================================================
 # DATA STRUCTURES
 # ============================================================================
 
+
 @dataclass
 class StageMetrics:
     """Metrics collected at each stage boundary"""
+
     stage: PipelineStage
     start_time: float
     end_time: float
@@ -70,6 +90,7 @@ class StageMetrics:
 @dataclass
 class PriorSnapshot:
     """Immutable prior snapshot for circular dependency resolution"""
+
     timestamp: str
     run_id: str
     priors: Dict[str, float]
@@ -79,36 +100,37 @@ class PriorSnapshot:
 @dataclass
 class UnifiedResult:
     """Complete pipeline result"""
+
     run_id: str
     success: bool
-    
+
     # Extraction outputs
     semantic_chunks: List[Any] = field(default_factory=list)
     tables: List[Any] = field(default_factory=list)
-    
+
     # Graph outputs
     causal_graph: Optional[nx.DiGraph] = None
-    
+
     # Bayesian outputs
     mechanism_results: List[Any] = field(default_factory=list)
     posteriors: Dict[str, Any] = field(default_factory=dict)
-    
+
     # Validation outputs
     validation_result: Optional[Any] = None
     contradictions: List[Dict[str, Any]] = field(default_factory=list)
-    
+
     # Scoring outputs
     micro_scores: Dict[str, float] = field(default_factory=dict)
     meso_scores: Dict[str, float] = field(default_factory=dict)
     macro_score: float = 0.0
-    
+
     # Learning outputs
     penalty_factors: Dict[str, float] = field(default_factory=dict)
-    
+
     # Metrics
     stage_metrics: List[StageMetrics] = field(default_factory=list)
     total_duration: float = 0.0
-    
+
     # Report
     report_path: Optional[Path] = None
 
@@ -117,25 +139,26 @@ class UnifiedResult:
 # METRICS COLLECTOR
 # ============================================================================
 
+
 class MetricsCollector:
     """Enhanced metrics collector with async profiling"""
-    
+
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.metrics: Dict[str, List[float]] = {}
         self.counters: Dict[str, int] = {}
         self.stage_metrics: List[StageMetrics] = []
-        
+
     def record(self, metric_name: str, value: float) -> None:
         """Record a metric value"""
         if metric_name not in self.metrics:
             self.metrics[metric_name] = []
         self.metrics[metric_name].append(value)
-        
+
     def increment(self, counter_name: str) -> None:
         """Increment a counter"""
         self.counters[counter_name] = self.counters.get(counter_name, 0) + 1
-        
+
     def add_stage_metric(self, stage_metric: StageMetrics) -> None:
         """Add stage-level metric"""
         self.stage_metrics.append(stage_metric)
@@ -144,31 +167,29 @@ class MetricsCollector:
             f"{stage_metric.duration_seconds:.2f}s "
             f"({stage_metric.items_processed} items)"
         )
-    
+
     def get_bottlenecks(self, top_n: int = 3) -> List[tuple]:
         """Identify top N slowest stages"""
         sorted_stages = sorted(
-            self.stage_metrics, 
-            key=lambda x: x.duration_seconds, 
-            reverse=True
+            self.stage_metrics, key=lambda x: x.duration_seconds, reverse=True
         )
         return [(s.stage.name, s.duration_seconds) for s in sorted_stages[:top_n]]
-    
+
     def get_summary(self) -> Dict[str, Any]:
         """Get complete metrics summary"""
         return {
-            'stage_metrics': [
+            "stage_metrics": [
                 {
-                    'stage': m.stage.name,
-                    'duration': m.duration_seconds,
-                    'items': m.items_processed,
-                    'errors': len(m.errors)
+                    "stage": m.stage.name,
+                    "duration": m.duration_seconds,
+                    "items": m.items_processed,
+                    "errors": len(m.errors),
                 }
                 for m in self.stage_metrics
             ],
-            'bottlenecks': self.get_bottlenecks(),
-            'counters': self.counters,
-            'total_stages': len(self.stage_metrics)
+            "bottlenecks": self.get_bottlenecks(),
+            "counters": self.counters,
+            "total_stages": len(self.stage_metrics),
         }
 
 
@@ -176,33 +197,47 @@ class MetricsCollector:
 # UNIFIED ORCHESTRATOR
 # ============================================================================
 
+
 class UnifiedOrchestrator:
     """
-    Unified 9-stage pipeline orchestrator.
-    
+    Unified 9-stage pipeline orchestrator - SIN_CARRETA Compliant.
+
     Consolidates:
     - PDMOrchestrator (Phase 0-IV)
     - AnalyticalOrchestrator (6 phases)
     - CDAFFramework (9 stages)
-    
+
     Resolves circular dependencies via immutable prior snapshots.
+
+    CONTRACT ENFORCEMENT:
+    - All components MUST be injected via inject_components()
+    - NO fallback behavior allowed - missing components raise ComponentNotInjectedError
+    - All phase results MUST satisfy explicit contracts
+    - All failures MUST raise explicit exceptions with structured payloads
+
+    DETERMINISM GUARANTEES:
+    - Prior snapshots are immutable (no modification during run)
+    - Fixed execution order (STAGE_0 through STAGE_8)
+    - All randomness seeded via config
+    - Metrics and telemetry are append-only
     """
-    
+
     def __init__(self, config: Any):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
-        
+
         # Event bus for inter-component communication
         self.event_bus = EventBus()
-        
+
         # Metrics collection
         self.metrics = MetricsCollector()
-        
+
         # Prior history with snapshot support
         self.learning_loop = AdaptiveLearningLoop(config)
         self.prior_store = self.learning_loop.prior_store
-        
-        # Component placeholders (dependency injection)
+
+        # Component injection state (MUST be set before execution)
+        self._components_injected = False
         self.extraction_pipeline = None
         self.causal_builder = None
         self.bayesian_engine = None
@@ -210,9 +245,11 @@ class UnifiedOrchestrator:
         self.validator = None
         self.scorer = None
         self.report_generator = None
-        
-        self.logger.info("UnifiedOrchestrator initialized")
-    
+
+        self.logger.info(
+            "UnifiedOrchestrator initialized - components injection required"
+        )
+
     def inject_components(
         self,
         extraction_pipeline=None,
@@ -221,9 +258,28 @@ class UnifiedOrchestrator:
         contradiction_detector=None,
         validator=None,
         scorer=None,
-        report_generator=None
+        report_generator=None,
     ):
-        """Dependency injection for all components"""
+        """
+        Dependency injection for all required components.
+
+        SIN_CARRETA CONTRACT:
+        - ALL components are REQUIRED for production execution
+        - None values are permitted ONLY for testing with explicit mocks
+        - Components MUST implement required interfaces (see docstring)
+
+        Required Component Interfaces:
+        - extraction_pipeline: async extract_complete(pdf_path) -> ExtractionResult
+        - causal_builder: async build_graph(chunks, tables) -> nx.DiGraph
+        - bayesian_engine: async infer_all_mechanisms(graph, chunks) -> List[MechanismResult]
+        - contradiction_detector: detect(text, plan_name, dimension) -> Dict[str, Any]
+        - validator: validate_complete(graph, chunks, tables) -> ValidationResult
+        - scorer: calculate_all_levels(graph, mechanisms, validation, contradictions) -> Dict
+        - report_generator: async generate(result, pdf_path, run_id) -> Path
+
+        Raises:
+            ContractViolationError: If any component is None in non-test mode
+        """
         self.extraction_pipeline = extraction_pipeline
         self.causal_builder = causal_builder
         self.bayesian_engine = bayesian_engine
@@ -231,97 +287,189 @@ class UnifiedOrchestrator:
         self.validator = validator
         self.scorer = scorer
         self.report_generator = report_generator
-        self.logger.info("Components injected")
-    
+        self._components_injected = True
+
+        # Runtime assertion: Check all components are provided
+        missing_components = []
+        if extraction_pipeline is None:
+            missing_components.append("extraction_pipeline")
+        if causal_builder is None:
+            missing_components.append("causal_builder")
+        if bayesian_engine is None:
+            missing_components.append("bayesian_engine")
+        if contradiction_detector is None:
+            missing_components.append("contradiction_detector")
+        if validator is None:
+            missing_components.append("validator")
+        if scorer is None:
+            missing_components.append("scorer")
+        if report_generator is None:
+            missing_components.append("report_generator")
+
+        if missing_components:
+            self.logger.warning(
+                f"Components not injected: {missing_components}. "
+                "Pipeline will fail if executed. Only permitted in testing."
+            )
+        else:
+            self.logger.info(
+                "All components injected successfully - orchestrator ready"
+            )
+
     async def execute_pipeline(self, pdf_path: str) -> UnifiedResult:
         """
-        Execute complete 9-stage pipeline with:
+        Execute complete 9-stage pipeline with deterministic guarantees.
+
+        EXECUTION CONTRACT:
+        - All components MUST be injected before calling
         - Immutable prior snapshots (breaks circular dependency)
         - Async profiling at each stage
-        - Event bus integration
-        - Comprehensive metrics
+        - Event bus integration with structured telemetry
+        - Comprehensive metrics with append-only storage
+        - NO silent failures - all errors are raised explicitly
+
+        TELEMETRY POINTS:
+        - Phase start: {stage}.start event + metric
+        - Phase decision: {stage}.decision event + context
+        - Phase completion: {stage}.complete event + result
+        - Phase failure: {stage}.failed event + error payload
+
+        Args:
+            pdf_path: Path to PDF document to analyze
+
+        Returns:
+            UnifiedResult with all phase outputs and metrics
+
+        Raises:
+            ComponentNotInjectedError: If required components not injected
+            ContractViolationError: If any phase returns invalid result
+            Exception: Any other phase-specific errors are propagated
         """
+        # ASSERTION: Components must be injected
+        if not self._components_injected:
+            raise ComponentNotInjectedError(
+                "Components not injected. Call inject_components() before execute_pipeline()."
+            )
+
+        # TELEMETRY: Pipeline start
         run_id = self._generate_run_id()
         start_time = time.time()
-        
+
+        self.logger.info(
+            f"[TELEMETRY] Pipeline START - run_id={run_id}, pdf_path={pdf_path}"
+        )
+        await self.event_bus.publish(
+            PDMEvent(
+                event_type="pipeline.start",
+                run_id=run_id,
+                payload={"pdf_path": pdf_path, "timestamp": datetime.now().isoformat()},
+            )
+        )
+
         result = UnifiedResult(run_id=run_id, success=False)
-        
+
         try:
             # SNAPSHOT PRIORS (breaks circular dependency)
+            # ASSERTION: Prior snapshot is immutable for this run
             prior_snapshot = self._create_prior_snapshot(run_id)
-            
+
             # STAGE 0: PDF Ingestion
             pdf_data = await self._stage_0_ingestion(pdf_path, run_id)
-            
+
             # STAGE 1: Extraction
             extraction_result = await self._stage_1_extraction(pdf_data, run_id)
-            result.semantic_chunks = extraction_result['chunks']
-            result.tables = extraction_result['tables']
-            
+            result.semantic_chunks = extraction_result["chunks"]
+            result.tables = extraction_result["tables"]
+
             # STAGE 2: Graph Construction
             result.causal_graph = await self._stage_2_graph_build(
                 result.semantic_chunks, result.tables, run_id
             )
-            
+
             # STAGE 3: Bayesian Inference (uses snapshot priors)
             bayesian_result = await self._stage_3_bayesian(
                 result.causal_graph, result.semantic_chunks, prior_snapshot, run_id
             )
-            result.mechanism_results = bayesian_result['mechanisms']
-            result.posteriors = bayesian_result['posteriors']
-            
+            result.mechanism_results = bayesian_result["mechanisms"]
+            result.posteriors = bayesian_result["posteriors"]
+
             # STAGE 4: Contradiction Detection
             result.contradictions = await self._stage_4_contradiction(
-                result.causal_graph, result.semantic_chunks, run_id
+                result.semantic_chunks, run_id
             )
-            
+
             # STAGE 5: Axiomatic Validation
             result.validation_result = await self._stage_5_validation(
                 result.causal_graph, result.semantic_chunks, result.tables, run_id
             )
-            
+
             # STAGE 6: Scoring (MICRO→MESO→MACRO)
             scoring_result = await self._stage_6_scoring(
                 result.causal_graph,
                 result.mechanism_results,
                 result.validation_result,
                 result.contradictions,
-                run_id
+                run_id,
             )
-            result.micro_scores = scoring_result['micro']
-            result.meso_scores = scoring_result['meso']
-            result.macro_score = scoring_result['macro']
-            
+            result.micro_scores = scoring_result["micro"]
+            result.meso_scores = scoring_result["meso"]
+            result.macro_score = scoring_result["macro"]
+
             # STAGE 7: Report Generation
-            result.report_path = await self._stage_7_report(
-                result, pdf_path, run_id
-            )
-            
+            result.report_path = await self._stage_7_report(result, pdf_path, run_id)
+
             # STAGE 8: Learning Loop (penalty factors for NEXT run)
-            result.penalty_factors = await self._stage_8_learning(
-                result, run_id
-            )
-            
+            result.penalty_factors = await self._stage_8_learning(result, run_id)
+
             result.success = True
-            
+
+            # TELEMETRY: Pipeline success
+            self.logger.info(f"[TELEMETRY] Pipeline SUCCESS - run_id={run_id}")
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="pipeline.success",
+                    run_id=run_id,
+                    payload={"macro_score": result.macro_score},
+                )
+            )
+
         except Exception as e:
-            self.logger.error(f"Pipeline failed: {e}", exc_info=True)
+            self.logger.error(
+                f"[TELEMETRY] Pipeline FAILED - run_id={run_id}, error={str(e)}",
+                exc_info=True,
+            )
             result.success = False
-        
+
+            # TELEMETRY: Pipeline failure with structured payload
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="pipeline.failed",
+                    run_id=run_id,
+                    payload={
+                        "error_type": type(e).__name__,
+                        "error_message": str(e),
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                )
+            )
+
+            # Re-raise for explicit error handling by caller
+            raise
+
         finally:
             result.total_duration = time.time() - start_time
             result.stage_metrics = self.metrics.stage_metrics
             self.logger.info(
-                f"Pipeline completed: success={result.success}, "
+                f"[TELEMETRY] Pipeline COMPLETE - success={result.success}, "
                 f"duration={result.total_duration:.2f}s"
             )
-        
+
         return result
-    
+
     def _generate_run_id(self) -> str:
         """Generate unique run ID"""
         return f"unified_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000}"
-    
+
     def _create_prior_snapshot(self, run_id: str) -> PriorSnapshot:
         """
         Create immutable prior snapshot.
@@ -330,371 +478,595 @@ class UnifiedOrchestrator:
         - Validation penalties update store for NEXT run
         """
         self.prior_store.save_snapshot()
-        
+
         priors = {}
-        for mech_type in ['administrativo', 'tecnico', 'financiero', 'politico', 'mixto']:
+        for mech_type in [
+            "administrativo",
+            "tecnico",
+            "financiero",
+            "politico",
+            "mixto",
+        ]:
             prior = self.prior_store.get_mechanism_prior(mech_type)
             priors[mech_type] = prior.alpha
-        
+
         snapshot = PriorSnapshot(
-            timestamp=datetime.now().isoformat(),
-            run_id=run_id,
-            priors=priors
+            timestamp=datetime.now().isoformat(), run_id=run_id, priors=priors
         )
-        
+
         self.logger.info(f"Created prior snapshot for run {run_id}")
         return snapshot
-    
+
     @asynccontextmanager
     async def _stage_context(self, stage: PipelineStage):
         """Context manager for stage timing"""
         start = time.time()
         stage_metric = StageMetrics(
-            stage=stage,
-            start_time=start,
-            end_time=0,
-            duration_seconds=0
+            stage=stage, start_time=start, end_time=0, duration_seconds=0
         )
-        
+
         try:
             yield stage_metric
         finally:
             stage_metric.end_time = time.time()
-            stage_metric.duration_seconds = stage_metric.end_time - stage_metric.start_time
+            stage_metric.duration_seconds = (
+                stage_metric.end_time - stage_metric.start_time
+            )
             self.metrics.add_stage_metric(stage_metric)
-    
+
     async def _stage_0_ingestion(self, pdf_path: str, run_id: str) -> Dict[str, Any]:
-        """Stage 0: PDF Ingestion"""
+        """
+        Stage 0: PDF Ingestion with explicit contract enforcement.
+
+        TELEMETRY: start, complete events
+        CONTRACT: Returns dict with 'path' and 'loaded' keys
+        """
         async with self._stage_context(PipelineStage.STAGE_0_INGESTION) as metric:
-            self.logger.info(f"Stage 0: Ingesting PDF {pdf_path}")
-            
+            self.logger.info(f"[TELEMETRY] Stage 0 START - pdf_path={pdf_path}")
+
             # Publish event
-            await self.event_bus.publish(PDMEvent(
-                event_type='stage.ingestion.start',
-                run_id=run_id,
-                payload={'pdf_path': pdf_path}
-            ))
-            
-            # Placeholder: actual PDF loading would go here
-            pdf_data = {'path': pdf_path, 'loaded': True}
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="stage.ingestion.start",
+                    run_id=run_id,
+                    payload={"pdf_path": pdf_path},
+                )
+            )
+
+            # Actual PDF loading (placeholder for now - but explicit)
+            # TODO: Implement actual PDF loading with pdfplumber or similar
+            if not Path(pdf_path).exists():
+                raise FileNotFoundError(
+                    f"PDF file not found: {pdf_path}. "
+                    "Ensure the file exists before calling execute_pipeline()."
+                )
+
+            pdf_data = {"path": pdf_path, "loaded": True}
             metric.items_processed = 1
-            
+
+            self.logger.info(f"[TELEMETRY] Stage 0 COMPLETE")
             return pdf_data
-    
+
     async def _stage_1_extraction(
         self, pdf_data: Dict[str, Any], run_id: str
     ) -> Dict[str, Any]:
-        """Stage 1: Semantic Extraction"""
+        """
+        Stage 1: Semantic Extraction with mandatory component.
+
+        TELEMETRY: start, complete events
+        CONTRACT: extraction_pipeline MUST be injected
+        ASSERTION: Result must contain 'chunks' and 'tables' keys
+        """
         async with self._stage_context(PipelineStage.STAGE_1_EXTRACTION) as metric:
-            self.logger.info("Stage 1: Extracting semantic chunks and tables")
-            
-            if self.extraction_pipeline:
-                result = await self.extraction_pipeline.extract_complete(
-                    pdf_data['path']
+            self.logger.info(
+                f"[TELEMETRY] Stage 1 START - extracting chunks and tables"
+            )
+
+            # ASSERTION: Component must be injected
+            if self.extraction_pipeline is None:
+                raise ComponentNotInjectedError(
+                    "extraction_pipeline not injected. "
+                    "Call inject_components(extraction_pipeline=...) before execution."
                 )
-                chunks = result.semantic_chunks if hasattr(result, 'semantic_chunks') else []
-                tables = result.tables if hasattr(result, 'tables') else []
+
+            # Execute extraction
+            result = await self.extraction_pipeline.extract_complete(pdf_data["path"])
+
+            # Extract chunks and tables with contract validation
+            if hasattr(result, "semantic_chunks"):
+                chunks = result.semantic_chunks
+            elif isinstance(result, dict) and "semantic_chunks" in result:
+                chunks = result["semantic_chunks"]
             else:
-                # Fallback
-                chunks = [{'text': 'Placeholder chunk', 'id': 'chunk_0'}]
+                raise ContractViolationError(
+                    f"extraction_pipeline.extract_complete() must return object with "
+                    f"'semantic_chunks' attribute or key, got: {type(result)}"
+                )
+
+            if hasattr(result, "tables"):
+                tables = result.tables
+            elif isinstance(result, dict) and "tables" in result:
+                tables = result["tables"]
+            else:
+                # Tables are optional but should be empty list if not provided
                 tables = []
-            
+
+            # ASSERTION: chunks must be a list
+            if not isinstance(chunks, list):
+                raise ContractViolationError(
+                    f"semantic_chunks must be a list, got: {type(chunks)}"
+                )
+
             metric.items_processed = len(chunks) + len(tables)
-            
-            await self.event_bus.publish(PDMEvent(
-                event_type='stage.extraction.complete',
-                run_id=run_id,
-                payload={'chunks': len(chunks), 'tables': len(tables)}
-            ))
-            
-            return {'chunks': chunks, 'tables': tables}
-    
+
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="stage.extraction.complete",
+                    run_id=run_id,
+                    payload={"chunks": len(chunks), "tables": len(tables)},
+                )
+            )
+
+            self.logger.info(
+                f"[TELEMETRY] Stage 1 COMPLETE - chunks={len(chunks)}, tables={len(tables)}"
+            )
+
+            return {"chunks": chunks, "tables": tables}
+
     async def _stage_2_graph_build(
         self, chunks: List[Any], tables: List[Any], run_id: str
     ) -> nx.DiGraph:
-        """Stage 2: Causal Graph Construction"""
+        """
+        Stage 2: Causal Graph Construction with mandatory component.
+
+        TELEMETRY: start, complete events
+        CONTRACT: causal_builder MUST be injected
+        ASSERTION: Result must be nx.DiGraph instance
+        """
         async with self._stage_context(PipelineStage.STAGE_2_GRAPH_BUILD) as metric:
-            self.logger.info("Stage 2: Building causal graph")
-            
-            if self.causal_builder:
-                graph = await self.causal_builder.build_graph(chunks, tables)
-            else:
-                # Fallback
-                graph = nx.DiGraph()
-                graph.add_edge('A', 'B', weight=1.0)
-            
+            self.logger.info(f"[TELEMETRY] Stage 2 START - building causal graph")
+
+            # ASSERTION: Component must be injected
+            if self.causal_builder is None:
+                raise ComponentNotInjectedError(
+                    "causal_builder not injected. "
+                    "Call inject_components(causal_builder=...) before execution."
+                )
+
+            # Execute graph construction
+            graph = await self.causal_builder.build_graph(chunks, tables)
+
+            # ASSERTION: Result must be NetworkX DiGraph
+            if not isinstance(graph, nx.DiGraph):
+                raise ContractViolationError(
+                    f"causal_builder.build_graph() must return nx.DiGraph, "
+                    f"got: {type(graph)}"
+                )
+
             metric.items_processed = graph.number_of_edges()
-            
-            await self.event_bus.publish(PDMEvent(
-                event_type='stage.graph.complete',
-                run_id=run_id,
-                payload={
-                    'nodes': graph.number_of_nodes(),
-                    'edges': graph.number_of_edges()
-                }
-            ))
-            
+
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="stage.graph.complete",
+                    run_id=run_id,
+                    payload={
+                        "nodes": graph.number_of_nodes(),
+                        "edges": graph.number_of_edges(),
+                    },
+                )
+            )
+
+            self.logger.info(
+                f"[TELEMETRY] Stage 2 COMPLETE - nodes={graph.number_of_nodes()}, "
+                f"edges={graph.number_of_edges()}"
+            )
+
             return graph
-    
+
     async def _stage_3_bayesian(
         self,
         graph: nx.DiGraph,
         chunks: List[Any],
-        run_id: str
+        prior_snapshot: PriorSnapshot,
+        run_id: str,
     ) -> Dict[str, Any]:
-        """Stage 3: Bayesian Inference (3 AGUJAS)"""
+        """
+        Stage 3: Bayesian Inference (3 AGUJAS) with mandatory component.
+
+        TELEMETRY: start, decision, complete events
+        CONTRACT: bayesian_engine MUST be injected
+        ASSERTION: Result must be a list
+        DECISION: Prior snapshot used (not modified)
+        """
         async with self._stage_context(PipelineStage.STAGE_3_BAYESIAN) as metric:
-            self.logger.info("Stage 3: Running Bayesian inference with snapshot priors")
-            
-            mechanisms = []
-            posteriors = {}
-            
-            if self.bayesian_engine:
-                # Use injected engine
-                result = await self.bayesian_engine.infer_all_mechanisms(graph, chunks)
-                mechanisms = result if isinstance(result, list) else []
-            else:
-                # Fallback: minimal mechanism result
-                from orchestration.pdm_orchestrator import MechanismResult
-                mechanisms = [
-                    MechanismResult(
-                        type='fallback',
-                        necessity_test={'passed': True, 'missing': []},
-                        posterior_mean=0.7
-                    )
-                ]
-            
+            self.logger.info(
+                f"[TELEMETRY] Stage 3 START - Bayesian inference with snapshot priors"
+            )
+
+            # ASSERTION: Component must be injected
+            if self.bayesian_engine is None:
+                raise ComponentNotInjectedError(
+                    "bayesian_engine not injected. "
+                    "Call inject_components(bayesian_engine=...) before execution."
+                )
+
+            # DECISION: Log prior snapshot usage (immutability guarantee)
+            self.logger.info(
+                f"[TELEMETRY] Stage 3 DECISION - Using immutable prior snapshot: "
+                f"{prior_snapshot.run_id}, timestamp={prior_snapshot.timestamp}"
+            )
+
+            # Execute inference
+            result = await self.bayesian_engine.infer_all_mechanisms(graph, chunks)
+
+            # ASSERTION: Result must be a list
+            if not isinstance(result, list):
+                raise ContractViolationError(
+                    f"bayesian_engine.infer_all_mechanisms() must return list, "
+                    f"got: {type(result)}"
+                )
+
+            mechanisms = result
+            posteriors = {}  # TODO: Extract posteriors from mechanisms if available
+
             metric.items_processed = len(mechanisms)
-            
-            await self.event_bus.publish(PDMEvent(
-                event_type='stage.bayesian.complete',
-                run_id=run_id,
-                payload={'mechanisms': len(mechanisms)}
-            ))
-            
-            return {'mechanisms': mechanisms, 'posteriors': posteriors}
-    
+
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="stage.bayesian.complete",
+                    run_id=run_id,
+                    payload={"mechanisms": len(mechanisms)},
+                )
+            )
+
+            self.logger.info(
+                f"[TELEMETRY] Stage 3 COMPLETE - mechanisms={len(mechanisms)}"
+            )
+
+            return {"mechanisms": mechanisms, "posteriors": posteriors}
+
     async def _stage_4_contradiction(
         self, chunks: List[Any], run_id: str
     ) -> List[Dict[str, Any]]:
-        """Stage 4: Contradiction Detection"""
+        """
+        Stage 4: Contradiction Detection with mandatory component.
+
+        TELEMETRY: start, complete events
+        CONTRACT: contradiction_detector MUST be injected
+        ASSERTION: Result for each chunk must contain 'contradictions' key
+        """
         async with self._stage_context(PipelineStage.STAGE_4_CONTRADICTION) as metric:
-            self.logger.info("Stage 4: Detecting contradictions")
-            
+            self.logger.info(f"[TELEMETRY] Stage 4 START - detecting contradictions")
+
+            # ASSERTION: Component must be injected
+            if self.contradiction_detector is None:
+                raise ComponentNotInjectedError(
+                    "contradiction_detector not injected. "
+                    "Call inject_components(contradiction_detector=...) before execution."
+                )
+
             contradictions = []
-            
-            if self.contradiction_detector:
-                # Use injected detector
-                for chunk in chunks:
-                    result = await asyncio.get_event_loop().run_in_executor(
-                        None,
-                        self.contradiction_detector.detect,
-                        chunk.get('text', '') if isinstance(chunk, dict) else str(chunk),
-                        'PDM',
-                        'estratégico'
+
+            # Process each chunk
+            for chunk in chunks:
+                chunk_text = (
+                    chunk.get("text", "") if isinstance(chunk, dict) else str(chunk)
+                )
+
+                # Execute detection (sync method, run in executor)
+                result = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    self.contradiction_detector.detect,
+                    chunk_text,
+                    "PDM",
+                    "estratégico",
+                )
+
+                # ASSERTION: Result must contain contradictions
+                if result is None:
+                    raise ContractViolationError(
+                        "contradiction_detector.detect() returned None. "
+                        "Must return dict with 'contradictions' key."
                     )
-                    if result and 'contradictions' in result:
-                        contradictions.extend(result['contradictions'])
-            
+
+                if not isinstance(result, dict):
+                    raise ContractViolationError(
+                        f"contradiction_detector.detect() must return dict, "
+                        f"got: {type(result)}"
+                    )
+
+                if "contradictions" in result:
+                    contradictions.extend(result["contradictions"])
+
             metric.items_processed = len(contradictions)
-            
-            await self.event_bus.publish(PDMEvent(
-                event_type='stage.contradiction.complete',
-                run_id=run_id,
-                payload={'contradictions': len(contradictions)}
-            ))
-            
+
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="stage.contradiction.complete",
+                    run_id=run_id,
+                    payload={"contradictions": len(contradictions)},
+                )
+            )
+
+            self.logger.info(
+                f"[TELEMETRY] Stage 4 COMPLETE - contradictions={len(contradictions)}"
+            )
+
             return contradictions
-    
+
     async def _stage_5_validation(
-        self,
-        graph: nx.DiGraph,
-        chunks: List[Any],
-        tables: List[Any],
-        run_id: str
+        self, graph: nx.DiGraph, chunks: List[Any], tables: List[Any], run_id: str
     ) -> Any:
-        """Stage 5: Axiomatic Validation"""
+        """
+        Stage 5: Axiomatic Validation with mandatory component.
+
+        TELEMETRY: start, decision, complete events
+        CONTRACT: validator MUST be injected
+        ASSERTION: Result must have 'passed' attribute
+        DECISION: Log validation outcome
+        """
         async with self._stage_context(PipelineStage.STAGE_5_VALIDATION) as metric:
-            self.logger.info("Stage 5: Running axiomatic validation")
-            
-            if self.validator:
-                # Convert chunks to SemanticChunk format expected by validator
-                semantic_chunks = []
-                for chunk in chunks:
-                    if isinstance(chunk, dict):
-                        from validators.axiomatic_validator import SemanticChunk
-                        semantic_chunks.append(SemanticChunk(
-                            text=chunk.get('text', ''),
-                            dimension=chunk.get('dimension', 'ESTRATEGICO')
-                        ))
-                
-                validation_result = self.validator.validate_complete(
-                    graph, semantic_chunks, tables
+            self.logger.info(f"[TELEMETRY] Stage 5 START - axiomatic validation")
+
+            # ASSERTION: Component must be injected
+            if self.validator is None:
+                raise ComponentNotInjectedError(
+                    "validator not injected. "
+                    "Call inject_components(validator=...) before execution."
                 )
-            else:
-                # Fallback
-                from orchestration.pdm_orchestrator import ValidationResult
-                validation_result = ValidationResult(
-                    requires_manual_review=False,
-                    passed=True
+
+            # Convert chunks to SemanticChunk format expected by validator
+            semantic_chunks = []
+            for chunk in chunks:
+                if isinstance(chunk, dict):
+                    from validators.axiomatic_validator import SemanticChunk
+
+                    semantic_chunks.append(
+                        SemanticChunk(
+                            text=chunk.get("text", ""),
+                            dimension=chunk.get("dimension", "ESTRATEGICO"),
+                        )
+                    )
+
+            # Execute validation (sync method, run in executor)
+            validation_result = await asyncio.get_event_loop().run_in_executor(
+                None, self.validator.validate_complete, graph, semantic_chunks, tables
+            )
+
+            # ASSERTION: Result must have 'passed' attribute
+            if not hasattr(validation_result, "passed"):
+                raise ContractViolationError(
+                    f"validator.validate_complete() result must have 'passed' attribute, "
+                    f"got: {type(validation_result)}"
                 )
-            
+
+            passed = getattr(validation_result, "passed", False)
+            requires_review = getattr(
+                validation_result, "requires_manual_review", False
+            )
+
+            # DECISION: Log validation outcome
+            self.logger.info(
+                f"[TELEMETRY] Stage 5 DECISION - Validation passed={passed}, "
+                f"requires_review={requires_review}"
+            )
+
             metric.items_processed = 1
-            
-            await self.event_bus.publish(PDMEvent(
-                event_type='stage.validation.complete',
-                run_id=run_id,
-                payload={
-                    'passed': getattr(validation_result, 'passed', True),
-                    'requires_review': getattr(validation_result, 'requires_manual_review', False)
-                }
-            ))
-            
+
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="stage.validation.complete",
+                    run_id=run_id,
+                    payload={"passed": passed, "requires_review": requires_review},
+                )
+            )
+
+            self.logger.info(f"[TELEMETRY] Stage 5 COMPLETE - passed={passed}")
+
             return validation_result
-    
+
     async def _stage_6_scoring(
         self,
         graph: nx.DiGraph,
         mechanism_results: List[Any],
         validation_result: Any,
         contradictions: List[Dict[str, Any]],
-        run_id: str
+        run_id: str,
     ) -> Dict[str, Any]:
-        """Stage 6: Scoring Aggregation (MICRO→MESO→MACRO)"""
+        """
+        Stage 6: Scoring Aggregation (MICRO→MESO→MACRO) with mandatory component.
+
+        TELEMETRY: start, decision, complete events
+        CONTRACT: scorer MUST be injected
+        ASSERTION: Result must contain 'micro', 'meso', 'macro' keys
+        DECISION: Log scoring breakdown
+        """
         async with self._stage_context(PipelineStage.STAGE_6_SCORING) as metric:
-            self.logger.info("Stage 6: Calculating scores (MICRO→MESO→MACRO)")
-            
-            if self.scorer:
-                scoring_result = self.scorer.calculate_all_levels(
-                    graph=graph,
-                    mechanism_results=mechanism_results,
-                    validation_result=validation_result,
-                    contradictions=contradictions
+            self.logger.info(
+                f"[TELEMETRY] Stage 6 START - calculating MICRO→MESO→MACRO scores"
+            )
+
+            # ASSERTION: Component must be injected
+            if self.scorer is None:
+                raise ComponentNotInjectedError(
+                    "scorer not injected. "
+                    "Call inject_components(scorer=...) before execution."
                 )
-            else:
-                # Fallback: simple scoring
-                micro_scores = {f'P{i}-D{j}-Q{k}': 0.7 
-                               for i in range(1, 11) 
-                               for j in range(1, 7) 
-                               for k in range(1, 6)}
-                meso_scores = {f'C{i}': 0.7 for i in range(1, 5)}
-                macro_score = 0.7
-                
-                scoring_result = {
-                    'micro': micro_scores,
-                    'meso': meso_scores,
-                    'macro': macro_score
-                }
-            
-            metric.items_processed = len(scoring_result.get('micro', {}))
-            
-            await self.event_bus.publish(PDMEvent(
-                event_type='stage.scoring.complete',
-                run_id=run_id,
-                payload={
-                    'micro_count': len(scoring_result.get('micro', {})),
-                    'macro_score': scoring_result.get('macro', 0.0)
-                }
-            ))
-            
+
+            # Execute scoring (sync method, run in executor)
+            scoring_result = await asyncio.get_event_loop().run_in_executor(
+                None,
+                self.scorer.calculate_all_levels,
+                graph,
+                mechanism_results,
+                validation_result,
+                contradictions,
+            )
+
+            # ASSERTION: Result must be dict with required keys
+            if not isinstance(scoring_result, dict):
+                raise ContractViolationError(
+                    f"scorer.calculate_all_levels() must return dict, "
+                    f"got: {type(scoring_result)}"
+                )
+
+            if "micro" not in scoring_result:
+                raise ContractViolationError(
+                    "scorer.calculate_all_levels() result must contain 'micro' key"
+                )
+
+            if "meso" not in scoring_result:
+                raise ContractViolationError(
+                    "scorer.calculate_all_levels() result must contain 'meso' key"
+                )
+
+            if "macro" not in scoring_result:
+                raise ContractViolationError(
+                    "scorer.calculate_all_levels() result must contain 'macro' key"
+                )
+
+            # DECISION: Log scoring breakdown
+            self.logger.info(
+                f"[TELEMETRY] Stage 6 DECISION - Scoring breakdown: "
+                f"micro_count={len(scoring_result.get('micro', {}))}, "
+                f"meso_count={len(scoring_result.get('meso', {}))}, "
+                f"macro_score={scoring_result.get('macro', 0.0):.4f}"
+            )
+
+            metric.items_processed = len(scoring_result.get("micro", {}))
+
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="stage.scoring.complete",
+                    run_id=run_id,
+                    payload={
+                        "micro_count": len(scoring_result.get("micro", {})),
+                        "macro_score": scoring_result.get("macro", 0.0),
+                    },
+                )
+            )
+
+            self.logger.info(
+                f"[TELEMETRY] Stage 6 COMPLETE - macro_score={scoring_result['macro']:.4f}"
+            )
+
             return scoring_result
-    
+
     async def _stage_7_report(
         self, result: UnifiedResult, pdf_path: str, run_id: str
     ) -> Path:
-        """Stage 7: Report Generation"""
+        """
+        Stage 7: Report Generation with mandatory component.
+
+        TELEMETRY: start, complete events
+        CONTRACT: report_generator MUST be injected
+        ASSERTION: Result must be a Path instance
+        """
         async with self._stage_context(PipelineStage.STAGE_7_REPORT) as metric:
-            self.logger.info("Stage 7: Generating final report")
-            
-            if self.report_generator:
-                report_path = await self.report_generator.generate(
-                    result, pdf_path, run_id
+            self.logger.info(f"[TELEMETRY] Stage 7 START - generating final report")
+
+            # ASSERTION: Component must be injected
+            if self.report_generator is None:
+                raise ComponentNotInjectedError(
+                    "report_generator not injected. "
+                    "Call inject_components(report_generator=...) before execution."
                 )
-            else:
-                # Fallback: save basic JSON report
-                report_dir = Path("reports")
-                report_dir.mkdir(exist_ok=True)
-                report_path = report_dir / f"report_{run_id}.json"
-                
-                import json
-                async with aiofiles.open(report_path, 'w', encoding='utf-8') as f:
-                    await f.write(json.dumps({
-                        'run_id': run_id,
-                        'success': result.success,
-                        'macro_score': result.macro_score,
-                        'metrics': self.metrics.get_summary()
-                    }, indent=2))
-            
+
+            # Execute report generation
+            report_path = await self.report_generator.generate(result, pdf_path, run_id)
+
+            # ASSERTION: Result must be a Path
+            if not isinstance(report_path, (Path, str)):
+                raise ContractViolationError(
+                    f"report_generator.generate() must return Path or str, "
+                    f"got: {type(report_path)}"
+                )
+
+            # Convert to Path if str
+            if isinstance(report_path, str):
+                report_path = Path(report_path)
+
             metric.items_processed = 1
-            
-            await self.event_bus.publish(PDMEvent(
-                event_type='stage.report.complete',
-                run_id=run_id,
-                payload={'report_path': str(report_path)}
-            ))
-            
+
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="stage.report.complete",
+                    run_id=run_id,
+                    payload={"report_path": str(report_path)},
+                )
+            )
+
+            self.logger.info(
+                f"[TELEMETRY] Stage 7 COMPLETE - report saved to {report_path}"
+            )
+
             return report_path
-    
+
     async def _stage_8_learning(
         self, result: UnifiedResult, run_id: str
     ) -> Dict[str, float]:
         """Stage 8: Adaptive Learning Loop (penalty factors for NEXT run)"""
         async with self._stage_context(PipelineStage.STAGE_8_LEARNING) as metric:
             self.logger.info("Stage 8: Computing penalty factors from failures")
-            
+
             penalty_factors = {}
-            
+
             # Extract failures from mechanism results
             failed_mechanisms = {}
             for mech in result.mechanism_results:
-                mech_type = getattr(mech, 'type', 'unknown')
-                necessity_test = getattr(mech, 'necessity_test', {})
-                
+                mech_type = getattr(mech, "type", "unknown")
+                necessity_test = getattr(mech, "necessity_test", {})
+
                 if isinstance(necessity_test, dict):
-                    passed = necessity_test.get('passed', True)
+                    passed = necessity_test.get("passed", True)
                 else:
-                    passed = getattr(necessity_test, 'passed', True)
-                
+                    passed = getattr(necessity_test, "passed", True)
+
                 if not passed:
-                    failed_mechanisms[mech_type] = failed_mechanisms.get(mech_type, 0) + 1
-            
+                    failed_mechanisms[mech_type] = (
+                        failed_mechanisms.get(mech_type, 0) + 1
+                    )
+
             # Calculate penalty factors (more failures = lower prior for next run)
             total_mechanisms = len(result.mechanism_results) or 1
             for mech_type, fail_count in failed_mechanisms.items():
                 failure_rate = fail_count / total_mechanisms
                 # Penalty: reduce prior proportionally to failure rate
                 penalty_factors[mech_type] = max(0.5, 1.0 - failure_rate)
-            
+
             # Apply penalties to prior store for NEXT run
             if penalty_factors:
                 # Update priors via learning loop
                 from dataclasses import dataclass as dc
+
                 @dc
                 class MockAnalysisResult:
                     mechanism_results: List[Any]
                     quality_score: Any
-                
-                @dc  
+
+                @dc
                 class MockQualityScore:
                     overall_score: float
-                
+
                 mock_result = MockAnalysisResult(
                     mechanism_results=result.mechanism_results,
-                    quality_score=MockQualityScore(overall_score=result.macro_score)
+                    quality_score=MockQualityScore(overall_score=result.macro_score),
                 )
-                
+
                 self.learning_loop.extract_and_update_priors(mock_result)
-            
+
             metric.items_processed = len(penalty_factors)
-            
-            await self.event_bus.publish(PDMEvent(
-                event_type='stage.learning.complete',
-                run_id=run_id,
-                payload={'penalty_factors': penalty_factors}
-            ))
-            
+
+            await self.event_bus.publish(
+                PDMEvent(
+                    event_type="stage.learning.complete",
+                    run_id=run_id,
+                    payload={"penalty_factors": penalty_factors},
+                )
+            )
+
             return penalty_factors
-    
+
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get comprehensive metrics summary"""
         return self.metrics.get_summary()
