@@ -1033,14 +1033,13 @@ Análisis completo con contradicciones y métricas avanzadas
             'all_scores': {label: float(score) for label, score in zip(labels, scores)}
         }
 
-    def _detect_numerical_inconsistencies_robust(
+    def _collect_comparable_claim_pairs(
             self,
             statements: List[PolicyStatement]
-    ) -> List[ContradictionEvidence]:
-        """Detección con tests estadísticos robustos y corrección FDR"""
-        contradictions = []
+    ) -> List[Tuple[Tuple[PolicyStatement, Dict[str, Any]], Tuple[PolicyStatement, Dict[str, Any]]]]:
+        """Colecta pares de claims cuantitativos comparables entre statements"""
         claim_pairs = []
-
+        
         for i, stmt_a in enumerate(statements):
             for stmt_b in statements[i+1:]:
                 if stmt_a.quantitative_claims and stmt_b.quantitative_claims:
@@ -1048,7 +1047,63 @@ Análisis completo con contradicciones y métricas avanzadas
                         for claim_b in stmt_b.quantitative_claims:
                             if self._are_comparable_claims_advanced(claim_a, claim_b):
                                 claim_pairs.append(((stmt_a, claim_a), (stmt_b, claim_b)))
+        
+        return claim_pairs
 
+    def _validate_statistical_divergence(
+            self,
+            divergence: float,
+            p_value: float
+    ) -> bool:
+        """Valida si divergencia cumple thresholds estadísticos"""
+        return divergence > 0.15 and p_value < 0.05
+
+    def _build_numerical_contradiction_evidence(
+            self,
+            stmt_a: PolicyStatement,
+            stmt_b: PolicyStatement,
+            divergence: float,
+            p_value: float
+    ) -> ContradictionEvidence:
+        """Construye evidencia de contradicción numérica con métricas estadísticas"""
+        confidence, _ = self.bayesian_engine.calculate_posterior(
+            evidence_strength=1 - p_value,
+            observations=2,
+            domain_weight=1.6,
+            prior_knowledge=0.7
+        )
+
+        evidence = ContradictionEvidence(
+            statement_a=stmt_a,
+            statement_b=stmt_b,
+            contradiction_type=ContradictionType.NUMERICAL_INCONSISTENCY,
+            confidence=confidence,
+            severity=min(1.0, divergence * 1.2),
+            semantic_similarity=self._calculate_contextual_similarity(stmt_a, stmt_b),
+            logical_conflict_score=divergence,
+            temporal_consistency=True,
+            numerical_divergence=divergence,
+            affected_dimensions=[stmt_a.dimension],
+            resolution_suggestions=self._generate_resolution_strategies(
+                ContradictionType.NUMERICAL_INCONSISTENCY,
+                stmt_a,
+                stmt_b,
+                {'divergence': divergence, 'p_value': p_value}
+            ),
+            statistical_significance=p_value
+        )
+        
+        return evidence
+
+    def _detect_numerical_inconsistencies_robust(
+            self,
+            statements: List[PolicyStatement]
+    ) -> List[ContradictionEvidence]:
+        """Detección con tests estadísticos robustos y corrección FDR"""
+        contradictions = []
+        
+        claim_pairs = self._collect_comparable_claim_pairs(statements)
+        
         if not claim_pairs:
             return contradictions
 
@@ -1058,32 +1113,9 @@ Análisis completo con contradicciones y métricas avanzadas
         for ((stmt_a, claim_a), (stmt_b, claim_b)), divergence, p_value in zip(
             claim_pairs, divergences, adjusted_p_values
         ):
-            if divergence > 0.15 and p_value < 0.05:
-                confidence, _ = self.bayesian_engine.calculate_posterior(
-                    evidence_strength=1 - p_value,
-                    observations=2,
-                    domain_weight=1.6,
-                    prior_knowledge=0.7
-                )
-
-                evidence = ContradictionEvidence(
-                    statement_a=stmt_a,
-                    statement_b=stmt_b,
-                    contradiction_type=ContradictionType.NUMERICAL_INCONSISTENCY,
-                    confidence=confidence,
-                    severity=min(1.0, divergence * 1.2),
-                    semantic_similarity=self._calculate_contextual_similarity(stmt_a, stmt_b),
-                    logical_conflict_score=divergence,
-                    temporal_consistency=True,
-                    numerical_divergence=divergence,
-                    affected_dimensions=[stmt_a.dimension],
-                    resolution_suggestions=self._generate_resolution_strategies(
-                        ContradictionType.NUMERICAL_INCONSISTENCY,
-                        stmt_a,
-                        stmt_b,
-                        {'divergence': divergence, 'p_value': p_value}
-                    ),
-                    statistical_significance=p_value
+            if self._validate_statistical_divergence(divergence, p_value):
+                evidence = self._build_numerical_contradiction_evidence(
+                    stmt_a, stmt_b, divergence, p_value
                 )
                 contradictions.append(evidence)
 
@@ -1316,19 +1348,123 @@ Análisis completo con contradicciones y métricas avanzadas
 
         return contradictions
 
+    def _extract_resource_allocations_by_type(
+            self,
+            statements: List[PolicyStatement]
+    ) -> Dict[str, List[Tuple[PolicyStatement, float]]]:
+        """Extrae y agrupa asignaciones de recursos por tipo"""
+        resource_allocations = defaultdict(list)
+        
+        for stmt in statements:
+            resources = self._extract_detailed_resource_mentions(stmt.text)
+            for resource_type, amount, _ in resources:
+                if amount:
+                    resource_allocations[resource_type].append((stmt, amount))
+        
+        return resource_allocations
+
+    def _detect_budget_overlap_conflicts(
+            self,
+            allocations: List[Tuple[PolicyStatement, float]],
+            resource_type: str,
+            chi2_stat: float,
+            p_value: float
+    ) -> List[ContradictionEvidence]:
+        """Detecta conflictos por solapamiento presupuestario entre asignaciones"""
+        conflicts = []
+        
+        for i, (stmt_a, amount_a) in enumerate(allocations):
+            for stmt_b, amount_b in allocations[i+1:]:
+                rel_diff = abs(amount_a - amount_b) / max(amount_a, amount_b)
+                
+                if rel_diff > 0.25:
+                    evidence = self._build_resource_conflict_evidence(
+                        stmt_a, stmt_b, amount_a, amount_b, 
+                        resource_type, chi2_stat, p_value, rel_diff
+                    )
+                    conflicts.append(evidence)
+        
+        return conflicts
+
+    def _build_resource_conflict_evidence(
+            self,
+            stmt_a: PolicyStatement,
+            stmt_b: PolicyStatement,
+            amount_a: float,
+            amount_b: float,
+            resource_type: str,
+            chi2_stat: float,
+            p_value: float,
+            rel_diff: float
+    ) -> ContradictionEvidence:
+        """Construye evidencia de conflicto de recursos con análisis temporal"""
+        confidence, _ = self.bayesian_engine.calculate_posterior(
+            evidence_strength=1 - p_value,
+            observations=2,
+            domain_weight=1.5,
+            prior_knowledge=0.7
+        )
+        
+        temporal_overlap = self._check_temporal_resource_overlap(stmt_a, stmt_b)
+
+        evidence = ContradictionEvidence(
+            statement_a=stmt_a,
+            statement_b=stmt_b,
+            contradiction_type=ContradictionType.RESOURCE_ALLOCATION_MISMATCH,
+            confidence=confidence,
+            severity=min(1.0, rel_diff * 1.3 * (1.2 if temporal_overlap else 1.0)),
+            semantic_similarity=self._calculate_contextual_similarity(stmt_a, stmt_b),
+            logical_conflict_score=rel_diff,
+            temporal_consistency=not temporal_overlap,
+            numerical_divergence=rel_diff,
+            affected_dimensions=[PolicyDimension.FINANCIERO],
+            resolution_suggestions=self._generate_resolution_strategies(
+                ContradictionType.RESOURCE_ALLOCATION_MISMATCH,
+                stmt_a,
+                stmt_b,
+                {'resource_type': resource_type, 'chi2': chi2_stat, 
+                 'temporal_overlap': temporal_overlap}
+            ),
+            statistical_significance=p_value
+        )
+        
+        return evidence
+
+    def _check_temporal_resource_overlap(
+            self,
+            stmt_a: PolicyStatement,
+            stmt_b: PolicyStatement
+    ) -> bool:
+        """Verifica si hay solapamiento temporal entre asignaciones de recursos"""
+        if not stmt_a.temporal_markers or not stmt_b.temporal_markers:
+            return True
+        
+        intervals_a = [self.temporal_verifier._parse_temporal_interval(m) 
+                       for m in stmt_a.temporal_markers]
+        intervals_b = [self.temporal_verifier._parse_temporal_interval(m) 
+                       for m in stmt_b.temporal_markers]
+        
+        intervals_a = [i for i in intervals_a if i is not None]
+        intervals_b = [i for i in intervals_b if i is not None]
+        
+        if not intervals_a or not intervals_b:
+            return True
+        
+        for int_a in intervals_a:
+            for int_b in intervals_b:
+                if self.temporal_verifier._intervals_overlap(int_a, int_b):
+                    return True
+        
+        return False
+
     def _detect_resource_conflicts_statistical(
             self,
             statements: List[PolicyStatement]
     ) -> List[ContradictionEvidence]:
         """Detección con análisis estadístico de asignaciones"""
         contradictions = []
-        resource_allocations = defaultdict(list)
-
-        for stmt in statements:
-            resources = self._extract_detailed_resource_mentions(stmt.text)
-            for resource_type, amount, _ in resources:
-                if amount:
-                    resource_allocations[resource_type].append((stmt, amount))
+        
+        resource_allocations = self._extract_resource_allocations_by_type(statements)
 
         for resource_type, allocations in resource_allocations.items():
             if len(allocations) > 1:
@@ -1338,38 +1474,10 @@ Análisis completo con contradicciones y métricas avanzadas
                 )
 
                 if p_value < 0.05:
-                    for i, (stmt_a, amount_a) in enumerate(allocations):
-                        for stmt_b, amount_b in allocations[i+1:]:
-                            rel_diff = abs(amount_a - amount_b) / max(amount_a, amount_b)
-
-                            if rel_diff > 0.25:
-                                confidence, _ = self.bayesian_engine.calculate_posterior(
-                                    evidence_strength=1 - p_value,
-                                    observations=len(allocations),
-                                    domain_weight=1.5,
-                                    prior_knowledge=0.7
-                                )
-
-                                evidence = ContradictionEvidence(
-                                    statement_a=stmt_a,
-                                    statement_b=stmt_b,
-                                    contradiction_type=ContradictionType.RESOURCE_ALLOCATION_MISMATCH,
-                                    confidence=confidence,
-                                    severity=min(1.0, rel_diff * 1.3),
-                                    semantic_similarity=self._calculate_contextual_similarity(stmt_a, stmt_b),
-                                    logical_conflict_score=rel_diff,
-                                    temporal_consistency=True,
-                                    numerical_divergence=rel_diff,
-                                    affected_dimensions=[PolicyDimension.FINANCIERO],
-                                    resolution_suggestions=self._generate_resolution_strategies(
-                                        ContradictionType.RESOURCE_ALLOCATION_MISMATCH,
-                                        stmt_a,
-                                        stmt_b,
-                                        {'resource_type': resource_type, 'chi2': chi2_stat}
-                                    ),
-                                    statistical_significance=p_value
-                                )
-                                contradictions.append(evidence)
+                    conflicts = self._detect_budget_overlap_conflicts(
+                        allocations, resource_type, chi2_stat, p_value
+                    )
+                    contradictions.extend(conflicts)
 
         return contradictions
 
@@ -1405,29 +1513,46 @@ Análisis completo con contradicciones y métricas avanzadas
                             similarity=similarity
                         )
 
-    def _calculate_advanced_coherence_metrics(
+    def _compute_individual_coherence_scores(
             self,
             contradictions: List[ContradictionEvidence],
-            statements: List[PolicyStatement],
-            text: str
-    ) -> Dict[str, Any]:
-        """Métricas exhaustivas de coherencia"""
-
+            statements: List[PolicyStatement]
+    ) -> Tuple[float, float, float, float, float, float]:
+        """Calcula scores individuales de coherencia por dimensión"""
         contradiction_density = len(contradictions) / max(1, len(statements))
-
+        
         semantic_coherence = self._calculate_global_semantic_coherence_advanced(statements)
-
+        
         temporal_consistency = sum(
             1 for c in contradictions 
             if c.contradiction_type != ContradictionType.TEMPORAL_CONFLICT
         ) / max(1, len(contradictions))
-
+        
         causal_coherence = self._calculate_causal_coherence()
-
+        
         objective_alignment = self._calculate_objective_alignment_advanced(statements)
-
+        
         graph_metrics = self._calculate_graph_coherence_metrics()
+        
+        return (
+            contradiction_density,
+            semantic_coherence,
+            temporal_consistency,
+            causal_coherence,
+            objective_alignment,
+            graph_metrics['fragmentation']
+        )
 
+    def _compute_weighted_coherence_score(
+            self,
+            contradiction_density: float,
+            semantic_coherence: float,
+            temporal_consistency: float,
+            causal_coherence: float,
+            objective_alignment: float,
+            graph_fragmentation: float
+    ) -> float:
+        """Calcula score ponderado de coherencia global"""
         weights = np.array([0.25, 0.20, 0.15, 0.15, 0.15, 0.10])
         scores = np.array([
             1 - min(1.0, contradiction_density * 2),
@@ -1435,20 +1560,54 @@ Análisis completo con contradicciones y métricas avanzadas
             temporal_consistency,
             causal_coherence,
             objective_alignment,
-            1 - graph_metrics['fragmentation']
+            1 - graph_fragmentation
         ])
-
+        
         coherence_score = np.sum(weights * scores)
+        
+        return coherence_score
 
+    def _compute_auxiliary_metrics(
+            self,
+            contradictions: List[ContradictionEvidence],
+            text: str,
+            coherence_score: float,
+            num_statements: int
+    ) -> Tuple[float, float, Tuple[float, float]]:
+        """Calcula métricas auxiliares: entropía, complejidad sintáctica e intervalo de confianza"""
         contradiction_entropy = self._calculate_shannon_entropy(contradictions)
-
+        
         syntactic_complexity = self._calculate_syntactic_complexity_advanced(text)
-
+        
         confidence_interval = self._calculate_bootstrap_confidence_interval(
             coherence_score,
-            len(statements),
+            num_statements,
             n_bootstrap=1000
         )
+        
+        return contradiction_entropy, syntactic_complexity, confidence_interval
+
+    def _calculate_advanced_coherence_metrics(
+            self,
+            contradictions: List[ContradictionEvidence],
+            statements: List[PolicyStatement],
+            text: str
+    ) -> Dict[str, Any]:
+        """Métricas exhaustivas de coherencia"""
+        
+        (contradiction_density, semantic_coherence, temporal_consistency,
+         causal_coherence, objective_alignment, graph_fragmentation) = \
+            self._compute_individual_coherence_scores(contradictions, statements)
+        
+        graph_metrics = self._calculate_graph_coherence_metrics()
+        
+        coherence_score = self._compute_weighted_coherence_score(
+            contradiction_density, semantic_coherence, temporal_consistency,
+            causal_coherence, objective_alignment, graph_fragmentation
+        )
+        
+        contradiction_entropy, syntactic_complexity, confidence_interval = \
+            self._compute_auxiliary_metrics(contradictions, text, coherence_score, len(statements))
 
         return {
             "coherence_score": float(coherence_score),
