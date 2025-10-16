@@ -4,6 +4,140 @@
 **Issue**: Auditability and Determinism: Structured Telemetry and Contract Enforcement Across Orchestrator Phases  
 **Status**: ✅ COMPLETED
 
+---
+
+## Update: 2025-10-16 - Canonical Questionnaire Integration
+
+**Issue**: Integrate Canonical Questionnaire Processing and Enforce Single Source of Truth  
+**Status**: ✅ COMPLETED
+
+### Executive Summary
+
+Implemented `questionnaire_parser.py` as the canonical source of truth for all 300 questions (10 policies × 6 dimensions × 30 questions). All orchestration components now reference this single source, ensuring deterministic, auditable questionnaire access per SIN_CARRETA doctrine.
+
+### Changes Implemented
+
+#### 1. Canonical Questionnaire Parser (`questionnaire_parser.py`)
+
+**Created**: New parser module with 400+ lines of production-grade code
+
+**Key Components:**
+- **Question dataclass**: Structured question with policy, dimension, text metadata
+- **Dimension dataclass**: Dimension with associated questions
+- **Policy dataclass**: Policy with dimensions hierarchy
+- **QuestionnaireParser class**: Deterministic parser for cuestionario_canonico
+
+**Features:**
+- ✅ Single source of truth: Only parses cuestionario_canonico file
+- ✅ Deterministic: Same input → same output (reproducible)
+- ✅ Complete validation: Validates 10 policies, 6 dimensions/policy, 300 total questions
+- ✅ Fast lookup: Indexed access by policy, dimension, or question ID
+- ✅ Canonical path tracking: Explicit tracking of source file location
+
+**API Methods:**
+- `get_all_policies()`: Get all 10 policies
+- `get_policy(policy_id)`: Get specific policy (e.g., "P1")
+- `get_dimension(policy_id, dimension_id)`: Get specific dimension
+- `get_question(full_id)`: Get question by full ID (e.g., "P1-D1-Q1")
+- `get_questions_by_dimension()`: Get all questions for dimension
+- `get_dimension_names()`: Get dimension ID → name mapping
+- `get_policy_names()`: Get policy ID → name mapping
+- `validate_structure()`: Validate questionnaire structure
+- `get_canonical_path()`: Get absolute path to cuestionario_canonico
+
+#### 2. Orchestrator Integration (`orchestrator.py`)
+
+**Modified**: Added questionnaire parser initialization and accessor methods
+
+**Changes:**
+- Initialized `questionnaire_parser` in `__init__`
+- Added canonical path to orchestration metadata
+- Added `get_dimension_description(dimension_id)` method
+- Added `get_policy_description(policy_id)` method
+- Added `get_question(full_id)` method
+
+**SIN_CARRETA Compliance:**
+- Canonical source enforcement tracked in audit metadata
+- Deterministic access to questionnaire data
+- Complete traceability of question source
+
+#### 3. Unified Orchestrator Integration (`orchestration/unified_orchestrator.py`)
+
+**Modified**: Added questionnaire parser initialization
+
+**Changes:**
+- Initialized `questionnaire_parser` in `__init__`
+- Logged canonical path at startup
+- Available for stage-specific question routing
+
+#### 4. PDM Orchestrator Integration (`orchestration/pdm_orchestrator.py`)
+
+**Modified**: Added questionnaire parser initialization
+
+**Changes:**
+- Initialized `questionnaire_parser` in `__init__`
+- Logged canonical path at startup
+- Available for phase-specific question routing
+
+#### 5. Integration Tests (`test_questionnaire_integration.py`)
+
+**Created**: Comprehensive test suite for integration validation
+
+**Test Coverage:**
+- Parser initialization and validation
+- Policy/dimension/question parsing
+- Orchestrator integration
+- Canonical path tracking
+- No legacy sources validation
+- Deterministic parsing verification
+
+### Validation Results
+
+All tests passed successfully:
+- ✅ 10 policies parsed correctly
+- ✅ 6 dimensions per policy validated
+- ✅ 300 total questions verified
+- ✅ Orchestrators correctly initialized with parser
+- ✅ Canonical path tracked in metadata
+- ✅ No alternative questionnaire sources found
+- ✅ Deterministic parsing confirmed
+
+### SIN_CARRETA Clauses Satisfied
+
+**Clause 1: Single Source of Truth**
+- Only cuestionario_canonico is parsed
+- No aliases, no legacy versions
+- Explicit validation prevents data drift
+
+**Clause 2: Deterministic Access**
+- Same parsing produces identical results
+- Indexed lookups provide O(1) access
+- Reproducible across runs
+
+**Clause 3: Complete Auditability**
+- Canonical path tracked in orchestration metadata
+- Full question metadata preserved
+- Validation results auditable
+
+**Clause 4: Contract Enforcement**
+- Structured dataclasses with type hints
+- Explicit validation of questionnaire structure
+- Factory function ensures correct initialization
+
+### Migration Path
+
+**No Breaking Changes:**
+- Existing orchestration logic preserved
+- Backward compatible accessor methods added
+- Optional integration with existing code
+
+**Future Enhancements:**
+- Connect question IDs to analytical module routing
+- Use question metadata in report generation
+- Leverage rubric levels in scoring framework
+
+---
+
 ## Executive Summary
 
 Implemented comprehensive structured telemetry and contract enforcement across all orchestrator phases to guarantee maximum auditability and determinism per SIN_CARRETA doctrine. All analytical and validation phases now produce traceable decision logs and maintain immutable audit trails with 7-year retention.

@@ -31,6 +31,7 @@ FARFAN-2.0 es un **framework de grado industrial** para la deconstrucción y aud
 - ✅ **Cumplimiento DNP**: Validación automática de competencias municipales, indicadores MGA y lineamientos PDET
 - ✅ **Resiliencia Distribuida**: Circuit breakers, retry handlers, y recovery checkpoints
 - ✅ **Auditoría Completa**: Trazabilidad financiera y generación de reportes multinivel (micro, meso, macro)
+- ✅ **Fuente Canónica de Verdad**: Cuestionario único (`cuestionario_canonico`) como origen autoritativo de las 300 preguntas
 
 ## Arquitectura de Resiliencia (Risk-Driven Resilience System)
 
@@ -854,6 +855,7 @@ python demo_choreography.py
 
 | Módulo | Descripción | Archivo |
 |--------|-------------|---------|
+| **Questionnaire Parser** | Parser canónico para 300 preguntas (fuente única de verdad) | `questionnaire_parser.py` |
 | **Contradiction Detection** | Detección de contradicciones usando NLP y redes neuronales | `contradiction_deteccion.py` |
 | **Canonical Notation** | Sistema canónico de notación (P#-D#-Q#) | `canonical_notation.py` |
 | **Report Generator** | Generación de reportes multinivel (micro, meso, macro) | `report_generator.py` |
