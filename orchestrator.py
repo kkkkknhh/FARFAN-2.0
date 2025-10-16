@@ -751,9 +751,7 @@ class AnalyticalOrchestrator:
             # LIVE MODULE CALL: ValidadorDNP.validar_proyecto_integral
             validation_result = self.dnp_validator.validar_proyecto_integral(
                 sector=sector,
-                descripcion=phase_input.text[
-                    :500
-                ],  # First 500 chars as description
+                descripcion=phase_input.text[:500],  # First 500 chars as description
                 indicadores_propuestos=[],  # Future: extract from statements
                 presupuesto=0.0,  # Future: extract from statements
                 es_rural=False,  # Future: detect from text analysis
