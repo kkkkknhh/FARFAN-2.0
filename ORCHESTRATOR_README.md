@@ -1,109 +1,427 @@
-# Analytical Orchestrator Documentation
+# Unified Orchestrator Documentation
 
 ## Overview
 
-The Analytical Orchestrator is a unified pipeline manager for the FARFAN 2.0 analytical framework. It orchestrates the execution of all analytical modules (regulatory analysis, contradiction detection, coherence metrics, and audit generation) with deterministic behavior, complete data flow integrity, and auditable metrics.
+⚠️  **IMPORTANT: This documentation describes the NEW unified orchestrator.**
+
+The **Unified Orchestrator** (`orchestration.unified_orchestrator.UnifiedOrchestrator`) is the single source of truth for all pipeline orchestration in FARFAN 2.0. It consolidates three previously separate orchestrators (PDMOrchestrator, AnalyticalOrchestrator, and CDAFFramework) into a single 9-stage deterministic pipeline with explicit contract enforcement.
+
+### Migration Notice
+
+**DEPRECATED orchestrators** (maintained for backward compatibility only):
+- ❌ `orchestrator.py` (AnalyticalOrchestrator) - **DEPRECATED**
+- ❌ `orchestration/pdm_orchestrator.py` (PDMOrchestrator) - **DEPRECATED**
+
+**NEW orchestrator** (all new code must use):
+- ✅ `orchestration/unified_orchestrator.py` (UnifiedOrchestrator) - **REQUIRED**
+
+For migration guide, see: `IMPLEMENTATION_SUMMARY_ORCHESTRATOR_UNIFICATION.md`
 
 ## Key Features
 
-### 1. Deterministic Execution
-- All analytical phases execute in a strict, predefined order
-- Mathematical calibration constants remain stable across runs
+### 1. Explicit Contract Enforcement
+- **NO fallback behavior** - All components MUST be injected before execution
+- **ComponentNotInjectedError** raised if components missing
+- **ContractViolationError** raised if component violates interface contract
+- All failures are explicit exceptions with structured payloads
+
+### 2. Deterministic Execution
+- Immutable prior snapshots break circular dependencies
+- Fixed execution order (STAGE_0 through STAGE_8)
 - Same input always produces same output (reproducible results)
+- Mathematical calibration constants remain stable across runs
 
-### 2. Complete Audit Trail
-- Every phase logs its execution to an immutable audit log
-- Logs persist to `logs/orchestrator/` with full traceability
-- Includes timestamps, inputs, outputs, and metrics for every phase
+### 3. Structured Telemetry
+- [TELEMETRY] markers at all phase transitions
+- START, DECISION, COMPLETE events with context
+- Structured event payloads via EventBus
+- Complete audit trail with append-only logs
 
-### 3. Data Flow Integrity
-- Structured data contracts ensure consistent phase outputs
-- No merge conflicts - each phase has its own namespace
-- Explicit dependency validation prevents circular references
-
-### 4. Error Resilience
-- Graceful error handling with fallback mechanisms
-- Pipeline continues even if non-critical phases fail
-- All errors logged with full context
+### 4. 9-Stage Unified Pipeline
+- **STAGE_0**: PDF Ingestion
+- **STAGE_1**: Semantic Extraction
+- **STAGE_2**: Causal Graph Construction
+- **STAGE_3**: Bayesian Inference (3 AGUJAS)
+- **STAGE_4**: Contradiction Detection
+- **STAGE_5**: Axiomatic Validation
+- **STAGE_6**: Scoring Aggregation (MICRO→MESO→MACRO)
+- **STAGE_7**: Report Generation
+- **STAGE_8**: Adaptive Learning Loop (penalty factors)
 
 ## Installation
 
-The orchestrator is a standalone module with minimal dependencies:
+The unified orchestrator requires the full FARFAN-2.0 dependency stack:
 
 ```bash
-# No additional installation needed - uses Python standard library
 cd /path/to/FARFAN-2.0
-python orchestrator.py  # Run validation
+pip install -r requirements.txt
 ```
 
 ## Usage
 
-### Basic Usage
+### Basic Usage (Production)
 
 ```python
-from orchestrator import create_orchestrator
+from orchestration.unified_orchestrator import UnifiedOrchestrator
 
-# Create orchestrator with default calibration
-orchestrator = create_orchestrator()
+# Create configuration
+from dataclasses import dataclass, field
 
-# Execute analysis pipeline
-result = orchestrator.orchestrate_analysis(
-    text="Plan de desarrollo municipal...",
-    plan_name="PDM_Municipio_2024",
-    dimension="estratégico"
+@dataclass
+class SelfReflection:
+    enable_prior_learning: bool = True
+    prior_history_path: str = "logs/prior_history.json"
+    feedback_weight: float = 0.1
+    min_documents_for_learning: int = 3
+
+@dataclass
+class Config:
+    self_reflection: SelfReflection = field(default_factory=SelfReflection)
+    prior_decay_factor: float = 0.9
+    queue_size: int = 100
+    max_inflight_jobs: int = 10
+    worker_timeout_secs: int = 300
+    min_quality_threshold: float = 0.6
+
+config = Config()
+
+# Create orchestrator
+orchestrator = UnifiedOrchestrator(config)
+
+# Inject ALL required components (production mode)
+# NOTE: All components MUST be provided - no fallback behavior
+orchestrator.inject_components(
+    extraction_pipeline=extraction_pipeline,  # Your extraction pipeline instance
+    causal_builder=causal_builder,            # Your causal graph builder instance
+    bayesian_engine=bayesian_engine,          # Your Bayesian engine instance
+    contradiction_detector=contradiction_detector,  # Your detector instance
+    validator=validator,                      # Your AxiomaticValidator instance
+    scorer=scorer,                            # Your scoring framework instance
+    report_generator=report_generator         # Your report generator instance
 )
+
+# Execute pipeline
+import asyncio
+
+result = await orchestrator.execute_pipeline("path/to/pdm_document.pdf")
 
 # Access results
-print(f"Total contradictions: {result['total_contradictions']}")
-print(f"Coherence score: {result['calculate_coherence_metrics']['metrics']['overall_score']}")
-print(f"Quality grade: {result['generate_audit_summary']['outputs']['harmonic_front_4_audit']['quality_grade']}")
+print(f"Success: {result.success}")
+print(f"Macro score: {result.macro_score}")
+print(f"Total duration: {result.total_duration:.2f}s")
+print(f"Report: {result.report_path}")
 ```
 
-### Custom Calibration
+### Testing Mode
 
 ```python
-from orchestrator import create_orchestrator
+from orchestration.unified_orchestrator import UnifiedOrchestrator
+from unittest.mock import AsyncMock, MagicMock
 
-# Override calibration constants
-orchestrator = create_orchestrator(
-    coherence_threshold=0.8,           # Increase from default 0.7
-    causal_incoherence_limit=3,        # Decrease from default 5
-    regulatory_depth_factor=1.5        # Increase from default 1.3
+# Create orchestrator
+orchestrator = UnifiedOrchestrator(config)
+
+# Inject mock components for testing
+orchestrator.inject_components(
+    extraction_pipeline=AsyncMock(),
+    causal_builder=AsyncMock(),
+    bayesian_engine=AsyncMock(),
+    contradiction_detector=MagicMock(),
+    validator=MagicMock(),
+    scorer=MagicMock(),
+    report_generator=AsyncMock()
 )
 
-result = orchestrator.orchestrate_analysis(text, plan_name, dimension)
+# Execute with test data
+result = await orchestrator.execute_pipeline("test.pdf")
 ```
 
-### Custom Log Directory
+### Contract Enforcement
+
+The orchestrator enforces explicit contracts at all integration points:
 
 ```python
-from pathlib import Path
-from orchestrator import create_orchestrator
-
-# Store audit logs in custom directory
-orchestrator = create_orchestrator(
-    log_dir=Path("/custom/path/to/logs")
+from orchestration.unified_orchestrator import (
+    ComponentNotInjectedError,
+    ContractViolationError
 )
 
-result = orchestrator.orchestrate_analysis(text, plan_name, dimension)
+# Example: Missing component
+orchestrator = UnifiedOrchestrator(config)
+# Don't inject components
+
+try:
+    result = await orchestrator.execute_pipeline("test.pdf")
+except ComponentNotInjectedError as e:
+    # Explicit error: "extraction_pipeline not injected"
+    print(f"Contract violation: {e}")
+
+# Example: Invalid component result
+bad_extraction = AsyncMock()
+bad_extraction.extract_complete = AsyncMock(return_value={
+    "invalid_key": "missing semantic_chunks"  # Contract violation
+})
+
+orchestrator.inject_components(extraction_pipeline=bad_extraction, ...)
+
+try:
+    result = await orchestrator.execute_pipeline("test.pdf")
+except ContractViolationError as e:
+    # Explicit error: "extraction_pipeline.extract_complete() must return 
+    # object with 'semantic_chunks' attribute"
+    print(f"Contract violation: {e}")
 ```
 
-## Pipeline Phases
+## Pipeline Stages
 
-The orchestrator executes 6 sequential phases:
+The unified orchestrator executes 9 sequential stages:
 
-### Phase 1: Extract Statements
-- **Input**: Raw policy document text
-- **Output**: Structured policy statements with metadata
-- **Key**: `extract_statements`
+### STAGE_0: PDF Ingestion
+- **Input**: Path to PDF document
+- **Output**: PDF data dict with 'path' and 'loaded' keys
+- **Component**: None (internal)
+- **Contract**: PDF file MUST exist
+- **Telemetry**: stage.ingestion.start, stage.ingestion.complete
 
-### Phase 2: Detect Contradictions
-- **Input**: Policy statements, full text
-- **Output**: List of contradictions with severity scores
-- **Key**: `detect_contradictions`
+### STAGE_1: Semantic Extraction
+- **Input**: PDF data
+- **Output**: Dict with 'chunks' (list) and 'tables' (list) keys
+- **Component**: `extraction_pipeline.extract_complete(pdf_path)`
+- **Contract**: Must return object with 'semantic_chunks' attribute/key
+- **Telemetry**: stage.extraction.complete
 
-### Phase 3: Analyze Regulatory Constraints
-- **Input**: Statements, text, temporal conflicts
+### STAGE_2: Causal Graph Construction
+- **Input**: Semantic chunks, tables
+- **Output**: NetworkX DiGraph
+- **Component**: `causal_builder.build_graph(chunks, tables)`
+- **Contract**: Must return `nx.DiGraph` instance
+- **Telemetry**: stage.graph.complete
+
+### STAGE_3: Bayesian Inference (3 AGUJAS)
+- **Input**: Causal graph, chunks, immutable prior snapshot
+- **Output**: Dict with 'mechanisms' (list) and 'posteriors' (dict) keys
+- **Component**: `bayesian_engine.infer_all_mechanisms(graph, chunks)`
+- **Contract**: Must return list of mechanism results
+- **Telemetry**: stage.bayesian.complete
+- **Note**: Uses immutable prior snapshot (breaks circular dependency)
+
+### STAGE_4: Contradiction Detection
+- **Input**: Semantic chunks
+- **Output**: List of contradiction dicts
+- **Component**: `contradiction_detector.detect(text, plan_name, dimension)`
+- **Contract**: Must return dict with 'contradictions' key
+- **Telemetry**: stage.contradiction.complete
+
+### STAGE_5: Axiomatic Validation
+- **Input**: Causal graph, semantic chunks, tables
+- **Output**: ValidationResult with 'passed' attribute
+- **Component**: `validator.validate_complete(graph, chunks, tables)`
+- **Contract**: Result must have 'passed' attribute
+- **Telemetry**: stage.validation.complete
+- **Decision**: Logs validation outcome (passed/requires_review)
+
+### STAGE_6: Scoring Aggregation (MICRO→MESO→MACRO)
+- **Input**: Graph, mechanisms, validation result, contradictions
+- **Output**: Dict with 'micro', 'meso', 'macro' keys
+- **Component**: `scorer.calculate_all_levels(graph, mechanisms, validation, contradictions)`
+- **Contract**: Must return dict with all three keys (micro, meso, macro)
+- **Telemetry**: stage.scoring.complete
+- **Decision**: Logs scoring breakdown
+
+### STAGE_7: Report Generation
+- **Input**: UnifiedResult, PDF path, run ID
+- **Output**: Path to generated report
+- **Component**: `report_generator.generate(result, pdf_path, run_id)`
+- **Contract**: Must return Path or str
+- **Telemetry**: stage.report.complete
+
+### STAGE_8: Adaptive Learning Loop
+- **Input**: UnifiedResult (with mechanism results)
+- **Output**: Dict of penalty factors by mechanism type
+- **Component**: Internal (uses AdaptiveLearningLoop)
+- **Contract**: Penalty factors for NEXT run (current run unaffected)
+- **Telemetry**: stage.learning.complete
+- **Note**: Applies penalties to prior store for next execution
+
+## Component Interface Requirements
+
+All components injected via `inject_components()` MUST implement these interfaces:
+
+### extraction_pipeline
+```python
+async def extract_complete(pdf_path: str) -> ExtractionResult:
+    """
+    Extract semantic chunks and tables from PDF.
+    
+    Returns:
+        Object with 'semantic_chunks' (list) and 'tables' (list) attributes/keys
+    """
+```
+
+### causal_builder
+```python
+async def build_graph(chunks: List[Any], tables: List[Any]) -> nx.DiGraph:
+    """
+    Build causal graph from extracted chunks and tables.
+    
+    Returns:
+        nx.DiGraph instance (NetworkX directed graph)
+    """
+```
+
+### bayesian_engine
+```python
+async def infer_all_mechanisms(graph: nx.DiGraph, chunks: List[Any]) -> List[MechanismResult]:
+    """
+    Perform Bayesian inference on causal mechanisms.
+    
+    Returns:
+        List of mechanism results
+    """
+```
+
+### contradiction_detector
+```python
+def detect(text: str, plan_name: str, dimension: str) -> Dict[str, Any]:
+    """
+    Detect contradictions in policy text.
+    
+    Returns:
+        Dict with 'contradictions' key containing list of contradictions
+    """
+```
+
+### validator
+```python
+def validate_complete(
+    graph: nx.DiGraph,
+    chunks: List[SemanticChunk],
+    tables: List[Any]
+) -> ValidationResult:
+    """
+    Validate graph structure, semantics, and regulatory compliance.
+    
+    Returns:
+        ValidationResult with 'passed' (bool) attribute
+    """
+```
+
+### scorer
+```python
+def calculate_all_levels(
+    graph: nx.DiGraph,
+    mechanisms: List[Any],
+    validation: ValidationResult,
+    contradictions: List[Dict]
+) -> Dict[str, Any]:
+    """
+    Calculate MICRO→MESO→MACRO scores.
+    
+    Returns:
+        Dict with 'micro' (dict), 'meso' (dict), 'macro' (float) keys
+    """
+```
+
+### report_generator
+```python
+async def generate(
+    result: UnifiedResult,
+    pdf_path: str,
+    run_id: str
+) -> Path:
+    """
+    Generate final report from pipeline results.
+    
+    Returns:
+        Path to generated report file
+    """
+```
+
+## Testing
+
+### Running Contract Enforcement Tests
+
+```bash
+# Run comprehensive contract tests
+python -m pytest test_orchestrator_contracts.py -v
+
+# Run specific test
+python -m pytest test_orchestrator_contracts.py::test_component_not_injected_error_raised -v
+```
+
+### Test Coverage
+
+The test suite proves:
+1. **Contract Enforcement**: ComponentNotInjectedError and ContractViolationError
+2. **Determinism**: Same inputs produce same outputs
+3. **Telemetry**: Structured logging at all phase boundaries
+
+### Creating Custom Tests
+
+```python
+import pytest
+from orchestration.unified_orchestrator import UnifiedOrchestrator
+
+@pytest.mark.asyncio
+async def test_custom_pipeline(config):
+    orchestrator = UnifiedOrchestrator(config)
+    
+    # Inject your components
+    orchestrator.inject_components(...)
+    
+    # Execute and verify
+    result = await orchestrator.execute_pipeline("test.pdf")
+    assert result.success
+```
+
+## SIN_CARRETA Compliance
+
+The unified orchestrator adheres to SIN_CARRETA doctrine:
+
+- ✅ **No fallback behavior** - All failures are explicit exceptions
+- ✅ **Explicit contracts** - All component interfaces documented and enforced
+- ✅ **Runtime assertions** - Contract violations caught at execution time
+- ✅ **Structured telemetry** - All phase transitions logged with context
+- ✅ **Deterministic behavior** - Immutable prior snapshots, fixed execution order
+- ✅ **Comprehensive testing** - Contract enforcement and determinism proven by tests
+
+## Migration from Legacy Orchestrators
+
+### From AnalyticalOrchestrator (orchestrator.py)
+
+```python
+# OLD (DEPRECATED):
+from orchestrator import AnalyticalOrchestrator, create_orchestrator
+orch = create_orchestrator()
+result = orch.orchestrate_analysis(text, plan_name, dimension)
+
+# NEW (REQUIRED):
+from orchestration.unified_orchestrator import UnifiedOrchestrator
+
+config = create_config()  # Your config creation
+orch = UnifiedOrchestrator(config)
+orch.inject_components(...)  # Inject all required components
+
+# Convert text to PDF or use existing PDF
+result = await orch.execute_pipeline(pdf_path)
+```
+
+### From PDMOrchestrator (orchestration/pdm_orchestrator.py)
+
+```python
+# OLD (DEPRECATED):
+from orchestration.pdm_orchestrator import PDMOrchestrator
+orch = PDMOrchestrator(config)
+result = await orch.analyze_pdm(pdf_path)
+
+# NEW (REQUIRED):
+from orchestration.unified_orchestrator import UnifiedOrchestrator
+orch = UnifiedOrchestrator(config)
+orch.inject_components(...)  # Inject all required components
+result = await orch.execute_pipeline(pdf_path)
+```
+
+## Troubleshooting
 - **Output**: Regulatory compliance analysis
 - **Key**: `analyze_regulatory_constraints`
 - **Special Output**: `d1_q5_regulatory_analysis`
