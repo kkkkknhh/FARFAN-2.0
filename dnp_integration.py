@@ -240,8 +240,9 @@ class ValidadorDNP:
                                    poblacion_victimas: bool,
                                    lineamientos_cumplidos: List[str]) -> Dict[str, Any]:
         """Validate PDET guidelines compliance"""
+        # Note: es_rural is not used in recomendar_lineamientos but kept for future enhancement
         lineamientos_recomendados = self.lineamientos_pdet.recomendar_lineamientos(
-            sector, es_rural, poblacion_victimas
+            sector, poblacion_victimas
         )
         
         # Evaluate actual compliance based on provided fulfilled guidelines
