@@ -14,11 +14,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from infrastructure.calibration_constants import CALIBRATION
 from orchestrator import (
     AnalyticalOrchestrator,
     create_orchestrator,
 )
-from infrastructure.calibration_constants import CALIBRATION
 
 
 def test_orchestrator_creation():
@@ -30,6 +30,7 @@ def test_orchestrator_creation():
 
     # Custom calibration
     from infrastructure.calibration_constants import override_calibration
+
     custom_cal = override_calibration(COHERENCE_THRESHOLD=0.8)
     orch2 = create_orchestrator(calibration=custom_cal)
     assert orch2.calibration.COHERENCE_THRESHOLD == pytest.approx(
@@ -155,7 +156,10 @@ def test_error_handling():
 def test_calibration_constants_usage():
     """Test that calibration constants are used throughout pipeline."""
     from infrastructure.calibration_constants import override_calibration
-    custom_cal = override_calibration(COHERENCE_THRESHOLD=0.85, CAUSAL_INCOHERENCE_LIMIT=3)
+
+    custom_cal = override_calibration(
+        COHERENCE_THRESHOLD=0.85, CAUSAL_INCOHERENCE_LIMIT=3
+    )
     orch = create_orchestrator(calibration=custom_cal)
 
     # Verify custom calibration is set
