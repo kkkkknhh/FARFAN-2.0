@@ -1,0 +1,32 @@
+# CODEOWNERS for FARFAN 2.0
+# 
+# Defines required reviewers for critical code paths
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Orchestrator and Infrastructure (require sin-carreta/approver)
+/orchestrator.py @sin-carreta-approvers
+/orchestrator_*.py @sin-carreta-approvers
+/infrastructure/ @sin-carreta-approvers
+
+# Contract Enforcement Scripts
+/ci_*.py @sin-carreta-approvers
+/governance_standards.py @sin-carreta-approvers
+
+# Governance and Compliance Documentation
+/CODE_FIX_REPORT.md @sin-carreta-approvers
+/CONTRIBUTING.md @sin-carreta-approvers
+/.github/copilot-instructions.md @sin-carreta-approvers
+
+# Calibration Constants (MUST NOT drift)
+/infrastructure/calibration_constants.py @sin-carreta-approvers
+
+# Audit and Observability Infrastructure
+/infrastructure/audit_logger.py @sin-carreta-approvers
+/infrastructure/metrics_collector.py @sin-carreta-approvers
+/infrastructure/observability.py @sin-carreta-approvers
+
+# Bayesian Inference Core
+/inference/bayesian_engine.py @sin-carreta-approvers
+
+# GitHub Actions Workflows
+/.github/workflows/ @sin-carreta-approvers
