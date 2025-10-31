@@ -9,6 +9,7 @@ This module provides helper functions to prevent the three critical runtime erro
 """
 
 from typing import Union, List, Any, TypeVar, Callable
+import functools
 
 try:
     import numpy as np
@@ -159,8 +160,8 @@ def ensure_spacy_doc(text_input: Union[str, Any], nlp: Any) -> Any:
 # Pattern 3: Safe list/array multiplication
 # ============================================================================
 
-def safe_scale(values: Union[List[float], Any, float], 
-               factor: float) -> Union[List[float], Any, float]:
+def safe_scale(values: Union[List[float], 'np.ndarray', float], 
+               factor: float) -> Union[List[float], 'np.ndarray', float]:
     """
     Safely scale values by a factor, handling lists and arrays.
     
@@ -196,8 +197,8 @@ def safe_scale(values: Union[List[float], Any, float],
         raise TypeError(f"Cannot scale type {type(values)}")
 
 
-def safe_elementwise_op(values: Union[List[Any], Any],
-                        operation: Callable[[Any], Any]) -> Union[List[Any], Any]:
+def safe_elementwise_op(values: Union[List[Any], 'np.ndarray'],
+                        operation: Callable[[Any], Any]) -> Union[List[Any], 'np.ndarray']:
     """
     Apply an operation element-wise to a collection.
     
@@ -224,9 +225,9 @@ def safe_elementwise_op(values: Union[List[Any], Any],
 # Defensive wrappers for common operations
 # ============================================================================
 
-def safe_posterior_update(prior: Union[List[float], Any, float],
+def safe_posterior_update(prior: Union[List[float], 'np.ndarray', float],
                           likelihood: float,
-                          normalize: bool = False) -> Union[List[float], Any, float]:
+                          normalize: bool = False) -> Union[List[float], 'np.ndarray', float]:
     """
     Safely update posterior probabilities.
     
@@ -282,6 +283,7 @@ def returns_list(func: Callable) -> Callable:
         >>> get_items("data")  # Returns ["item"] as expected  
         ['item']
     """
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         return ensure_list(result)
@@ -294,6 +296,7 @@ def safe_text_access(func: Callable) -> Callable:
     
     Wraps returned value with safe_text_extract.
     """
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         if result is not None:

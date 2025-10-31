@@ -175,7 +175,7 @@ def calculate_typed(values: np.ndarray, scale: float) -> np.ndarray:
 ## Quick Reference
 
 | Error | Anti-Pattern | Correct Pattern |
-|-------|--------------|-----------------|
+|:------|:-------------|:----------------|
 | **Bool iteration** | `return False` | `return []` |
 | **Text attribute** | `string.text` | `if isinstance(x, str): use x` |
 | **List multiplication** | `list * 0.5` | `[item * 0.5 for item in list]` |
