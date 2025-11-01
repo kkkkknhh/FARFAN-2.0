@@ -1659,39 +1659,4 @@ class PDETMunicipalPlanAnalyzer:
         }
 
 
-# ============================================================================
-# PUNTO DE ENTRADA
-# ============================================================================
 
-
-async def main():
-    """Función principal para ejecución"""
-    import json
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Uso: python municipal_plan_analyzer_pdet.py <ruta_al_pdf>")
-        sys.exit(1)
-
-    pdf_path = sys.argv[1]
-
-    if not Path(pdf_path).exists():
-        print(f"Error: Archivo no encontrado: {pdf_path}")
-        sys.exit(1)
-
-    # Inicializar analizador
-    analyzer = PDETMunicipalPlanAnalyzer(use_gpu=True, confidence_threshold=0.7)
-
-    # Ejecutar análisis
-    results = await analyzer.analyze_complete_plan(pdf_path)
-
-    # Guardar resultados
-    output_file = Path(pdf_path).stem + "_analysis.json"
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-
-    print(f"✅ Resultados guardados en: {output_file}")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
