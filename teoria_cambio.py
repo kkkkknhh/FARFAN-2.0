@@ -904,11 +904,3 @@ def main() -> None:
         LOGGER.info(f"  - Score de Robustez Estructural: {result.robustness_score:.4f}")
         LOGGER.info(f"  - Tiempo de Cómputo: {result.computation_time:.3f}s")
         LOGGER.info("=" * 80)
-
-
-# ============================================================================
-# 7. PUNTO DE ENTRADA
-# ============================================================================
-
-if __name__ == "__main__":
-    main()
