@@ -12,6 +12,9 @@ SIN_CARRETA Compliance:
 
 import asyncio
 import logging
+
+# Canonical questionnaire parser - single source of truth
+import sys
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -21,10 +24,14 @@ from typing import Any, Dict, List, Optional, Set
 
 import pandas as pd
 
+from infrastructure.audit_logger import ImmutableAuditLogger
+
 # SIN_CARRETA Compliance: Use centralized infrastructure
 from infrastructure.calibration_constants import CALIBRATION
 from infrastructure.metrics_collector import MetricsCollector
-from infrastructure.audit_logger import ImmutableAuditLogger
+from questionnaire_parser import create_questionnaire_parser
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 class PDMAnalysisState(str, Enum):
@@ -145,6 +152,9 @@ class PDMOrchestrator:
         self.state = PDMAnalysisState.INITIALIZED
         self.metrics = MetricsCollector()
 
+        # Initialize canonical questionnaire parser (single source of truth)
+        self.questionnaire_parser = create_questionnaire_parser()
+
         # Audit logging
         audit_store_path = getattr(config, "audit_store_path", None)
         if hasattr(config, "self_reflection") and hasattr(
@@ -170,7 +180,10 @@ class PDMOrchestrator:
         self.validator = None
         self.scorer = None
 
-        self.logger.info(f"PDMOrchestrator initialized with state: {self.state}")
+        self.logger.info(
+            f"PDMOrchestrator initialized with state: {self.state}, "
+            f"canonical questionnaire: {self.questionnaire_parser.get_canonical_path()}"
+        )
 
     def _generate_run_id(self) -> str:
         """Generate unique run ID"""
@@ -306,7 +319,10 @@ class PDMOrchestrator:
         d6_score = final_score.dimension_scores.get("D6", 0.7)
         self.metrics.record("dimension.avg_score_D6", d6_score)
         if d6_score < CALIBRATION.D6_ALERT_THRESHOLD:
-            self.metrics.alert("CRITICAL", f"D6_SCORE_BELOW_THRESHOLD: {d6_score} < {CALIBRATION.D6_ALERT_THRESHOLD}")
+            self.metrics.alert(
+                "CRITICAL",
+                f"D6_SCORE_BELOW_THRESHOLD: {d6_score} < {CALIBRATION.D6_ALERT_THRESHOLD}",
+            )
 
         self._transition_state(PDMAnalysisState.COMPLETED)
 
@@ -471,9 +487,7 @@ class PDMOrchestrator:
             ],
         )
 
-    def _handle_failure(
-        self, run_id: str, error: Exception
-    ) -> AnalysisResult:
+    def _handle_failure(self, run_id: str, error: Exception) -> AnalysisResult:
         """Handle failure scenario"""
         self._transition_state(PDMAnalysisState.FAILED)
         self.logger.error(f"Analysis failed for run {run_id}: {error}", exc_info=True)
