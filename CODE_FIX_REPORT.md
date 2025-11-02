@@ -260,7 +260,6 @@ test_orchestrator_auditability.py::TestOrchestratorAuditability::test_orchestrat
 test_orchestrator_auditability.py::TestAuditRetention::test_retention_policy_configured PASSED
 test_orchestrator_auditability.py::TestAuditRetention::test_telemetry_statistics PASSED
 
-==================== 19 passed in 0.10s ====================
 ```
 
 ### CI Validation Results
