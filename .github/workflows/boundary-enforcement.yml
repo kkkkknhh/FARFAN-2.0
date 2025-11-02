@@ -1,0 +1,85 @@
+name: Boundary Enforcement
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  boundary-scan:
+    name: Scan Architectural Boundaries
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydantic
+      
+      - name: Run boundary scanner
+        run: |
+          python tools/scan_boundaries.py \
+            --root . \
+            --fail-on=io,subprocess,requests,main \
+            --allow-path examples \
+            --allow-path cli \
+            --allow-path test_ \
+            --allow-path demo_ \
+            --allow-path validate_ \
+            --allow-path example_ \
+            --allow-path ci_ \
+            --allow-path tools \
+            --allow-path infrastructure \
+            --sarif out/boundaries.sarif \
+            --json out/violations.json \
+            --verbose
+      
+      - name: Upload SARIF report
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: out/boundaries.sarif
+          category: boundary-violations
+      
+      - name: Upload violations JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boundary-violations
+          path: out/violations.json
+
+  contract-validation:
+    name: Validate Contracts
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydantic pytest
+      
+      - name: Run contract tests
+        run: |
+          pytest tests/test_contracts.py -v
+        if: ${{ hashFiles('tests/test_contracts.py') != '' }}
+      
+      - name: Validate contract imports
+        run: |
+          python -c "from core_contracts import *; from contracts_runtime import *; print('✓ All contracts importable')"
