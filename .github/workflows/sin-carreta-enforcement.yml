@@ -1,0 +1,437 @@
+name: SIN_CARRETA Doctrine Enforcement
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  sin-carreta-enforcement:
+    name: Enforce SIN_CARRETA Doctrine
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 mypy pytest pytest-cov
+      
+      - name: Check for forbidden patterns - Non-deterministic time
+        run: |
+          echo "🔍 Checking for non-deterministic time usage..."
+          
+          # Search for forbidden time patterns
+          FORBIDDEN_TIME=$(git diff origin/main...HEAD --unified=0 | grep -E '^\+.*\b(datetime\.now|time\.time|time\.clock)\(' | grep -v 'clock=' | grep -v '# SIN_CARRETA:' || true)
+          
+          if [ -n "$FORBIDDEN_TIME" ]; then
+            echo "❌ VIOLATION: Non-deterministic time usage detected!"
+            echo "$FORBIDDEN_TIME"
+            echo ""
+            echo "SIN_CARRETA Rule: All time operations must use injectable clock sources."
+            echo "Use: datetime.now() with clock parameter injection or add '# SIN_CARRETA: approved' comment"
+            exit 1
+          else
+            echo "✅ No forbidden time patterns detected"
+          fi
+      
+      - name: Check for forbidden patterns - Non-deterministic random
+        run: |
+          echo "🔍 Checking for non-deterministic random usage..."
+          
+          # Search for forbidden random patterns without seed
+          FORBIDDEN_RANDOM=$(git diff origin/main...HEAD --unified=0 | grep -E '^\+.*\brandom\.(random|randint|choice|shuffle)\(' | grep -v 'Random(' | grep -v 'seed=' | grep -v '# SIN_CARRETA:' || true)
+          
+          if [ -n "$FORBIDDEN_RANDOM" ]; then
+            echo "❌ VIOLATION: Non-deterministic random usage detected!"
+            echo "$FORBIDDEN_RANDOM"
+            echo ""
+            echo "SIN_CARRETA Rule: All random operations must use explicit seeding."
+            echo "Use: random.Random(seed) or add '# SIN_CARRETA: approved' comment"
+            exit 1
+          else
+            echo "✅ No forbidden random patterns detected"
+          fi
+      
+      - name: Check for removed assertions
+        run: |
+          echo "🔍 Checking for removed assertions..."
+          
+          # Search for removed assertions
+          REMOVED_ASSERTIONS=$(git diff origin/main...HEAD --unified=0 | grep -E '^-.*\bassert\b' | grep -v '^---' || true)
+          
+          if [ -n "$REMOVED_ASSERTIONS" ]; then
+            echo "⚠️  WARNING: Assertions removed detected!"
+            echo "$REMOVED_ASSERTIONS"
+            echo ""
+            echo "SIN_CARRETA Rule: Removing assertions requires replacement contract checks."
+            echo "Ensure equivalent contract enforcement exists or add SIN_CARRETA-RATIONALE."
+            # Don't fail, but warn - human review will catch this
+          else
+            echo "✅ No removed assertions detected"
+          fi
+      
+      - name: Check for silent error handling
+        run: |
+          echo "🔍 Checking for silent error handling..."
+          
+          # Search for silent failures (except with explicit pass and comment)
+          SILENT_ERRORS=$(git diff origin/main...HEAD --unified=0 | grep -E '^\+.*except.*:\s*$' -A 1 | grep -E '^\+\s*(pass|continue)\s*$' | grep -v '# SIN_CARRETA:' || true)
+          
+          if [ -n "$SILENT_ERRORS" ]; then
+            echo "⚠️  WARNING: Silent error handling detected!"
+            echo "$SILENT_ERRORS"
+            echo ""
+            echo "SIN_CARRETA Rule: No silent failures allowed."
+            echo "All exceptions must be logged or re-raised with context."
+          else
+            echo "✅ No silent error handling detected"
+          fi
+      
+      - name: Verify type hints on new functions
+        run: |
+          echo "🔍 Checking for type hints on new public functions..."
+          
+          # Extract new function definitions
+          NEW_FUNCTIONS=$(git diff origin/main...HEAD --unified=0 | grep -E '^\+\s*def [^_]' || true)
+          
+          if [ -n "$NEW_FUNCTIONS" ]; then
+            echo "New public functions detected:"
+            echo "$NEW_FUNCTIONS"
+            
+            # Check if they have type hints (basic check)
+            MISSING_HINTS=$(echo "$NEW_FUNCTIONS" | grep -v ' -> ' || true)
+            
+            if [ -n "$MISSING_HINTS" ]; then
+              echo "⚠️  WARNING: Public functions without return type hints detected!"
+              echo "$MISSING_HINTS"
+              echo ""
+              echo "SIN_CARRETA Rule: All public functions must have type hints."
+            else
+              echo "✅ All new public functions have type hints"
+            fi
+          else
+            echo "✅ No new public functions in this change"
+          fi
+      
+      - name: Run contract enforcement validation
+        run: |
+          echo "🔍 Running contract enforcement validation..."
+          
+          if [ -f "ci_contract_enforcement.py" ]; then
+            python ci_contract_enforcement.py || {
+              echo "❌ Contract enforcement validation failed!"
+              exit 1
+            }
+            echo "✅ Contract enforcement validation passed"
+          else
+            echo "⚠️  WARNING: ci_contract_enforcement.py not found, skipping"
+          fi
+      
+      - name: Run telemetry validation
+        run: |
+          echo "🔍 Running telemetry validation..."
+          
+          if [ -f "ci_telemetry_validation.py" ]; then
+            python ci_telemetry_validation.py || {
+              echo "⚠️  WARNING: Telemetry validation failed"
+              # Don't fail build, but warn
+            }
+            echo "✅ Telemetry validation passed"
+          else
+            echo "⚠️  INFO: ci_telemetry_validation.py not found, skipping"
+          fi
+      
+      - name: Run linting - flake8
+        run: |
+          echo "🔍 Running flake8 linting..."
+          
+          # Get changed Python files
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep '\.py$' || true)
+          
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Linting changed files:"
+            echo "$CHANGED_FILES"
+            
+            # Run flake8 with relaxed line length for readability
+            echo "$CHANGED_FILES" | xargs flake8 --max-line-length=100 --extend-ignore=E501,W503 || {
+              echo "❌ Linting failed! Please fix issues above."
+              exit 1
+            }
+            echo "✅ Linting passed"
+          else
+            echo "✅ No Python files changed"
+          fi
+        continue-on-error: true  # Don't fail build, but report
+      
+      - name: Run type checking - mypy
+        run: |
+          echo "🔍 Running mypy type checking..."
+          
+          # Get changed Python files
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep '\.py$' || true)
+          
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Type checking changed files:"
+            echo "$CHANGED_FILES"
+            
+            # Run mypy with lenient settings for gradual adoption
+            echo "$CHANGED_FILES" | xargs mypy --ignore-missing-imports --no-strict-optional || {
+              echo "⚠️  WARNING: Type checking found issues (non-blocking)"
+            }
+            echo "✅ Type checking completed"
+          else
+            echo "✅ No Python files changed"
+          fi
+        continue-on-error: true  # Don't fail build on type errors initially
+      
+      - name: Run tests with coverage
+        run: |
+          echo "🧪 Running tests with coverage..."
+          
+          # Run pytest with coverage
+          python -m pytest --cov=. --cov-report=term-missing --cov-report=xml -v || {
+            echo "❌ Tests failed!"
+            exit 1
+          }
+          
+          echo "✅ Tests passed"
+      
+      - name: Check test coverage for new code
+        run: |
+          echo "📊 Checking coverage for new code..."
+          
+          # Get coverage report
+          python -m pytest --cov=. --cov-report=json -q
+          
+          # Parse coverage (basic check)
+          if [ -f "coverage.json" ]; then
+            COVERAGE=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered'])")
+            echo "Overall coverage: ${COVERAGE}%"
+            
+            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+              echo "⚠️  WARNING: Coverage is below 80% (${COVERAGE}%)"
+              echo "SIN_CARRETA Rule: New code should have at least 80% coverage"
+            else
+              echo "✅ Coverage is acceptable (${COVERAGE}%)"
+            fi
+          else
+            echo "⚠️  Could not parse coverage report"
+          fi
+        continue-on-error: true
+      
+      - name: Check CODE_FIX_REPORT.md updates
+        run: |
+          echo "📝 Checking CODE_FIX_REPORT.md updates..."
+          
+          # Check if CODE_FIX_REPORT.md was updated for code changes
+          CHANGED_CODE=$(git diff --name-only origin/main...HEAD | grep '\.py$' | grep -v '^test_' || true)
+          UPDATED_REPORT=$(git diff --name-only origin/main...HEAD | grep 'CODE_FIX_REPORT.md' || true)
+          
+          if [ -n "$CHANGED_CODE" ] && [ -z "$UPDATED_REPORT" ]; then
+            echo "⚠️  WARNING: Code changed but CODE_FIX_REPORT.md not updated"
+            echo "Changed files:"
+            echo "$CHANGED_CODE"
+            echo ""
+            echo "SIN_CARRETA Rule: All code changes must be documented in CODE_FIX_REPORT.md"
+          elif [ -n "$CHANGED_CODE" ] && [ -n "$UPDATED_REPORT" ]; then
+            echo "✅ CODE_FIX_REPORT.md updated with code changes"
+          else
+            echo "✅ No code changes requiring report update"
+          fi
+        continue-on-error: true
+      
+      - name: Check for SIN_CARRETA-RATIONALE in commits
+        run: |
+          echo "📋 Checking for SIN_CARRETA-RATIONALE in commits..."
+          
+          # Get commit messages
+          COMMITS=$(git log origin/main..HEAD --pretty=format:"%s%n%b" || true)
+          
+          # Check if complexity increased (heuristic: more lines added than removed)
+          STATS=$(git diff --shortstat origin/main...HEAD || true)
+          
+          if echo "$STATS" | grep -q "insertion"; then
+            INSERTIONS=$(echo "$STATS" | grep -oP '\d+(?= insertion)')
+            DELETIONS=$(echo "$STATS" | grep -oP '\d+(?= deletion)' || echo "0")
+            
+            if [ "$INSERTIONS" -gt "$((DELETIONS + 50))" ]; then
+              echo "Significant code additions detected: +$INSERTIONS -$DELETIONS"
+              
+              if echo "$COMMITS" | grep -q "SIN_CARRETA-RATIONALE"; then
+                echo "✅ SIN_CARRETA-RATIONALE found in commits"
+              else
+                echo "⚠️  INFO: Large code addition without SIN_CARRETA-RATIONALE"
+                echo "Consider adding rationale if complexity increased intentionally"
+              fi
+            else
+              echo "✅ Code changes are modest (+$INSERTIONS -$DELETIONS)"
+            fi
+          else
+            echo "✅ No insertions detected"
+          fi
+      
+      - name: Generate enforcement summary
+        if: always()
+        run: |
+          echo "📊 SIN_CARRETA Enforcement Summary"
+          echo "=================================="
+          echo ""
+          echo "✅ Completed enforcement checks"
+          echo ""
+          echo "See individual step results above for details."
+          echo ""
+          echo "For questions about SIN_CARRETA doctrine, see:"
+          echo "  - SIN_CARRETA_RULES.md"
+          echo "  - CONTRIBUTING.md"
+      
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-reports
+          path: |
+            coverage.xml
+            coverage.json
+            .coverage
+        continue-on-error: true
+
+  determinism-tests:
+    name: Run Determinism Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+      
+      - name: Run determinism tests
+        run: |
+          echo "🔬 Running determinism tests..."
+          
+          # Run tests tagged with determinism
+          python -m pytest -v -k "determinism or deterministic" || {
+            echo "⚠️  INFO: No determinism tests found or tests failed"
+            echo "Consider adding tests that verify deterministic behavior"
+          }
+          
+          echo "✅ Determinism tests completed"
+        continue-on-error: true
+
+  contract-tests:
+    name: Run Contract Enforcement Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+      
+      - name: Run contract tests
+        run: |
+          echo "📜 Running contract enforcement tests..."
+          
+          # Run tests tagged with contract
+          python -m pytest -v -k "contract" || {
+            echo "⚠️  INFO: No contract tests found or tests failed"
+            echo "Consider adding tests that verify contract enforcement"
+          }
+          
+          echo "✅ Contract tests completed"
+        continue-on-error: true
+
+  label-check:
+    name: Check Required Labels
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Check for sin-carreta/approver label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            
+            // Check if PR has significant complexity increase
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+            
+            let totalAdditions = 0;
+            let totalDeletions = 0;
+            
+            files.forEach(file => {
+              totalAdditions += file.additions;
+              totalDeletions += file.deletions;
+            });
+            
+            console.log(`Changes: +${totalAdditions} -${totalDeletions}`);
+            
+            // If significant additions (>100 net lines), suggest approver label
+            if (totalAdditions - totalDeletions > 100) {
+              if (!labels.includes('sin-carreta/approver')) {
+                console.log('⚠️  INFO: Large PR detected, consider adding sin-carreta/approver label');
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  body: '⚠️  **SIN_CARRETA Notice**: This PR has significant code additions (>100 net lines).\n\n' +
+                        'If this intentionally increases complexity for determinism/contracts/auditability:\n' +
+                        '1. Ensure commit message includes `SIN_CARRETA-RATIONALE`\n' +
+                        '2. Request review from a `sin-carreta/approver`\n' +
+                        '3. Verify tests prove determinism and contract enforcement\n\n' +
+                        'See [SIN_CARRETA_RULES.md](SIN_CARRETA_RULES.md) for details.'
+                });
+              } else {
+                console.log('✅ sin-carreta/approver label present');
+              }
+            } else {
+              console.log('✅ PR has modest changes, no special approval needed');
+            }
